@@ -6,6 +6,7 @@ push S (push source onto stack)
 pop D (pop top of stack into dest)
 sub S D (subtract source from dest [d = d - s])
 lea S D (load effective address of source into dest)
+cmp S1 S2 (set condition codes according to S1-S2)
 
 
 Function calls:

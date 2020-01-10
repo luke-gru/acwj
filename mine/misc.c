@@ -12,7 +12,7 @@ void match(int t, char *what) {
   if (Token.token == t) {
     scan(&Token);
   } else {
-    printf("%s expected on line %d\n", what, Line);
+    fprintf(stderr, "%s expected on line %d\n", what, Line);
     exit(1);
   }
 }
@@ -22,9 +22,22 @@ void semi(void) {
   match(T_SEMI, ";");
 }
 
-// Match a semicon and fetch the next token
 void ident(void) {
   match(T_IDENT, "identifier");
+}
+
+void lbrace(void) {
+  match(T_LBRACE, "{");
+}
+void rbrace(void) {
+  match(T_RBRACE, "}");
+}
+
+void lparen(void) {
+  match(T_LPAREN, "(");
+}
+void rparen(void) {
+  match(T_RPAREN, ")");
 }
 
 // Print out fatal messages

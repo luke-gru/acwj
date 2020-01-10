@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+set -e
+set -x
+
+make compiler &&
+./bin/compiler $1 &&
+cc out.s &&
+./a.out

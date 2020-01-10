@@ -159,18 +159,48 @@ void cgglobsym(char *sym) {
   fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
 }
 
+// List of comparison instructions,
+// in AST order: A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
+static char *cmplist[] =
+  { "sete", "setne", "setl", "setg", "setle", "setge" };
+
 // Compare two registers.
-static int cgcompare(int r1, int r2, char *how) {
+int cgcompare_and_set(int ASTop, int r1, int r2) {
+  // Check the range of the AST operation
+  if (ASTop < A_EQ || ASTop > A_GE) {
+    fatal("Bad ASTop in cgcompare_and_set()");
+  }
+
   fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
-  fprintf(Outfile, "\t%s\t%s\n", how, breglist[r2]);
-  fprintf(Outfile, "\tandq\t$255,%s\n", reglist[r2]);
+  fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
+  fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
   free_register(r1);
   return (r2);
 }
 
-int cgequal(int r1, int r2) { return(cgcompare(r1, r2, "sete")); }
-int cgnotequal(int r1, int r2) { return(cgcompare(r1, r2, "setne")); }
-int cglessthan(int r1, int r2) { return(cgcompare(r1, r2, "setl")); }
-int cggreaterthan(int r1, int r2) { return(cgcompare(r1, r2, "setg")); }
-int cglessequal(int r1, int r2) { return(cgcompare(r1, r2, "setle")); }
-int cggreaterequal(int r1, int r2) { return(cgcompare(r1, r2, "setge")); }
+// Generate a label
+void cglabel(int l) {
+  fprintf(Outfile, "L%d:\n", l);
+}
+
+// Generate a jump to a label
+void cgjump(int l) {
+  fprintf(Outfile, "\tjmp\tL%d\n", l);
+}
+
+// List of inverted jump instructions,
+// in AST order: A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
+static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
+
+// Compare two registers and jump if false.
+int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
+
+  // Check the range of the AST operation
+  if (ASTop < A_EQ || ASTop > A_GE)
+    fatal("Bad ASTop in cgcompare_and_set()");
+
+  fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+  fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
+  freeall_registers();
+  return (NOREG);
+}

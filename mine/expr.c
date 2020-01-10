@@ -5,6 +5,33 @@
 // Parsing of expressions
 // Copyright (c) 2019 Warren Toomey, GPL3
 
+/*
+ compound_statement: '{' '}'          // empty, i.e. no statement
+      |      '{' statement '}'
+      |      '{' statement statements '}'
+      ;
+
+ statement: print_statement
+      |     declaration
+      |     assignment_statement
+      |     if_statement
+      ;
+
+ print_statement: 'print' expression ';'  ;
+
+ declaration: 'int' identifier ';'  ;
+
+ assignment_statement: identifier '=' expression ';'   ;
+
+ if_statement: if_head
+      |        if_head 'else' compound_statement
+      ;
+
+ if_head: 'if' '(' true_false_expression ')' compound_statement  ;
+
+ identifier: T_IDENT ;
+*/
+
 // Parse a primary factor and return an
 // AST node representing it.
 static struct ASTnode *primary(void) {
@@ -28,7 +55,8 @@ static struct ASTnode *primary(void) {
     break;
 
   default:
-    fatald("Syntax error, token", Token.token);
+    fprintf(stderr, "error here 0\n");
+    fatals("Syntax error, token", tokenname(Token.token));
   }
 
   // Scan in the next token and return the leaf node
@@ -42,7 +70,8 @@ static struct ASTnode *primary(void) {
 static int arithop(int tokentype) {
   if (tokentype > T_EOF && tokentype < T_INTLIT)
     return(tokentype);
-  fatald("Syntax error, token", tokentype);
+  fprintf(stderr, "error here 1\n");
+  fatals("Syntax error, token", tokenname(tokentype));
 }
 
 // Operator precedence for each token. Must
@@ -58,8 +87,10 @@ static int OpPrec[] = {
 // return its precedence.
 static int op_precedence(int tokentype) {
   int prec = OpPrec[tokentype];
-  if (prec == 0)
-    fatald("Syntax error, token", tokentype);
+  if (prec == 0) {
+    fprintf(stderr, "error here 2\n");
+    fatals("Syntax error, token", tokenname(tokentype));
+  }
   return (prec);
 }
 
@@ -73,9 +104,9 @@ struct ASTnode *binexpr(int ptp) {
   // Fetch the next token at the same time.
   left = primary();
 
-  // If we hit a semicolon, return just the left node
+  // If we hit a semicolon or ')', return just the left node
   tokentype = Token.token;
-  if (tokentype == T_SEMI)
+  if (tokentype == T_SEMI || tokentype == T_RPAREN)
     return (left);
 
   // While the precedence of this token is
@@ -90,12 +121,12 @@ struct ASTnode *binexpr(int ptp) {
 
     // Join that sub-tree with ours. Convert the token
     // into an AST operation at the same time.
-    left = mkastnode(arithop(tokentype), left, right, 0);
+    left = mkastnode(arithop(tokentype), left, NULL, right, 0);
 
     // Update the details of the current token.
-    // If we hit a semicolon, return just the left node
+    // If we hit a semicolon or ')', return just the left node
     tokentype = Token.token;
-    if (tokentype == T_SEMI)
+    if (tokentype == T_SEMI || tokentype == T_RPAREN)
       return (left);
   }
 

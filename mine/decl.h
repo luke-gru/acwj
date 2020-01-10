@@ -6,9 +6,10 @@
 
 // scan.c
 int scan(struct token *t);
+char *tokenname(int toktype);
 
 // tree.c
-struct ASTnode *mkastnode(int op, struct ASTnode *left,
+struct ASTnode *mkastnode(int op, struct ASTnode *left, struct ASTnode *mid,
 			  struct ASTnode *right, int intvalue);
 struct ASTnode *mkastleaf(int op, int intvalue);
 struct ASTnode *mkuastunary(int op, struct ASTnode *left, int intvalue);
@@ -16,7 +17,7 @@ struct ASTnode *binexpr(int n);
 int interpretAST(struct ASTnode *n);
 
 // gen.c
-int genAST(struct ASTnode *n, int reg);
+int genAST(struct ASTnode *n, int reg, int parentASTop);
 void genpreamble();
 void genpostamble();
 void genfreeregs();
@@ -36,20 +37,22 @@ void cgprintint(int r);
 int cgloadglob(char *identifier);
 int cgstorglob(int r, char *identifier);
 void cgglobsym(char *sym);
-int cgequal(int r1, int r2);
-int cgnotequal(int r1, int r2);
-int cglessthan(int r1, int r2);
-int cggreaterthan(int r1, int r2);
-int cglessequal(int r1, int r2);
-int cggreaterequal(int r1, int r2);
+int cgcompare_and_set(int ASTop, int r1, int r2);
+int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
+void cglabel(int l);
+void cgjump(int l);
 
 // stmt.c
-void statements(void);
+struct ASTnode *compound_statement(void);
 
 // misc.c
 void match(int t, char *what);
 void semi(void);
 void ident(void);
+void lbrace(void);
+void rbrace(void);
+void lparen(void);
+void rparen(void);
 void fatal(char *s);
 void fatals(char *s1, char *s2);
 void fatald(char *s, int d);
