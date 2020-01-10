@@ -12,7 +12,7 @@ char *toknames[] = {
   "T_INTLIT", "T_SEMI", "T_ASSIGN", "T_IDENT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN",
   // keywords
-  "T_PRINT", "T_INT", "T_IF", "T_ELSE",
+  "T_PRINT", "T_INT", "T_IF", "T_ELSE", "T_WHILE",
   NULL
 };
 
@@ -116,17 +116,21 @@ static int keyword(char *s) {
   switch (*s) {
     case 'e':
       if (!strcmp(s, "else"))
-	return (T_ELSE);
+        return (T_ELSE);
       break;
     case 'i':
       if (!strcmp(s, "if"))
-	return (T_IF);
+        return (T_IF);
       if (!strcmp(s, "int"))
-	return (T_INT);
+        return (T_INT);
       break;
     case 'p':
       if (!strcmp(s, "print"))
-	return (T_PRINT);
+        return (T_PRINT);
+      break;
+    case 'w':
+      if (!strcmp(s, "while"))
+        return (T_WHILE);
       break;
   }
   return (0);
@@ -175,33 +179,33 @@ int scan(struct token *t) {
       break;
     case '=':
       if ((c = next()) == '=') {
-	t->token = T_EQ;
+        t->token = T_EQ;
       } else {
-	putback(c);
-	t->token = T_ASSIGN;
+        putback(c);
+        t->token = T_ASSIGN;
       }
       break;
     case '!':
       if ((c = next()) == '=') {
-	t->token = T_NE;
+        t->token = T_NE;
       } else {
-	fatalc("Unrecognised character", c);
+        fatalc("Unrecognised character", c);
       }
       break;
     case '<':
       if ((c = next()) == '=') {
-	t->token = T_LE;
+        t->token = T_LE;
       } else {
-	putback(c);
-	t->token = T_LT;
+        putback(c);
+        t->token = T_LT;
       }
       break;
     case '>':
       if ((c = next()) == '=') {
-	t->token = T_GE;
+        t->token = T_GE;
       } else {
-	putback(c);
-	t->token = T_GT;
+        putback(c);
+        t->token = T_GT;
       }
       break;
     default:
@@ -209,21 +213,21 @@ int scan(struct token *t) {
       // If it's a digit, scan the
       // literal integer value in
       if (isdigit(c)) {
-	t->intvalue = scanint(c);
-	t->token = T_INTLIT;
-	break;
+        t->intvalue = scanint(c);
+        t->token = T_INTLIT;
+        break;
       } else if (isalpha(c) || '_' == c) {
-	// Read in a keyword or identifier
-	scanident(c, Text, TEXTLEN);
+        // Read in a keyword or identifier
+        scanident(c, Text, TEXTLEN);
 
-	// If it's a recognised keyword, return that token
-	if (tokentype = keyword(Text)) {
-	  t->token = tokentype;
-	  break;
-	}
-	// Not a recognised keyword, so it must be an identifier
-	t->token = T_IDENT;
-	break;
+        // If it's a recognised keyword, return that token
+        if (tokentype = keyword(Text)) {
+          t->token = tokentype;
+          break;
+        }
+        // Not a recognised keyword, so it must be an identifier
+        t->token = T_IDENT;
+        break;
       }
       // The character isn't part of any recognised token, error
       fatalc("Unrecognised character", c);
