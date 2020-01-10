@@ -1,0 +1,25 @@
+x86 Assembly syntax:
+===================
+
+mov S, D (move source to dest)
+push S (push source onto stack)
+pop D (pop top of stack into dest)
+sub S D (subtract source from dest [d = d - s])
+lea S D (load effective address of source into dest)
+
+
+Function calls:
+---------------
+callee-saved (callee must save these): %rbx, %rbp, %r12-r15
+
+To call a function, the program should place the first six integer or pointer parameters in the
+registers %rdi, %rsi, %rdx, %rcx, %r8, and %r9; subsequent parameters (or parameters
+larger than 64 bits) should be pushed onto the stack, with the first argument topmost
+If the function has a return value, it will be stored in %rax after the function call.
+
+ex:
+# Call foo(1, 15)
+movq $1, %rdi # Move 1 into %rdi
+Movq $15, %rsi # Move 15 into %rsi
+call foo # Push return address and jump to label foo
+
