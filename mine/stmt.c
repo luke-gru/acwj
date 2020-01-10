@@ -49,7 +49,7 @@ void assignment_statement(void) {
   right = mkastleaf(A_LVIDENT, id);
 
   // Ensure we have an equals sign
-  match(T_EQUALS, "=");
+  match(T_ASSIGN, "=");
 
   // Parse the following expression
   left = binexpr(0);
