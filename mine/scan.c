@@ -3,6 +3,8 @@
 #include "data.h"
 #include "decl.h"
 
+static struct token *Rejtoken = NULL;
+
 char *toknames[] = {
   "T_EOF",
   "T_PLUS", "T_MINUS",
@@ -12,7 +14,7 @@ char *toknames[] = {
   "T_INTLIT", "T_SEMI", "T_ASSIGN", "T_IDENT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN",
   // keywords
-  "T_PRINT", "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR",
+  "T_PRINT", "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR", "T_LONG", "T_RETURN",
   NULL
 };
 
@@ -52,7 +54,16 @@ static int next(void) {
 
 // Put back an unwanted character
 static void putback(int c) {
+  assert(!Putback);
   Putback = c;
+}
+
+// same as putback(), but API function for parser
+void reject_token(struct token *t) {
+  if (Rejtoken) {
+    fatal("Can't reject token twice");
+  }
+  Rejtoken = t;
 }
 
 // Skip past input that we don't need to deal with,
@@ -144,6 +155,14 @@ static int keyword(char *s) {
       if (!strcmp(s, "void"))
         return (T_VOID);
       break;
+    case 'l':
+      if (!strcmp(s, "long"))
+        return (T_LONG);
+      break;
+    case 'r':
+      if (!strcmp(s, "return"))
+        return (T_RETURN);
+      break;
   }
   return (0);
 }
@@ -152,6 +171,12 @@ static int keyword(char *s) {
 // Return 1 if token valid, 0 if no tokens left.
 int scan(struct token *t) {
   int c, tokentype;
+
+  if (Rejtoken) {
+    t = Rejtoken;
+    Rejtoken = NULL;
+    return (1);
+  }
 
   // Skip whitespace
   c = skip();

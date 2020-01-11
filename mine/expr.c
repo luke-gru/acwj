@@ -48,6 +48,13 @@ static struct ASTnode *primary(void) {
       n = mkastleaf(A_INTLIT, P_INT, Token.intvalue);
     break;
   case T_IDENT:
+    // This could be a variable or a function call.
+    // Scan in the next token to find out
+    scan(&Token);
+    // It's a '(', so a function call
+    if (Token.token == T_LPAREN)
+      return (funcall());
+    reject_token(&Token);
     // Check that this identifier exists
     id = findglob(Text);
     if (id == -1)
@@ -144,4 +151,30 @@ struct ASTnode *binexpr(int ptp) {
   // Return the tree we have when the precedence
   // is the same or lower
   return (left);
+}
+
+struct ASTnode *funcall(void) {
+  struct ASTnode *tree;
+  int id;
+
+  // Check that the identifier has been defined,
+  // then make a leaf node for it.
+  if ((id = findglob(Text)) == -1) {
+    fatals("Undeclared function", Text);
+  }
+  if (Gsym[id].stype != S_FUNCTION) {
+    fatals("Tried to call non-function", Text);
+  }
+  lparen();
+
+  // Parse the following expression
+  tree = binexpr(0);
+
+  // Build the function call AST node. Store the
+  // function's return type as this node's type.
+  // Also record the function's symbol-id
+  tree = mkuastunary(A_FUNCALL, Gsym[id].type, tree, id);
+
+  rparen();
+  return (tree);
 }

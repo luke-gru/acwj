@@ -7,13 +7,19 @@
 // scan.c
 int scan(struct token *t);
 char *tokenname(int toktype);
+void reject_token(struct token *t);
 
 // tree.c
 struct ASTnode *mkastnode(int op, int type, struct ASTnode *left, struct ASTnode *mid,
 			  struct ASTnode *right, int intvalue);
 struct ASTnode *mkastleaf(int op, int type, int intvalue);
 struct ASTnode *mkuastunary(int op, int type, struct ASTnode *left, int intvalue);
+
+// expr.c
 struct ASTnode *binexpr(int n);
+struct ASTnode *funcall(void);
+
+// interp.c (deprecated)
 int interpretAST(struct ASTnode *n);
 
 // gen.c
@@ -23,12 +29,13 @@ void genpostamble();
 void genfreeregs();
 void genprintint(int reg);
 void genglobsym(int slot);
+int  genprimsize(int ptype);
 
 // cg.c
 void freeall_registers(void);
 void cgpreamble(void);
-void cgfuncpreamble(char *name);
-void cgfuncpostamble();
+void cgfuncpreamble(int sym_id);
+void cgfuncpostamble(int sym_id);
 int cgloadint(int value);
 int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
@@ -43,6 +50,9 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
 void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);
+int cgprimsize(int ptype);
+int cgcall(int r, int func_sym);
+void cgreturn(int r, int func_sym);
 
 // stmt.c
 struct ASTnode *compound_statement(void);

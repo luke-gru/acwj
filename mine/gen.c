@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -84,9 +85,10 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   // We now have specific AST node handling at the top
   switch (n->op) {
     case A_FUNCTION:
-      cgfuncpreamble(Gsym[n->v.id].name);
+      cgfuncpreamble(n->v.id);
+      Gsym[n->v.id].endlabel = label();
       genAST(n->left, NOREG, n->op);
-      cgfuncpostamble();
+      cgfuncpostamble(n->v.id);
       return (NOREG);
     case A_IF:
       return (genIF(n));
@@ -145,11 +147,17 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     genprintint(leftreg);
     genfreeregs();
     return (NOREG);
+  case A_RETURN:
+    cgreturn(leftreg, Functionid);
+    return (NOREG);
+  case A_FUNCALL:
+    return (cgcall(leftreg, n->v.id));
   case A_WIDEN:
     return (cgwiden(leftreg, n->left->type, n->type));
   default:
     fatald("Unknown AST operator", n->op);
   }
+  assert(0);
 }
 
 void genpreamble() {
@@ -164,4 +172,8 @@ void genprintint(int reg) {
 
 void genglobsym(int slot) {
   cgglobsym(slot);
+}
+
+int genprimsize(int ptype) {
+  cgprimsize(ptype);
 }

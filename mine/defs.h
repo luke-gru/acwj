@@ -22,7 +22,7 @@ enum {
   T_INTLIT, T_SEMI, T_ASSIGN, T_IDENT,
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
   // keywords
-  T_PRINT, T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR,
+  T_PRINT, T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_RETURN,
   T_LAST // sentinel
 };
 
@@ -44,13 +44,13 @@ enum {
   A_INTLIT,
   A_IDENT, A_LVIDENT, A_ASSIGN, // end 1:1 mapping with T_*
   A_PRINT, A_GLUE, A_IF, A_WHILE,
-  A_FUNCTION,
+  A_FUNCTION, A_RETURN, A_FUNCALL,
   A_WIDEN, // widen types node
 };
 
 // Primitive types
 enum {
-    P_NONE, P_VOID, P_CHAR, P_INT
+    P_NONE, P_VOID, P_CHAR, P_INT, P_LONG
 };
 
 // Structural types
@@ -67,7 +67,7 @@ struct ASTnode {
   struct ASTnode *right;
   union {
     int intvalue;		// For A_INTLIT, the integer value
-    int id;			// For A_IDENT, the symbol slot number
+    int id;			// For A_IDENT or A_FUNCTION, the symbol slot number
   } v;
 };
 
@@ -76,6 +76,7 @@ struct symtable {
   char *name;			// Name of a symbol
   int type; // Primitive type
   int stype; // Structural type (function, variable)
+  int endlabel; // for S_FUNCTION, the label to right where it's about to return to caller
 };
 
 #define NOREG	-1		// Use NOREG when the AST generation

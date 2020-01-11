@@ -10,6 +10,7 @@
 static void init() {
   Line = 1;
   Putback = '\n';
+  Functionid = -1;
 }
 
 // Print out a usage if started incorrectly

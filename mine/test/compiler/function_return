@@ -1,0 +1,11 @@
+int fred() {
+  return (20);
+}
+
+void main() {
+  int result;
+  print 10;
+  result= fred(15);
+  print result;
+  print fred(15)+10;
+}
