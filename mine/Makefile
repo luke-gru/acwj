@@ -34,5 +34,6 @@ test_compiler: compiler
 	 ./bin/compiler  test/compiler/while; \
 	 ./bin/compiler  test/compiler/types; \
 	 ./bin/compiler  test/compiler/function_return; \
-	 ./bin/compiler  test/compiler/pointers)
+	 ./bin/compiler  test/compiler/pointers; \
+	 ./bin/compiler  test/compiler/global_decls)
 

@@ -14,6 +14,7 @@ char *toknames[] = {
   "T_INTLIT", "T_SEMI", "T_ASSIGN", "T_IDENT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN",
   "T_AMPER", "T_ANDAND",
+  "T_COMMA",
   // keywords
   "T_PRINT", "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR", "T_LONG", "T_RETURN",
   NULL
@@ -253,6 +254,9 @@ int scan(struct token *t) {
         putback(c);
         t->token = T_AMPER;
       }
+      break;
+    case ',':
+      t->token = T_COMMA;
       break;
     default:
       // If it's a digit, scan the

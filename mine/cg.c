@@ -88,6 +88,10 @@ void cgpreamble()
   Outfile);
 }
 
+void cgpostamble() {
+  (void)0; // do nothing
+}
+
 void cgfuncpreamble(int sym_id) {
   char *name = Gsym[sym_id].name;
   fprintf(Outfile,

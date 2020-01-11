@@ -11,6 +11,7 @@ static void init() {
   Line = 1;
   Putback = '\n';
   Functionid = -1;
+  addglob("printint", P_VOID, S_FUNCTION);
 }
 
 // Print out a usage if started incorrectly
@@ -45,12 +46,8 @@ void main(int argc, char *argv[]) {
   scan(&Token);			// Get the first token from the input
 
   genpreamble();		// Output the preamble
-  while (1) {
-    tree = function_declaration();	// Parse the function
-    genAST(tree, NOREG, 0);	// Generate the assembly code for it
-    if (Token.token == T_EOF)
-      break;
-  }
+  global_declarations();
+  genpostamble();
 
   fclose(Infile);
   fclose(Outfile);		// Close the output file and exit

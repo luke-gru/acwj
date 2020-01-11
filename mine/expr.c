@@ -65,7 +65,7 @@ static struct ASTnode *primary(void) {
     break;
 
   default:
-    fatals("Syntax error, token", tokenname(Token.token));
+    fatals("Syntax error in primary(), token", tokenname(Token.token));
   }
 
   // Scan in the next token and return the leaf node
@@ -79,7 +79,7 @@ static struct ASTnode *primary(void) {
 static int arithop(int tokentype) {
   if (tokentype > T_EOF && tokentype < T_INTLIT)
     return(tokentype);
-  fatals("Syntax error, token", tokenname(tokentype));
+  fatals("Syntax error in arithop(), token", tokenname(tokentype));
 }
 
 // Operator precedence for each token. Must
@@ -96,7 +96,7 @@ static int OpPrec[] = {
 static int op_precedence(int tokentype) {
   int prec = OpPrec[tokentype];
   if (prec == 0) {
-    fatals("Syntax error, token", tokenname(tokentype));
+    fatals("Syntax error in op_precedence(), token", tokenname(tokentype));
   }
   return (prec);
 }

@@ -194,12 +194,16 @@ static struct ASTnode *return_statement(void);
 // Parse a single statement
 // and return its AST
 static struct ASTnode *single_statement(void) {
+  int type;
   switch (Token.token) {
     case T_PRINT:
       return (print_statement());
     case T_INT:
     case T_CHAR:
-      var_declaration();
+    case T_LONG:
+      type = parse_type(Token.token);
+      ident();
+      var_declaration(type);
       return (NULL);		// No AST generated here
     case T_IDENT:
       return (assignment_statement());
@@ -212,7 +216,7 @@ static struct ASTnode *single_statement(void) {
     case T_RETURN:
       return (return_statement());
     default:
-      fatals("Syntax error, token", tokenname(Token.token));
+      fatals("Syntax error in single_statement(), token", tokenname(Token.token));
   }
 }
 
@@ -231,7 +235,7 @@ struct ASTnode *compound_statement(void) {
 
     // Some statements must be followed by a semicolon
     if (tree != NULL &&
-       (tree->op == A_PRINT || tree->op == A_ASSIGN || tree->op == A_RETURN))
+       (tree->op == A_PRINT || tree->op == A_ASSIGN || tree->op == A_RETURN || tree->op == A_FUNCALL))
       semi();
 
     // For each new tree, either save it in left

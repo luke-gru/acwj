@@ -35,6 +35,7 @@ int  genprimsize(int ptype);
 // cg.c
 void freeall_registers(void);
 void cgpreamble(void);
+void cgpostamble(void);
 void cgfuncpreamble(int sym_id);
 void cgfuncpostamble(int sym_id);
 int cgloadint(int value);
@@ -78,8 +79,10 @@ int findglob(char *s);
 int addglob(char *name, int ptype, int stype);
 
 // decl.c
-void var_declaration(void);
-struct ASTnode *function_declaration(void);
+void var_declaration(int type);
+struct ASTnode *function_declaration(int type);
+void global_declarations(void);
+int parse_type(int t);
 
 // types.c
 int type_compatible(int *left, int *right, int onlyright);

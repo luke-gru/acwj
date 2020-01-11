@@ -27,24 +27,32 @@ int parse_type(int t) {
   return (type);
 }
 
-// Parse the declaration of a variable
-void var_declaration(void) {
-  int id, type;
+// Parse the declaration of a global variable
+void var_declaration(int type) {
+  int id;
 
-  type = parse_type(Token.token);
-  ident();
-  id = addglob(Text, type, S_VARIABLE);
-  genglobsym(id);
-  semi();
+  // loop because we can declare multiple variables at a time. Ex: `int a, b, c;`
+  while (1) {
+    id = addglob(Text, type, S_VARIABLE);
+    genglobsym(id);
+
+    if (Token.token == T_SEMI) {
+      scan(&Token);
+      return;
+    }
+    if (Token.token == T_COMMA) {
+      scan(&Token);
+      ident();
+      continue;
+    }
+  }
+  fatal("Missing ',' or ';' after identifier");
 }
 
-struct ASTnode *function_declaration(void) {
-  int type;
+struct ASTnode *function_declaration(int type) {
   struct ASTnode *tree, *finalstmt;
   int nameslot;
 
-  type = parse_type(Token.token);
-  ident();
   nameslot = addglob(Text, type, S_FUNCTION);
   Functionid = nameslot; // set currently parsed/generated function
   lparen();
@@ -60,4 +68,26 @@ struct ASTnode *function_declaration(void) {
       fatal("No return for function with non-void type");
   }
   return (mkuastunary(A_FUNCTION, type, tree, nameslot));
+}
+
+void global_declarations(void) {
+  struct ASTnode *tree;
+  int type;
+
+  while (1) {
+    type = parse_type(Token.token);
+    ident();
+    if (Token.token == T_LPAREN) {
+      // Parse the function declaration and
+      // generate the assembly code for it
+      tree = function_declaration(type);
+      genAST(tree, NOREG, 0);
+    } else {
+      // Parse the global variable declaration
+      var_declaration(type);
+    }
+
+    if (Token.token == T_EOF)
+      break;
+  }
 }
