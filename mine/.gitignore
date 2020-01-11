@@ -1,3 +1,4 @@
-bin
+bin/*
+!bin/.gitignore
 out.s
 a.out

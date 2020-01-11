@@ -12,7 +12,7 @@ void match(int t, char *what) {
   if (Token.token == t) {
     scan(&Token);
   } else {
-    fprintf(stderr, "%s expected on line %d\n", what, Line);
+    fprintf(stderr, "%s expected on line %d, got: %s\n", what, Line, tokenname(Token.token));
     exit(1);
   }
 }

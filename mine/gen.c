@@ -154,6 +154,10 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     return (cgcall(leftreg, n->v.id));
   case A_WIDEN:
     return (cgwiden(leftreg, n->left->type, n->type));
+  case A_ADDR:
+    return (cgaddress(n->v.id));
+  case A_DEREF:
+    return (cgderef(leftreg, n->left->type));
   default:
     fatald("Unknown AST operator", n->op);
   }

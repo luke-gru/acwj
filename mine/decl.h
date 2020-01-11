@@ -18,6 +18,7 @@ struct ASTnode *mkuastunary(int op, int type, struct ASTnode *left, int intvalue
 // expr.c
 struct ASTnode *binexpr(int n);
 struct ASTnode *funcall(void);
+struct ASTnode *prefix(void);
 
 // interp.c (deprecated)
 int interpretAST(struct ASTnode *n);
@@ -53,6 +54,8 @@ int cgwiden(int r, int oldtype, int newtype);
 int cgprimsize(int ptype);
 int cgcall(int r, int func_sym);
 void cgreturn(int r, int func_sym);
+int cgaddress(int id);
+int cgderef(int r, int type);
 
 // stmt.c
 struct ASTnode *compound_statement(void);
@@ -80,5 +83,7 @@ struct ASTnode *function_declaration(void);
 
 // types.c
 int type_compatible(int *left, int *right, int onlyright);
+int pointer_to(int type);
+int value_at(int type);
 
 #endif

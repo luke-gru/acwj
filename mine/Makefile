@@ -8,7 +8,7 @@ compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c 
 	cc -o bin/compiler -g expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
 
 clean:
-	rm -f *.o bin/*
+	rm -f *.o bin/* a.out out.s
 
 test_scanner: scanner
 	-(./bin/scanner test/scanner/input01; \
@@ -32,4 +32,7 @@ test_compiler: compiler
 	 ./bin/compiler  test/compiler/printint; \
 	 ./bin/compiler  test/compiler/variables; \
 	 ./bin/compiler  test/compiler/while; \
-	 ./bin/compiler  test/compiler/types)
+	 ./bin/compiler  test/compiler/types; \
+	 ./bin/compiler  test/compiler/function_return; \
+	 ./bin/compiler  test/compiler/pointers)
+

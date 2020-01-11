@@ -21,6 +21,7 @@ enum {
   T_LT,T_GT, T_LE, T_GE,
   T_INTLIT, T_SEMI, T_ASSIGN, T_IDENT,
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
+  T_AMPER, T_ANDAND,
   // keywords
   T_PRINT, T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_RETURN,
   T_LAST // sentinel
@@ -46,11 +47,14 @@ enum {
   A_PRINT, A_GLUE, A_IF, A_WHILE,
   A_FUNCTION, A_RETURN, A_FUNCALL,
   A_WIDEN, // widen types node
+  A_ADDR, A_DEREF
 };
 
 // Primitive types
 enum {
-    P_NONE, P_VOID, P_CHAR, P_INT, P_LONG
+    P_NONE, P_VOID, P_CHAR, P_INT, P_LONG,
+    P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR,
+    P_LAST // sentinel value
 };
 
 // Structural types

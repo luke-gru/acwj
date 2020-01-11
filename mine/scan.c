@@ -13,6 +13,7 @@ char *toknames[] = {
   "T_LT", "T_GT", "T_LE", "T_GE",
   "T_INTLIT", "T_SEMI", "T_ASSIGN", "T_IDENT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN",
+  "T_AMPER", "T_ANDAND",
   // keywords
   "T_PRINT", "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR", "T_LONG", "T_RETURN",
   NULL
@@ -245,8 +246,15 @@ int scan(struct token *t) {
         t->token = T_GT;
       }
       break;
+    case '&':
+      if ((c = next()) == '&') {
+        t->token = T_ANDAND;
+      } else {
+        putback(c);
+        t->token = T_AMPER;
+      }
+      break;
     default:
-
       // If it's a digit, scan the
       // literal integer value in
       if (isdigit(c)) {

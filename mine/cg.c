@@ -6,6 +6,11 @@
 // Code generator for x86-64
 // Copyright (c) 2019 Warren Toomey, GPL3
 
+#define CHARSZ 1
+#define INTSZ 4
+#define LONGSZ 8
+#define PTRSIZE 8
+
 // List of available registers
 // and their names
 static int freereg[4];
@@ -14,8 +19,13 @@ static char *breglist[4] = { "%r8b", "%r9b", "%r10b", "%r11b" };
 static char *dreglist[4] = { "%r8d", "%r9d", "%r10d", "%r11d" };
 
 // Array of type sizes in P_XXX order.
-// 0 means no size. P_NONE, P_VOID, P_CHAR, P_INT, P_LONG
-static int psize[] = { 0,       0,      1,     4,     8 };
+// 0 means no size.
+static int psize[] = {
+  // P_NONE, P_VOID, P_CHAR, P_INT, P_LONG
+     0,       0,     CHARSZ, INTSZ, LONGSZ,
+  // P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR
+     PTRSIZE,   PTRSIZE,   PTRSIZE,  PTRSIZE
+};
 
 // Set all registers as available
 void freeall_registers(void)
@@ -162,12 +172,15 @@ int cgloadglob(int slot) {
   int type = Gsym[slot].type;
   switch (type) {
     case P_CHAR:
-      fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[slot].name, breglist[r]);
+      fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[slot].name, reglist[r]);
       break;
     case P_INT:
       fprintf(Outfile, "\tmovzbl\t%s(\%%rip), %s\n", Gsym[slot].name, dreglist[r]);
       break;
     case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
       fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[slot].name, reglist[r]);
       break;
     default:
@@ -187,7 +200,11 @@ int cgstorglob(int r, int slot) {
       fprintf(Outfile, "\tmovl\t%s, %s(\%%rip)\n", dreglist[r], Gsym[slot].name);
       break;
     case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
       fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[slot].name);
+      break;
     default:
       fatald("Bad type in cgstorglob:", type);
   }
@@ -257,7 +274,7 @@ int cgwiden(int r, int oldtype, int newtype) {
 
 int cgprimsize(int ptype) {
   // Check the type is valid
-  if (ptype < P_NONE || ptype > P_LONG)
+  if (ptype < P_NONE || ptype >= P_LAST)
     fatald("Bad type in cgprimsize()", ptype);
   return (psize[ptype]);
 }
@@ -289,3 +306,30 @@ void cgreturn(int reg, int sym_id) {
   }
   cgjump(Gsym[sym_id].endlabel);
 }
+
+// Generate code to load the address of a global
+// identifier into a variable. Return a new register
+int cgaddress(int slot) {
+  int r = alloc_register();
+
+  fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", Gsym[slot].name, reglist[r]);
+  return (r);
+}
+
+// Dereference a pointer to get the value it
+// pointing at into the same register
+int cgderef(int r, int type) {
+  switch (type) {
+    case P_CHARPTR:
+      fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
+      break;
+    case P_INTPTR:
+    case P_LONGPTR:
+      fprintf(Outfile, "\tmovq\t(%s), %s\n", reglist[r], reglist[r]);
+      break;
+    default:
+      fatald("Bad type in cgderef", type);
+  }
+  return (r);
+}
+

@@ -109,7 +109,7 @@ struct ASTnode *binexpr(int ptp) {
 
   // Get the primary tree on the left.
   // Fetch the next token at the same time.
-  left = primary();
+  left = prefix();
 
   // If we hit a semicolon or ')', return just the left node
   tokentype = Token.token;
@@ -176,5 +176,45 @@ struct ASTnode *funcall(void) {
   tree = mkuastunary(A_FUNCALL, Gsym[id].type, tree, id);
 
   rparen();
+  return (tree);
+}
+
+/**
+    prefix_expression: primary
+        | '*' prefix_expression
+        | '&' prefix_expression
+        ;
+ */
+struct ASTnode *prefix(void) {
+  struct ASTnode *tree;
+  switch (Token.token) {
+    case T_AMPER:
+      scan(&Token);
+      tree = prefix();
+
+      // Ensure that it's an identifier
+      if (tree->op != A_IDENT)
+        fatal("& operator must be followed by an identifier");
+
+      // Now change the operator to A_ADDR and the type to
+      // a pointer to the original type
+      tree->op = A_ADDR;
+      tree->type = pointer_to(tree->type);
+      break;
+    case T_STAR:
+      scan(&Token);
+      tree = prefix();
+      // For now, ensure it's either another deref or an
+      // identifier
+      if (tree->op != A_IDENT && tree->op != A_DEREF)
+        fatal("* operator must be followed by an identifier or *");
+
+      // Prepend an A_DEREF operation to the tree
+      tree = mkuastunary(A_DEREF, value_at(tree->type), tree, 0);
+      break;
+    default:
+      tree = primary();
+      break;
+  }
   return (tree);
 }

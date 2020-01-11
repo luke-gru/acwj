@@ -8,11 +8,23 @@
 // Parse the current token and
 // return a primitive type enum value
 int parse_type(int t) {
-  if (t == T_CHAR) return (P_CHAR);
-  if (t == T_INT)  return (P_INT);
-  if (t == T_LONG) return (P_LONG);
-  if (t == T_VOID) return (P_VOID);
-  fatals("Illegal type, token", tokenname(t));
+  int type = P_NONE;
+  if (t == T_CHAR) type = P_CHAR;
+  if (t == T_INT)  type = P_INT;
+  if (t == T_LONG) type = P_LONG;
+  if (t == T_VOID) type = P_VOID;
+  if (type == P_NONE)
+    fatals("Illegal type, token", tokenname(t));
+
+  while (1) {
+    scan(&Token);
+    if (Token.token != T_STAR) {
+      break;
+    }
+    type = pointer_to(type);
+  }
+
+  return (type);
 }
 
 // Parse the declaration of a variable
@@ -20,7 +32,6 @@ void var_declaration(void) {
   int id, type;
 
   type = parse_type(Token.token);
-  scan(&Token);
   ident();
   id = addglob(Text, type, S_VARIABLE);
   genglobsym(id);
@@ -33,7 +44,6 @@ struct ASTnode *function_declaration(void) {
   int nameslot;
 
   type = parse_type(Token.token);
-  scan(&Token);
   ident();
   nameslot = addglob(Text, type, S_FUNCTION);
   Functionid = nameslot; // set currently parsed/generated function
