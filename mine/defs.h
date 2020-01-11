@@ -22,7 +22,7 @@ enum {
   T_INTLIT, T_SEMI, T_ASSIGN, T_IDENT,
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
   // keywords
-  T_PRINT, T_INT, T_IF, T_ELSE, T_WHILE,
+  T_PRINT, T_INT, T_IF, T_ELSE, T_WHILE, T_FOR,
   T_LAST // sentinel
 };
 
