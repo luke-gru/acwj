@@ -57,6 +57,7 @@ int cgcall(int r, int func_sym);
 void cgreturn(int r, int func_sym);
 int cgaddress(int id);
 int cgderef(int r, int type);
+int cgshlconst(int r, int val);
 
 // stmt.c
 struct ASTnode *compound_statement(void);
@@ -71,6 +72,7 @@ void lparen(void);
 void rparen(void);
 void fatal(char *s);
 void fatals(char *s1, char *s2);
+void fatalv(const char *fmt, ...);
 void fatald(char *s, int d);
 void fatalc(char *s, int c);
 
@@ -85,8 +87,10 @@ void global_declarations(void);
 int parse_type(int t);
 
 // types.c
-int type_compatible(int *left, int *right, int onlyright);
-int pointer_to(int type);
-int value_at(int type);
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
+int pointer_to(int ptype);
+int value_at(int ptype);
+const char *typename(int ptype);
+
 
 #endif

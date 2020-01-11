@@ -219,7 +219,20 @@ int cgstorglob(int r, int slot) {
 void cgglobsym(int slot) {
   int type = Gsym[slot].type;
   int typesize = cgprimsize(Gsym[slot].type);
-  fprintf(Outfile, "\t.comm\t%s,%d,%d\n", Gsym[slot].name, typesize, typesize);
+  fprintf(Outfile, "\t.data\n" "\t.globl\t%s\n", Gsym[slot].name);
+  switch(typesize) {
+    case 1:
+      fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[slot].name);
+      break;
+    case 4:
+      fprintf(Outfile, "%s:\t.long\t0\n", Gsym[slot].name);
+      break;
+    case 8:
+      fprintf(Outfile, "%s:\t.quad\t0\n", Gsym[slot].name);
+      break;
+    default:
+      fatald("Unknown typesize in cgglobsym: ", typesize);
+  }
 }
 
 // List of comparison instructions,
@@ -337,3 +350,8 @@ int cgderef(int r, int type) {
   return (r);
 }
 
+// Shift a register left by a constant
+int cgshlconst(int r, int val) {
+  fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);
+  return(r);
+}

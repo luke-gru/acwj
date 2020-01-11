@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -12,8 +13,7 @@ void match(int t, char *what) {
   if (Token.token == t) {
     scan(&Token);
   } else {
-    fprintf(stderr, "%s expected on line %d, got: %s\n", what, Line, tokenname(Token.token));
-    exit(1);
+    fatalv("%s expected on line %d, got: %s", what, Line, tokenname(Token.token));
   }
 }
 
@@ -42,21 +42,28 @@ void rparen(void) {
 
 // Print out fatal messages
 void fatal(char *s) {
-  fprintf(stderr, "%s on line %d\n", s, Line);
-  exit(1);
+  fatalv("%s on line %d", s, Line);
 }
 
 void fatals(char *s1, char *s2) {
-  fprintf(stderr, "%s:%s on line %d\n", s1, s2, Line);
-  exit(1);
+  fatalv("%s:%s on line %d", s1, s2, Line);
 }
 
 void fatald(char *s, int d) {
-  fprintf(stderr, "%s:%d on line %d\n", s, d, Line);
-  exit(1);
+  fatalv("%s:%d on line %d", s, d, Line);
 }
 
 void fatalc(char *s, int c) {
-  fprintf(stderr, "%s:%c on line %d\n", s, c, Line);
+  fatalv("%s:%c on line %d", s, c, Line);
+}
+
+void fatalv(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
+  if (fmt[strlen(fmt)-1] != '\n') {
+    fprintf(stderr, "%s", "\n");
+  }
   exit(1);
 }

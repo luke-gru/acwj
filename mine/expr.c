@@ -105,6 +105,8 @@ static int op_precedence(int tokentype) {
 // Parameter ptp is the previous token's precedence.
 struct ASTnode *binexpr(int ptp) {
   struct ASTnode *left, *right;
+  struct ASTnode *ltemp, *rtemp;
+  int ASTop;
   int tokentype;
 
   // Get the primary tree on the left.
@@ -126,20 +128,19 @@ struct ASTnode *binexpr(int ptp) {
     // precedence of our token to build a sub-tree
     right = binexpr(OpPrec[tokentype]);
 
-    int lefttype = left->type;
-    int righttype = right->type;
-    if (!type_compatible(&lefttype, &righttype, 0))
-      fatal("Incompatible types"); // TODO: better message
+    ASTop = arithop(tokentype);
+    ltemp = modify_type(left, right->type, ASTop);
+    rtemp = modify_type(right, left->type, ASTop);
 
-    if (lefttype) // A_WIDEN
-      left = mkuastunary(A_WIDEN, right->type, left, 0);
-    if (righttype) // A_WIDEN
-      right = mkuastunary(A_WIDEN, left->type, right, 0);
+    if (ltemp == NULL && rtemp == NULL)
+      fatalv("Incompatible types %s and %s in binary expression", typename(left->type), typename(right->type));
+
+    if (ltemp != NULL) left = ltemp;
+    if (rtemp != NULL) right = rtemp;
 
     // Join that sub-tree with ours. Convert the token
     // into an AST operation at the same time.
-    left = mkastnode(arithop(tokentype), left->type, left, NULL, right, 0);
-
+    left = mkastnode(ASTop, left->type, left, NULL, right, 0);
 
     // Update the details of the current token.
     // If we hit a semicolon or ')', return just the left node

@@ -154,6 +154,17 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     return (cgcall(leftreg, n->v.id));
   case A_WIDEN:
     return (cgwiden(leftreg, n->left->type, n->type));
+  case A_SCALE:
+    // Small optimisation: use shift if the
+    // scale value is a known power of two
+    switch (n->v.size) {
+      case 2: return (cgshlconst(leftreg, 1));
+      case 4: return (cgshlconst(leftreg, 2));
+      case 8: return (cgshlconst(leftreg, 3));
+      default:
+        rightreg = cgloadint(n->v.size);
+        return (cgmul(leftreg, rightreg));
+    }
   case A_ADDR:
     return (cgaddress(n->v.id));
   case A_DEREF:

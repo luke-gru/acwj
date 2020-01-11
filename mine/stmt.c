@@ -45,12 +45,9 @@ static struct ASTnode *print_statement(void) {
   // Parse the following expression
   tree = binexpr(0);
 
-  lefttype = P_INT; righttype = tree->type;
-  if (!type_compatible(&lefttype, &righttype, 0))
+  tree = modify_type(tree, P_INT, 0);
+  if (tree == NULL)
     fatal("Incompatible types"); // TODO: better message
-
-  if (righttype) // A_WIDEN
-    tree = mkuastunary(A_WIDEN, P_INT, tree, 0);
 
   // Make an print AST tree
   tree = mkuastunary(A_PRINT, P_NONE, tree, 0);
@@ -82,14 +79,9 @@ static struct ASTnode *assignment_statement(void) {
   // Parse the following expression
   left = binexpr(0);
 
-  int lefttype = left->type;
-  int righttype = right->type;
-  if (!type_compatible(&lefttype, &righttype, 1))
+  left = modify_type(left, right->type, 0);
+  if (left == NULL)
     fatal("Incompatible types"); // TODO: better message
-
-  // Widen the left if required.
-  if (lefttype)
-    left = mkuastunary(A_WIDEN, right->type, left, 0);
 
   // Make an assignment AST tree
   tree = mkastnode(A_ASSIGN, P_INT, left, NULL, right, 0);
@@ -274,15 +266,9 @@ static struct ASTnode *return_statement(void) {
   // Parse the following expression
   tree = binexpr(0);
 
-  // Ensure this is compatible with the function's type
-  returntype = tree->type;
-  functype = Gsym[Functionid].type;
-  if (!type_compatible(&returntype, &functype, 1))
+  tree = modify_type(tree, Gsym[Functionid].type, 0);
+  if (tree == NULL)
     fatal("Incompatible types from return"); // TODO: better message
-
-  // Widen the left if required.
-  if (returntype)
-    tree = mkuastunary(A_WIDEN, functype, tree, 0);
 
   // Add on the A_RETURN node
   tree = mkuastunary(A_RETURN, P_NONE, tree, 0);

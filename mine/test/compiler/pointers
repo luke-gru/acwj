@@ -8,7 +8,8 @@ int main() {
 
   a= 18;
   print a;
-  b= &a; c= *b;
+  b= &a;
+  c= *b;
   print c;
 
   d= 12;
@@ -16,6 +17,5 @@ int main() {
   e= &d;
   f= *e;
   print f;
-  print e;
   return (0);
 }

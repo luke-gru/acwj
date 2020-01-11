@@ -47,7 +47,7 @@ enum {
   A_IDENT, A_LVIDENT, A_ASSIGN, // end 1:1 mapping with T_*
   A_PRINT, A_GLUE, A_IF, A_WHILE,
   A_FUNCTION, A_RETURN, A_FUNCALL,
-  A_WIDEN, // widen types node
+  A_WIDEN, A_SCALE,
   A_ADDR, A_DEREF
 };
 
@@ -73,6 +73,7 @@ struct ASTnode {
   union {
     int intvalue;		// For A_INTLIT, the integer value
     int id;			// For A_IDENT or A_FUNCTION, the symbol slot number
+    int size;                   // For A_SCALE, the size to scale by
   } v;
 };
 
