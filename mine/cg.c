@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -150,24 +151,49 @@ void cgprintint(int r) {
 
 // Load a value from a variable into a register.
 // Return the number of the register
-int cgloadglob(char *identifier) {
+int cgloadglob(int slot) {
   // Get a new register
   int r = alloc_register();
-
-  // Print out the code to initialise it
-  fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", identifier, reglist[r]);
+  int type = Gsym[slot].type;
+  switch (type) {
+    case P_INT:
+      fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[slot].name, reglist[r]);
+      break;
+    case P_CHAR:
+      fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[slot].name, reglist[r]);
+      break;
+    default:
+      assert(0);
+  }
   return (r);
 }
 
 // Store a register's value into a variable
-int cgstorglob(int r, char *identifier) {
-  fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], identifier);
+int cgstorglob(int r, int slot) {
+  int type = Gsym[slot].type;
+  switch (type) {
+    case P_INT:
+      fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[slot].name);
+      break;
+    case P_CHAR:
+      fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r], Gsym[slot].name);
+      break;
+    default:
+      assert(0);
+  }
   return (r);
 }
 
 // Generate a global symbol
-void cgglobsym(char *sym) {
-  fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
+void cgglobsym(int slot) {
+  int type = Gsym[slot].type;
+  if (type == P_INT) {
+    fprintf(Outfile, "\t.comm\t%s,8,8\n", Gsym[slot].name);
+  } else if (type == P_CHAR) {
+    fprintf(Outfile, "\t.comm\t%s,1,1\n", Gsym[slot].name);
+  } else {
+    assert(0);
+  }
 }
 
 // List of comparison instructions,
@@ -214,4 +240,12 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
   fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
   freeall_registers();
   return (NOREG);
+}
+
+// Widen the value in the register from the old
+// to the new type, and return a register with
+// this new value
+int cgwiden(int r, int oldtype, int newtype) {
+  // Nothing to do
+  return (r);
 }

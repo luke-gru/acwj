@@ -36,8 +36,12 @@ void main(int argc, char *argv[]) {
     exit(1);
   }
 
-  scan(&Token);			// Get the first token from the input
-  n = binexpr(0);		// Parse the expression in the file
-  printf("%d\n", interpretAST(n));	// Calculate the final result
+  while (1) {
+    scan(&Token);			// Get the first token from the input
+    n = function_declaration();		// Parse the expression in the file
+    if (Token.token == T_EOF)
+      break;
+  }
+  fclose(Infile);
   exit(0);
 }

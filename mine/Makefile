@@ -1,12 +1,11 @@
-scanner: scanner_main.c scan.c
-	cc -o bin/scanner -g scanner_main.c scan.c
+scanner: scanner_main.c scan.c misc.c
+	cc -o bin/scanner -g scanner_main.c scan.c misc.c
 
-parser: expr.c interp.c parser_main.c scan.c tree.c
-	cc -o bin/parser -g expr.c interp.c parser_main.c scan.c tree.c
+parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
+	cc -o bin/parser -g expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
 
-compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c
-	cc -o bin/compiler -g expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c
-
+compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
+	cc -o bin/compiler -g expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
 
 clean:
 	rm -f *.o bin/*
@@ -32,4 +31,5 @@ test_compiler: compiler
 	 ./bin/compiler  test/compiler/main_function; \
 	 ./bin/compiler  test/compiler/printint; \
 	 ./bin/compiler  test/compiler/variables; \
-	 ./bin/compiler  test/compiler/while)
+	 ./bin/compiler  test/compiler/while; \
+	 ./bin/compiler  test/compiler/types)

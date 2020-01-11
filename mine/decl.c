@@ -5,17 +5,24 @@
 // Parsing of declarations
 // Copyright (c) 2019 Warren Toomey, GPL3
 
+// Parse the current token and
+// return a primitive type enum value
+int parse_type(int t) {
+  if (t == T_CHAR) return (P_CHAR);
+  if (t == T_INT)  return (P_INT);
+  if (t == T_VOID) return (P_VOID);
+  fatals("Illegal type, token", tokenname(t));
+}
 
 // Parse the declaration of a variable
 void var_declaration(void) {
+  int id, type;
 
-  // Ensure we have an 'int' token followed by an identifier
-  // and a semicolon. Text now has the identifier's name.
-  // Add it as a known identifier
-  match(T_INT, "int");
+  type = parse_type(Token.token);
+  scan(&Token);
   ident();
-  addglob(Text);
-  genglobsym(Text);
+  id = addglob(Text, type, S_VARIABLE);
+  genglobsym(id);
   semi();
 }
 
@@ -25,10 +32,10 @@ struct ASTnode *function_declaration(void) {
 
   match(T_VOID, "void");
   ident();
-  nameslot = addglob(Text);
+  nameslot = addglob(Text, P_VOID, S_FUNCTION);
   lparen();
   rparen();
 
   tree = compound_statement();
-  return (mkuastunary(A_FUNCTION, tree, nameslot));
+  return (mkuastunary(A_FUNCTION, P_VOID, tree, nameslot));
 }

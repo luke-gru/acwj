@@ -12,7 +12,7 @@ char *toknames[] = {
   "T_INTLIT", "T_SEMI", "T_ASSIGN", "T_IDENT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN",
   // keywords
-  "T_PRINT", "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID",
+  "T_PRINT", "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR",
   NULL
 };
 
@@ -123,6 +123,10 @@ static int keyword(char *s) {
         return (T_IF);
       if (!strcmp(s, "int"))
         return (T_INT);
+      break;
+    case 'c':
+      if (!strcmp(s, "char"))
+        return (T_CHAR);
       break;
     case 'p':
       if (!strcmp(s, "print"))

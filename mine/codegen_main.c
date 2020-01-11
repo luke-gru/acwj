@@ -51,6 +51,7 @@ void main(int argc, char *argv[]) {
       break;
   }
 
+  fclose(Infile);
   fclose(Outfile);		// Close the output file and exit
   exit(0);
 }
