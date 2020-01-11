@@ -11,6 +11,13 @@ compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c 
 clean:
 	rm -f *.o bin/*
 
+test_scanner: scanner
+	-(./bin/scanner test/scanner/input01; \
+	 ./bin/scanner  test/scanner/input02; \
+	 ./bin/scanner  test/scanner/input03; \
+	 ./bin/scanner  test/scanner/input04; \
+	 ./bin/scanner  test/scanner/input05)
+
 test_parser: parser
 	-(./bin/parser test/parser/input01; \
 	 ./bin/parser  test/parser/input02; \
@@ -18,9 +25,11 @@ test_parser: parser
 	 ./bin/parser  test/parser/input04; \
 	 ./bin/parser  test/parser/input05)
 
-test_scanner: scanner
-	-(./bin/scanner test/scanner/input01; \
-	 ./bin/scanner  test/scanner/input02; \
-	 ./bin/scanner  test/scanner/input03; \
-	 ./bin/scanner  test/scanner/input04; \
-	 ./bin/scanner  test/scanner/input05)
+test_compiler: compiler
+	-(./bin/compiler test/compiler/comparisons; \
+	 ./bin/compiler  test/compiler/for_loop; \
+	 ./bin/compiler  test/compiler/if; \
+	 ./bin/compiler  test/compiler/main_function; \
+	 ./bin/compiler  test/compiler/printint; \
+	 ./bin/compiler  test/compiler/variables; \
+	 ./bin/compiler  test/compiler/while)
