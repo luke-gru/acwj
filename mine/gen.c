@@ -185,9 +185,9 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     }
   case A_STRLIT:
     return (cgloadglobstr(n->v.id));
-    break;
   default:
-    fatald("Unknown AST operator", n->op);
+    assert(n->op < A_LAST);
+    fatald("Unknown AST operator in genAST", n->op);
   }
   assert(0);
 }

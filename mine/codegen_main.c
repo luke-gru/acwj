@@ -13,7 +13,7 @@ static void init() {
   Functionid = -1;
   addglob("printint", P_VOID, S_FUNCTION, 0);
   addglob("printchar", P_VOID, S_FUNCTION, 0);
-  O_dumpAST = 0;
+  O_dumpAST = 0; // when set to 1, so is O_parseOnly
   O_parseOnly = 0;
 }
 
@@ -41,6 +41,7 @@ void main(int argc, char *argv[]) {
       switch (argv[i][j]) {
         case 'T':
           O_dumpAST = 1;
+          O_parseOnly = 1;
           break;
         default:
           fprintf(stderr, "Invalid option: %c\n", argv[i][j]);

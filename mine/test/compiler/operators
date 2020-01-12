@@ -1,0 +1,9 @@
+int printf() { return(0); }
+
+int main() {
+  int a, b, x;
+  a = b = 10;
+  x = a + b;
+  if (x) { printf("x is not zero\n"); }
+  return(0);
+}

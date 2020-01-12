@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -109,8 +110,14 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_LE\n"); return;
     case A_GE:
       fprintf(stdout, "A_GE\n"); return;
+    case A_LSHIFT:
+      fprintf(stdout, "A_LSHIFT\n"); return;
+    case A_RSHIFT:
+      fprintf(stdout, "A_RSHIFT\n"); return;
     case A_INTLIT:
       fprintf(stdout, "A_INTLIT %d\n", n->v.intvalue); return;
+    case A_STRLIT:
+      fprintf(stdout, "A_STRLIT (asm label %d)\n", n->v.id); return;
     case A_IDENT:
       if (n->rvalue)
         fprintf(stdout, "A_IDENT rval %s\n", Gsym[n->v.id].name);
@@ -119,6 +126,16 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       return;
     case A_ASSIGN:
       fprintf(stdout, "A_ASSIGN\n"); return;
+    case A_LOGOR:
+      fprintf(stdout, "A_LOGOR\n"); return;
+    case A_LOGAND:
+      fprintf(stdout, "A_LOGOR\n"); return;
+    case A_BITOR:
+      fprintf(stdout, "A_BITOR\n"); return;
+    case A_BITXOR:
+      fprintf(stdout, "A_BITXOR\n"); return;
+    case A_AND:
+      fprintf(stdout, "A_AND\n"); return;
     case A_WIDEN:
       fprintf(stdout, "A_WIDEN\n"); return;
     case A_RETURN:
@@ -135,7 +152,24 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       return;
     case A_SCALE:
       fprintf(stdout, "A_SCALE %d\n", n->v.size); return;
+    case A_PREINC:
+      fprintf(stdout, "A_PREINC\n"); return;
+    case A_PREDEC:
+      fprintf(stdout, "A_PREDEC\n"); return;
+    case A_POSTINC:
+      fprintf(stdout, "A_POSTINC %s\n", Gsym[n->v.id].name); return;
+    case A_POSTDEC:
+      fprintf(stdout, "A_POSTDEC %s\n", Gsym[n->v.id].name); return;
+    case A_NEGATE:
+      fprintf(stdout, "A_NEGATE\n"); return;
+    case A_INVERT:
+      fprintf(stdout, "A_INVERT\n"); return;
+    case A_LOGNOT:
+      fprintf(stdout, "A_LOGNOT\n"); return;
+    case A_TOBOOL:
+      fprintf(stdout, "A_TOBOOL\n"); return;
     default:
-      fatald("Unknown dumpAST operator", n->op);
+      assert(n->op < A_LAST);
+      fatald("Unknown dumpAST AST node operator", n->op);
   }
 }

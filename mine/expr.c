@@ -6,6 +6,89 @@
 // Parsing of expressions
 // Copyright (c) 2019 Warren Toomey, GPL3
 
+/**
+ *
+  primary_expression
+          : T_IDENT
+          | T_INTLIT
+          | T_STRLIT
+          | '(' expression ')'
+          ;
+
+  postfix_expression
+          : primary_expression
+          | postfix_expression '[' expression ']'
+          | postfix_expression '(' expression ')'
+          | postfix_expression '++'
+          | postfix_expression '--'
+          ;
+
+  prefix_expression
+          : postfix_expression
+          | '++' prefix_expression
+          | '--' prefix_expression
+          | prefix_operator prefix_expression
+          ;
+
+  prefix_operator
+          : '&'
+          | '*'
+          | '-'
+          | '~'
+          | '!'
+          ;
+
+  multiplicative_expression
+          : prefix_expression
+          | multiplicative_expression '*' prefix_expression
+          | multiplicative_expression '/' prefix_expression
+          | multiplicative_expression '%' prefix_expression
+          ;
+*/
+
+static struct ASTnode *array_access(void);
+
+// Parse a postfix expression and return an AST node representing it.
+// The identifier is already in Text.
+static struct ASTnode *postfix(void) {
+  struct ASTnode *n;
+  int id;
+
+  // Scan in the next token to see if we have a postfix expression
+  scan(&Token);
+
+  // Function call
+  if (Token.token == T_LPAREN)
+    return (funcall());
+
+  // An array reference
+  if (Token.token == T_LBRACKET)
+    return (array_access());
+
+  // A variable. Check that the variable exists.
+  id = findglob(Text);
+  if (id == -1 || Gsym[id].stype != S_VARIABLE)
+    fatals("Unknown variable", Text);
+
+  switch (Token.token) {
+      // Post-increment: skip over the token
+    case T_INC:
+      scan(&Token);
+      n = mkastleaf(A_POSTINC, Gsym[id].type, id);
+      break;
+      // Post-decrement: skip over the token
+    case T_DEC:
+      scan(&Token);
+      n = mkastleaf(A_POSTDEC, Gsym[id].type, id);
+      break;
+      // Just a variable reference
+    default:
+      n = mkastleaf(A_IDENT, Gsym[id].type, id);
+      break;
+  }
+  return (n);
+}
+
 // Only deals with array access after an identifier (variable). Ex: `print(a[4]);`
 // current token is '[', the identifier has been scanned.
 static struct ASTnode *array_access(void) {
@@ -70,25 +153,7 @@ static struct ASTnode *primary(void) {
     }
     break;
   case T_IDENT:
-    // This could be a variable or a function call.
-    // Scan in the next token to find out
-    scan(&Token);
-    // It's a '(', so a function call
-    if (Token.token == T_LPAREN) {
-      return (funcall());
-    }
-    if (Token.token == T_LBRACKET) {
-      return array_access();
-    }
-    reject_token(&Token);
-    // Check that this identifier exists
-    id = findglob(Text);
-    if (id == -1) {
-      fatals("Unknown variable", Text);
-    }
-
-    // Make a leaf AST node for it
-    n = mkastleaf(A_IDENT, Gsym[id].type, id);
+    return (postfix());
     break;
   case T_LPAREN:
     scan(&Token);
@@ -250,8 +315,13 @@ struct ASTnode *funcall(void) {
 
 /**
     prefix_expression: primary
-        | '*' prefix_expression
-        | '&' prefix_expression
+        | '*'  prefix_expression
+        | '&'  prefix_expression
+        | '-'  prefix_expression
+        | '~'  prefix_expression
+        | '!'  prefix_expression
+        | '++' prefix_expression
+        | '--' prefix_expression
         ;
  */
 struct ASTnode *prefix(void) {
@@ -280,6 +350,63 @@ struct ASTnode *prefix(void) {
 
       // Prepend an A_DEREF operation to the tree
       tree = mkuastunary(A_DEREF, value_at(tree->type), tree, 0);
+      break;
+    case T_MINUS:
+      scan(&Token);
+      tree = prefix();
+      // Prepend a A_NEGATE operation to the tree and
+      // make the child an rvalue. Because chars are unsigned,
+      // also widen this to int so that it's signed
+      tree->rvalue = 1;
+      tree = modify_type(tree, P_INT, 0);
+      tree = mkuastunary(A_NEGATE, tree->type, tree, 0);
+      break;
+    case T_INVERT:
+      // Get the next token and parse it
+      // recursively as a prefix expression
+      scan(&Token);
+      tree = prefix();
+
+      // Prepend a A_INVERT operation to the tree and
+      // make the child an rvalue.
+      tree->rvalue = 1;
+      tree = mkuastunary(A_INVERT, tree->type, tree, 0);
+      break;
+    case T_LOGNOT:
+      // Get the next token and parse it
+      // recursively as a prefix expression
+      scan(&Token);
+      tree = prefix();
+
+      // Prepend a A_LOGNOT operation to the tree and
+      // make the child an rvalue.
+      tree->rvalue = 1;
+      tree = mkuastunary(A_LOGNOT, tree->type, tree, 0);
+      break;
+    case T_INC:
+      // Get the next token and parse it
+      // recursively as a prefix expression
+      scan(&Token);
+      tree = prefix();
+
+      // For now, ensure it's an identifier
+      if (tree->op != A_IDENT)
+        fatal("++ operator must be followed by an identifier");
+
+      // Prepend an A_PREINC operation to the tree
+      tree = mkuastunary(A_PREINC, tree->type, tree, 0);
+      break;
+    case T_DEC:
+      // recursively as a prefix expression
+      scan(&Token);
+      tree = prefix();
+
+      // For now, ensure it's an identifier
+      if (tree->op != A_IDENT)
+        fatal("-- operator must be followed by an identifier");
+
+      // Prepend an A_PREDEC operation to the tree
+      tree = mkuastunary(A_PREDEC, tree->type, tree, 0);
       break;
     default:
       assert(Token.token != T_SEMI);
