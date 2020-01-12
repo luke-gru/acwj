@@ -45,6 +45,14 @@ static struct ASTnode *array_access(void) {
   return (left);
 }
 
+/**
+  primary_expression
+          : IDENTIFIER
+          | CONSTANT
+          | STRING_LITERAL
+          | '(' expression ')'
+          ;
+*/
 // Parse a primary factor and return an
 // AST node representing it.
 static struct ASTnode *primary(void) {
@@ -87,6 +95,10 @@ static struct ASTnode *primary(void) {
     n = binexpr(0);
     rparen();
     return (n);
+  case T_STRLIT:
+    id = genglobstr(Text);
+    n = mkastleaf(A_STRLIT, P_CHARPTR, id);
+    break;
   default:
     fatals("Expecting a primary expression, got token", tokenname(Token.token));
   }

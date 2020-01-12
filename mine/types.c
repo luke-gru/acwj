@@ -80,8 +80,11 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
     // of the original type is >1: scale the left
     if (inttype(ltype) && ptrtype(rtype)) {
       rsize = genprimsize(value_at(rtype));
-      if (rsize > 1)
+      if (rsize > 1) {
         return (mkuastunary(A_SCALE, rtype, tree, rsize));
+      } else {
+        return (tree); // Size 1, no need to scale
+      }
     }
   }
 

@@ -62,32 +62,9 @@ static void free_register(int reg)
 void cgpreamble()
 {
   freeall_registers();
-  fputs(
-	"\t.text\n"
-	".LC0:\n"
-	"\t.string\t\"%d\\n\"\n"
-	"printint:\n"
-	"\tpushq\t%rbp\n"
-	"\tmovq\t%rsp, %rbp\n"
-	"\tsubq\t$16, %rsp\n"
-	"\tmovl\t%edi, -4(%rbp)\n" // the int param is saved to stack
-	"\tmovl\t-4(%rbp), %eax\n"
-	"\tmovl\t%eax, %esi\n" // 2nd param to printf()
-	"\tleaq	.LC0(%rip), %rdi\n" // 1st param to printf()
-	"\tmovl	$0, %eax\n" // printf() is variadic, must specify # of vector registers (here, 0)
-	"\tcall	printf@PLT\n" // plt = procedure link table
-	"\tnop\n"
-	"\tleave\n"
-	"\tret\n",
-	/*"\n"*/
-	/*"\t.globl\tmain\n"*/
-	/*"\t.type\tmain, @function\n"*/
-	/*"main:\n"*/
-	/*"\tpushq\t%rbp\n"*/
-	/*"\tmovq	%rsp, %rbp\n",*/
-  Outfile);
 }
 
+// Print out the assembly postamble
 void cgpostamble() {
   (void)0; // do nothing
 }
@@ -376,4 +353,23 @@ int cgstorderef(int r1, int r2, int type) {
 int cgshlconst(int r, int val) {
   fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);
   return(r);
+}
+
+// Generate a global string and its start label
+void cgglobstr(int label, char *strval) {
+  char *cptr;
+  cglabel(label);
+  for (cptr= strval; *cptr; cptr++) {
+    fprintf(Outfile, "\t.byte\t%d\n", *cptr);
+  }
+  fprintf(Outfile, "\t.byte\t0\n");
+}
+
+// Given the label number of a global string,
+// load its address into a new register
+int cgloadglobstr(int label) {
+  // Get a new register
+  int r = alloc_register();
+  fprintf(Outfile, "\tleaq\tL%d(\%%rip), %s\n", label, reglist[r]);
+  return (r);
 }

@@ -38,7 +38,25 @@ test_compiler: compiler
 	 ./bin/compiler  test/compiler/pointer_scaling; \
 	 ./bin/compiler  test/compiler/assignment_expressions; \
 	 ./bin/compiler  test/compiler/pointer_deref; \
-	 ./bin/compiler  test/compiler/basic_arrays)
+	 ./bin/compiler  test/compiler/basic_arrays; \
+	 ./bin/compiler  test/compiler/strings)
 
-test: test_scanner test_parser test_compiler
+test_exec:
+	-(./runfile test/compiler/comparisons; \
+	  ./runfile  test/compiler/for_loop; \
+	  ./runfile  test/compiler/if; \
+	  ./runfile  test/compiler/main_function; \
+	  ./runfile  test/compiler/printint; \
+	  ./runfile  test/compiler/variables; \
+	  ./runfile  test/compiler/while; \
+	  ./runfile  test/compiler/types; \
+	  ./runfile  test/compiler/function_return; \
+	  ./runfile  test/compiler/pointers; \
+	  ./runfile  test/compiler/global_decls; \
+	  ./runfile  test/compiler/pointer_scaling; \
+	  ./runfile  test/compiler/assignment_expressions; \
+	  ./runfile  test/compiler/pointer_deref; \
+	  ./runfile  test/compiler/basic_arrays; \
+	  ./runfile  test/compiler/strings)
 
+test: test_scanner test_parser test_compiler test_exec

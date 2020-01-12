@@ -12,6 +12,7 @@ static void init() {
   Putback = '\n';
   Functionid = -1;
   addglob("printint", P_VOID, S_FUNCTION, 0);
+  addglob("printchar", P_VOID, S_FUNCTION, 0);
   O_dumpAST = 0;
   O_parseOnly = 0;
 }

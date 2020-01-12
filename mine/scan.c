@@ -12,7 +12,7 @@ char *toknames[] = {
   "T_STAR", "T_SLASH",
   "T_EQ", "T_NE",
   "T_LT", "T_GT", "T_LE", "T_GE",
-  "T_INTLIT", "T_SEMI", "T_IDENT",
+  "T_INTLIT", "T_SEMI", "T_IDENT", "T_STRLIT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN", "T_LBRACKET", "T_RBRACKET",
   "T_AMPER", "T_ANDAND",
   "T_COMMA",
@@ -166,6 +166,52 @@ static int keyword(char *s) {
   return (0);
 }
 
+int scan_ch(void) {
+  int c;
+
+  // Get the next input character and interpret
+  // metacharacters that start with a backslash
+  c = next();
+  if (c == '\\') {
+    switch (c = next()) {
+      case 'a':  return '\a';
+      case 'b':  return '\b';
+      case 'f':  return '\f';
+      case 'n':  return '\n';
+      case 'r':  return '\r';
+      case 't':  return '\t';
+      case 'v':  return '\v';
+      case '\\': return '\\';
+      case '"':  return '"' ;
+      case '\'': return '\'';
+      default:
+        fatalc("unknown escape sequence", c);
+    }
+  }
+  return (c); // Just an ordinary old character!
+}
+
+// Scan in a string literal from the input file,
+// and store it in buf[]. Return the length of
+// the string.
+int scan_str(char *buf) {
+  int i, c;
+
+  // Loop while we have enough buffer space
+  for (i=0; i<TEXTLEN-1; i++) {
+    // Get the next char and append to buf
+    // Return when we hit the ending double quote
+    if ((c = scan_ch()) == '"') {
+      buf[i] = '\0';
+      return (i);
+    }
+    buf[i] = c;
+  }
+  // Ran out of buf[] space
+  fatal("String literal too long");
+  return (0);
+}
+
 // Scan and return the next token found in the input.
 // Return 1 if token valid, 0 if no tokens left.
 int scan(struct token *t) {
@@ -260,6 +306,17 @@ int scan(struct token *t) {
       break;
     case ',':
       t->token = T_COMMA;
+      break;
+    case '\'':
+      t->intvalue = scan_ch();
+      t->token = T_INTLIT;
+      if (next() != '\'') {
+        fatal("Expected ' at end of char literal");
+      }
+      break;
+    case '"':
+      scan_str(Text);
+      t->token = T_STRLIT;
       break;
     default:
       // If it's a digit, scan the

@@ -32,6 +32,7 @@ void genfreeregs();
 void genprintint(int reg);
 void genglobsym(int slot);
 int  genprimsize(int ptype);
+int genglobstr(char *strvalue);
 
 // cg.c
 void freeall_registers(void);
@@ -60,6 +61,8 @@ int cgaddress(int id);
 int cgderef(int r, int type);
 int cgstorderef(int r1, int r2, int type);
 int cgshlconst(int r, int val);
+void cgglobstr(int label, char *strval);
+int cgloadglobstr(int label);
 
 // stmt.c
 struct ASTnode *compound_statement(void);

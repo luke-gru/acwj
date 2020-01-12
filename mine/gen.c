@@ -7,7 +7,7 @@
 // Copyright (c) 2019 Warren Toomey, GPL3
 
 // Generate and return a new label number
-static int label(void) {
+static int genlabel(void) {
   static int id = 1;
   return (id++);
 }
@@ -22,9 +22,9 @@ static int genIF(struct ASTnode *n) {
   // for the end of the overall IF statement.
   // When there is no ELSE clause, Lfalse _is_
   // the ending label!
-  Lfalse = label();
+  Lfalse = genlabel();
   if (n->right)
-    Lend = label();
+    Lend = genlabel();
 
   // Generate the condition code followed
   // by a zero jump to the false label.
@@ -59,8 +59,8 @@ static int genIF(struct ASTnode *n) {
 static int genWhile(struct ASTnode *n) {
   int Lstart, Lend;
 
-  Lstart = label();
-  Lend = label();
+  Lstart = genlabel();
+  Lend = genlabel();
   cglabel(Lstart);
 
   // Generate the condition code followed
@@ -89,7 +89,7 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   switch (n->op) {
     case A_FUNCTION:
       cgfuncpreamble(n->v.id);
-      Gsym[n->v.id].endlabel = label();
+      Gsym[n->v.id].endlabel = genlabel();
       genAST(n->left, NOREG, n->op);
       cgfuncpostamble(n->v.id);
       return (NOREG);
@@ -183,6 +183,9 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     } else {
       return (leftreg);
     }
+  case A_STRLIT:
+    return (cgloadglobstr(n->v.id));
+    break;
   default:
     fatald("Unknown AST operator", n->op);
   }
@@ -213,4 +216,10 @@ void genglobsym(int slot) {
 
 int genprimsize(int ptype) {
   cgprimsize(ptype); // fine if parseOnly, doesn't actually generate code
+}
+
+int genglobstr(char *strvalue) {
+  int l = genlabel();
+  cgglobstr(l, strvalue);
+  return (l);
 }
