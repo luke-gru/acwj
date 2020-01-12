@@ -21,7 +21,7 @@ const char *typename(int ptype) {
   return NULL;
 }
 
-static int inttype(int ptype) {
+int inttype(int ptype) {
   switch (ptype) {
     case P_CHAR:
     case P_INT:
@@ -32,7 +32,7 @@ static int inttype(int ptype) {
   }
 }
 
-static int ptrtype(int ptype) {
+int ptrtype(int ptype) {
   switch (ptype) {
     case P_CHARPTR:
     case P_INTPTR:

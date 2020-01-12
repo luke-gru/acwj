@@ -19,10 +19,9 @@ test_scanner: scanner
 
 test_parser: parser
 	-(./bin/parser test/parser/input01; \
-	 ./bin/parser  test/parser/input02; \
-	 ./bin/parser  test/parser/input03; \
-	 ./bin/parser  test/parser/input04; \
-	 ./bin/parser  test/parser/input05)
+	 ./bin/parser test/parser/input02; \
+	 ./bin/parser -T test/parser/dump_tree; \
+	 ./bin/parser test/parser/array_decl)
 
 test_compiler: compiler
 	-(./bin/compiler test/compiler/comparisons; \
@@ -38,5 +37,8 @@ test_compiler: compiler
 	 ./bin/compiler  test/compiler/global_decls; \
 	 ./bin/compiler  test/compiler/pointer_scaling; \
 	 ./bin/compiler  test/compiler/assignment_expressions; \
-	 ./bin/compiler  test/compiler/pointer_deref)
+	 ./bin/compiler  test/compiler/pointer_deref; \
+	 ./bin/compiler  test/compiler/basic_arrays)
+
+test: test_scanner test_parser test_compiler
 

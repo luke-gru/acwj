@@ -82,6 +82,9 @@ static int genWhile(struct ASTnode *n) {
 int genAST(struct ASTnode *n, int reg, int parentASTop) {
   int leftreg, rightreg;
 
+  if (O_parseOnly)
+    assert(0); // shouldn't be called if O_parseOnly = 1
+
   // We now have specific AST node handling at the top
   switch (n->op) {
     case A_FUNCTION:
@@ -187,22 +190,27 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 }
 
 void genpreamble() {
+  if (O_parseOnly) return;
   cgpreamble();
 }
 void genpostamble() {
+  if (O_parseOnly) return;
   cgpostamble();
 }
 void genfreeregs() {
+  if (O_parseOnly) return;
   freeall_registers();
 }
 void genprintint(int reg) {
+  if (O_parseOnly) return;
   cgprintint(reg);
 }
 
 void genglobsym(int slot) {
+  if (O_parseOnly) return;
   cgglobsym(slot);
 }
 
 int genprimsize(int ptype) {
-  cgprimsize(ptype);
+  cgprimsize(ptype); // fine if parseOnly, doesn't actually generate code
 }

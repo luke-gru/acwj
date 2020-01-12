@@ -220,18 +220,22 @@ void cgglobsym(int slot) {
   int type = Gsym[slot].type;
   int typesize = cgprimsize(Gsym[slot].type);
   fprintf(Outfile, "\t.data\n" "\t.globl\t%s\n", Gsym[slot].name);
-  switch(typesize) {
-    case 1:
-      fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[slot].name);
-      break;
-    case 4:
-      fprintf(Outfile, "%s:\t.long\t0\n", Gsym[slot].name);
-      break;
-    case 8:
-      fprintf(Outfile, "%s:\t.quad\t0\n", Gsym[slot].name);
-      break;
-    default:
-      fatald("Unknown typesize in cgglobsym: ", typesize);
+  fprintf(Outfile, "%s:", Gsym[slot].name);
+  assert(Gsym[slot].size > 0);
+  for (int i =0; i < Gsym[slot].size; i++) {
+    switch(typesize) {
+      case 1:
+        fprintf(Outfile, "\t.byte\t0\n");
+        break;
+      case 4:
+        fprintf(Outfile, "\t.long\t0\n");
+        break;
+      case 8:
+        fprintf(Outfile, "\t.quad\t0\n");
+        break;
+      default:
+        fatald("Unknown typesize in cgglobsym: ", typesize);
+    }
   }
 }
 

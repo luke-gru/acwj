@@ -6,26 +6,44 @@
 // Parsing of expressions
 // Copyright (c) 2019 Warren Toomey, GPL3
 
-/*
- compound_statement: '{' '}'          // empty, i.e. no statement
-      |      '{' statement '}'
-      |      '{' statement statements '}'
-      ;
+// Only deals with array access after an identifier (variable). Ex: `print(a[4]);`
+// current token is '[', the identifier has been scanned.
+static struct ASTnode *array_access(void) {
+  struct ASTnode *left, *right;
+  int id;
 
- statement: declaration
-      |     if_statement
-      ;
+  // Check that the identifier has been defined as an array
+  // then make a leaf node for it that points at the base
+  if ((id = findglob(Text)) == -1 || Gsym[id].stype != S_ARRAY) {
+    fatals("Undeclared array", Text);
+  }
 
- declaration: 'int' identifier ';'  ;
+  left = mkastleaf(A_ADDR, Gsym[id].type, id);
 
- if_statement: if_head
-      |        if_head 'else' compound_statement
-      ;
+  // Get the '['
+  scan(&Token);
 
- if_head: 'if' '(' true_false_expression ')' compound_statement  ;
+  // Parse the following expression
+  right = binexpr(0);
 
- identifier: T_IDENT ;
-*/
+  // Get the ']'
+  match(T_RBRACKET, "]");
+
+  // Ensure that this is of int type
+  if (!inttype(right->type)) {
+    fatal("Array index is not of integer type");
+  }
+
+  // Scale the index by the size of the element's type
+  right = modify_type(right, left->type, A_ADD);
+
+  // Return an AST tree where the array's base has the offset
+  // added to it, and dereference the element. Still an lvalue
+  // at this point.
+  left = mkastnode(A_ADD, Gsym[id].type, left, NULL, right, 0);
+  left = mkuastunary(A_DEREF, value_at(left->type), left, 0);
+  return (left);
+}
 
 // Parse a primary factor and return an
 // AST node representing it.
@@ -51,6 +69,9 @@ static struct ASTnode *primary(void) {
     if (Token.token == T_LPAREN) {
       return (funcall());
     }
+    if (Token.token == T_LBRACKET) {
+      return array_access();
+    }
     reject_token(&Token);
     // Check that this identifier exists
     id = findglob(Text);
@@ -61,8 +82,13 @@ static struct ASTnode *primary(void) {
     // Make a leaf AST node for it
     n = mkastleaf(A_IDENT, Gsym[id].type, id);
     break;
+  case T_LPAREN:
+    scan(&Token);
+    n = binexpr(0);
+    rparen();
+    return (n);
   default:
-    fatals("Syntax error in primary(), token", tokenname(Token.token));
+    fatals("Expecting a primary expression, got token", tokenname(Token.token));
   }
 
   // Scan in the next token and return the leaf node
@@ -92,6 +118,9 @@ static int OpPrec[] = {
 // Check that we have a binary operator and
 // return its precedence.
 static int op_precedence(int tokentype) {
+  if (tokentype > T_GE) {
+    fatald("Token with no precedence in op_precedence:", tokentype);
+  }
   int prec = OpPrec[tokentype];
   if (prec == 0) {
     fatals("Syntax error in op_precedence(), token", tokenname(tokentype));
@@ -120,7 +149,7 @@ struct ASTnode *binexpr(int ptp) {
 
   // If we hit a semicolon or ')', return just the left node
   tokentype = Token.token;
-  if (tokentype == T_SEMI || tokentype == T_RPAREN) {
+  if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET) {
     left->rvalue = 1;
     return (left);
   }

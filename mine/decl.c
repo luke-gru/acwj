@@ -27,33 +27,52 @@ int parse_type(int t) {
   return (type);
 }
 
-// Parse the declaration of a global variable
+/**
+    variable_declaration: type identifier ';'
+      | type identifier '[' P_INTLIT ']' ';'
+      ;
+*/
+
+// Parse the declaration of a scalar variable or an array with a given size.
+// The identifier has been scanned & we have the type
 void var_declaration(int type) {
   int id;
-
-  // loop because we can declare multiple variables at a time. Ex: `int a, b, c;`
   while (1) {
-    id = addglob(Text, type, S_VARIABLE);
-    genglobsym(id);
+    if (Token.token == T_LBRACKET) {
+      scan(&Token);
+      if (Token.token == T_INTLIT) {
+        // Add this as a known array and generate its space in assembly.
+        // We treat the array as a pointer to its elements' type
+        id = addglob(Text, pointer_to(type), S_ARRAY, Token.intvalue);
+        genglobsym(id);
+      } else {
+        fatal("Missing array size in array variable declaration");
+      }
+      scan(&Token); // integer literal array size
+      match(T_RBRACKET, "]");
+    } else {
+      id = addglob(Text, type, S_VARIABLE, 1);
+      genglobsym(id);
+    }
 
     if (Token.token == T_SEMI) {
-      scan(&Token);
+      semi();
       return;
-    }
-    if (Token.token == T_COMMA) {
+    } else if (Token.token == T_COMMA) {
       scan(&Token);
       ident();
       continue;
+    } else {
+      fatalv("Unexpected token after variable declaration: %s", tokenname(Token.token));
     }
   }
-  fatal("Missing ',' or ';' after identifier");
 }
 
 struct ASTnode *function_declaration(int type) {
   struct ASTnode *tree, *finalstmt;
   int nameslot;
 
-  nameslot = addglob(Text, type, S_FUNCTION);
+  nameslot = addglob(Text, type, S_FUNCTION, 0);
   Functionid = nameslot; // set currently parsed/generated function
   lparen();
   rparen();
@@ -91,7 +110,9 @@ void global_declarations(void) {
         dumpAST(tree, 0, 0);
         fprintf(stdout, "\n");
       }
-      genAST(tree, NOREG, 0);
+      if (!O_parseOnly) {
+        genAST(tree, NOREG, 0);
+      }
     } else {
       // Parse the global variable declaration
       var_declaration(type);

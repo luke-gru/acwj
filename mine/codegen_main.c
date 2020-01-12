@@ -11,8 +11,9 @@ static void init() {
   Line = 1;
   Putback = '\n';
   Functionid = -1;
-  addglob("printint", P_VOID, S_FUNCTION);
+  addglob("printint", P_VOID, S_FUNCTION, 0);
   O_dumpAST = 0;
+  O_parseOnly = 0;
 }
 
 // Print out a usage if started incorrectly

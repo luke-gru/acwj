@@ -13,7 +13,7 @@ char *toknames[] = {
   "T_EQ", "T_NE",
   "T_LT", "T_GT", "T_LE", "T_GE",
   "T_INTLIT", "T_SEMI", "T_IDENT",
-  "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN",
+  "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN", "T_LBRACKET", "T_RBRACKET",
   "T_AMPER", "T_ANDAND",
   "T_COMMA",
   // keywords
@@ -212,6 +212,12 @@ int scan(struct token *t) {
       break;
     case ')':
       t->token = T_RPAREN;
+      break;
+    case '[':
+      t->token = T_LBRACKET;
+      break;
+    case ']':
+      t->token = T_RBRACKET;
       break;
     case '=':
       if ((c = next()) == '=') {

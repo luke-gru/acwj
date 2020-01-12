@@ -21,7 +21,7 @@ enum {
   T_EQ, T_NE,
   T_LT,T_GT, T_LE, T_GE, // high prec
   T_INTLIT, T_SEMI, T_IDENT,
-  T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
+  T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN, T_LBRACKET, T_RBRACKET,
   T_AMPER, T_ANDAND,
   T_COMMA,
   // keywords
@@ -62,17 +62,17 @@ enum {
 
 // Structural types
 enum {
-    S_VARIABLE, S_FUNCTION
+    S_VARIABLE, S_FUNCTION, S_ARRAY
 };
 
 // Abstract Syntax Tree structure
 struct ASTnode {
   int op;				// "Operation" to be performed on this tree
-  int type;                             // ptype, or P_NONE if node has no type
+  int type;                             // primitive type
   int rvalue;                           // bool, true if the node is an rvalue
   struct ASTnode *left;			// Left, mid, right child trees
-  struct ASTnode *mid; // can be NULL
-  struct ASTnode *right; // can be NULL
+  struct ASTnode *mid;                  // can be NULL
+  struct ASTnode *right;                // can be NULL
   union {
     int intvalue;		// For A_INTLIT, the integer value
     int id;			// For A_IDENT or A_FUNCTION, the symbol slot number
@@ -82,10 +82,11 @@ struct ASTnode {
 
 // Symbol table structure
 struct symtable {
-  char *name;			// Name of a symbol
-  int type; // Primitive type
-  int stype; // Structural type (function, variable)
-  int endlabel; // for S_FUNCTION, the label to right where it's about to return to caller
+  char *name;                   // Name of a symbol
+  int type;                     // Primitive type
+  int stype;                    // Structural type (function, variable)
+  int endlabel;                 // for S_FUNCTION, the label to right where it's about to return to caller
+  int size;                     // for S_ARRAY, number of elements
 };
 
 #define NOREG	-1		// Use NOREG when the AST generation

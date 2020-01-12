@@ -1,0 +1,7 @@
+char a[10];
+int  b[25];
+long c[100];
+
+int main() {
+    return (0);
+}
