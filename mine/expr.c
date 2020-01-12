@@ -120,17 +120,19 @@ static int binastop(int tokentype) {
 // Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
-  0,  10,     // T_EOF, T_ASSIGN
-  20, 20,     // T_PLUS, T_MINUS
-  30, 30,     // T_STAR, T_SLASH
-  40, 40,     // T_EQ, T_NE
-  50, 50, 50, 50    // T_LT, T_GT, T_LE, T_GE
+  0, 10, 20, 30,                // T_EOF, T_ASSIGN, T_LOGOR, T_LOGAND
+  40, 50, 60,                   // T_OR, T_XOR, T_AMPER
+  70, 70,                       // T_EQ, T_NE
+  80, 80, 80, 80,               // T_LT, T_GT, T_LE, T_GE
+  90, 90,                       // T_LSHIFT, T_RSHIFT
+  100, 100,                     // T_PLUS, T_MINUS
+  110, 110                      // T_STAR, T_SLASH
 };
 
 // Check that we have a binary operator and
 // return its precedence.
 static int op_precedence(int tokentype) {
-  if (tokentype > T_GE) {
+  if (tokentype >= T_INTLIT) {
     fatald("Token with no precedence in op_precedence:", tokentype);
   }
   int prec = OpPrec[tokentype];

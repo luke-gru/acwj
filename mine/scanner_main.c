@@ -21,18 +21,16 @@ static void usage(char *prog) {
   exit(1);
 }
 
-// List of printable tokens
-char *tokstr[] = { "EOF", "+", "-", "*", "/", "intlit" };
-
 // Loop scanning in all the tokens in the input file.
 // Print out details of each token found.
 static void scanfile() {
   struct token T;
 
   while (scan(&T)) {
-    printf("Token %s", tokstr[T.token]);
+    printf("Token %s", tokenname(T.token));
     if (T.token == T_INTLIT)
       printf(", value %d", T.intvalue);
+    printf(" (line %d)", Line);
     printf("\n");
   }
 }
@@ -50,6 +48,7 @@ void main(int argc, char *argv[]) {
     fprintf(stderr, "Unable to open %s: %s\n", argv[1], strerror(errno));
     exit(1);
   }
+  Infilename = strdup(argv[1]);
 
   scanfile();
   exit(0);

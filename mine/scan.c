@@ -7,14 +7,18 @@ static struct token *Rejtoken = NULL;
 
 char *toknames[] = {
   "T_EOF",
-  "T_ASSIGN",
-  "T_PLUS", "T_MINUS",
-  "T_STAR", "T_SLASH",
+
+  "T_ASSIGN", "T_LOGOR", "T_LOGAND",
+  "T_BITOR", "T_BITXOR", "T_AMPER",
   "T_EQ", "T_NE",
   "T_LT", "T_GT", "T_LE", "T_GE",
+  "T_LSHIFT", "T_RSHIFT",
+  "T_PLUS", "T_MINUS", "T_STAR", "T_SLASH",
+
+  "T_INC", "T_DEC", "T_INVERT", "T_LOGNOT",
+
   "T_INTLIT", "T_SEMI", "T_IDENT", "T_STRLIT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN", "T_LBRACKET", "T_RBRACKET",
-  "T_AMPER", "T_ANDAND",
   "T_COMMA",
   // keywords
   "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR", "T_LONG", "T_RETURN",
@@ -233,10 +237,20 @@ int scan(struct token *t) {
       t->token = T_EOF;
       return (0);
     case '+':
-      t->token = T_PLUS;
+      if ((c = next()) == '+') {
+        t->token = T_INC;
+      } else {
+        putback(c);
+        t->token = T_PLUS;
+      }
       break;
     case '-':
-      t->token = T_MINUS;
+      if ((c = next()) == '-') {
+        t->token = T_DEC;
+      } else {
+        putback(c);
+        t->token = T_MINUS;
+      }
       break;
     case '*':
       t->token = T_STAR;
@@ -277,12 +291,15 @@ int scan(struct token *t) {
       if ((c = next()) == '=') {
         t->token = T_NE;
       } else {
-        fatalc("Unrecognised character", c);
+        putback(c);
+        t->token = T_LOGNOT;
       }
       break;
     case '<':
       if ((c = next()) == '=') {
         t->token = T_LE;
+      } else if (c == '<') {
+        t->token = T_LSHIFT;
       } else {
         putback(c);
         t->token = T_LT;
@@ -291,6 +308,8 @@ int scan(struct token *t) {
     case '>':
       if ((c = next()) == '=') {
         t->token = T_GE;
+      } else if (c == '>') {
+        t->token = T_RSHIFT;
       } else {
         putback(c);
         t->token = T_GT;
@@ -298,11 +317,25 @@ int scan(struct token *t) {
       break;
     case '&':
       if ((c = next()) == '&') {
-        t->token = T_ANDAND;
+        t->token = T_LOGAND;
       } else {
         putback(c);
         t->token = T_AMPER;
       }
+      break;
+    case '|':
+      if ((c = next()) == '|') {
+        t->token = T_LOGOR;
+      } else {
+        putback(c);
+        t->token = T_BITOR;
+      }
+      break;
+    case '^':
+      t->token = T_BITXOR;
+      break;
+    case '~':
+      t->token = T_INVERT;
       break;
     case ',':
       t->token = T_COMMA;

@@ -59,12 +59,12 @@ void fatals(char *s1, char *s2) {
 
 void fatald(char *s, int d) {
   print_filename();
-  fatalv("%s:%d on line %d", s, d, Line);
+  fatalv("%s: %d on line %d", s, d, Line);
 }
 
 void fatalc(char *s, int c) {
   print_filename();
-  fatalv("%s:%c on line %d", s, c, Line);
+  fatalv("%s: '%c' on line %d", s, c, Line);
 }
 
 void fatalv(const char *fmt, ...) {
