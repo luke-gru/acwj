@@ -14,6 +14,7 @@ struct ASTnode *mkastnode(int op, int type, struct ASTnode *left, struct ASTnode
 			  struct ASTnode *right, int intvalue);
 struct ASTnode *mkastleaf(int op, int type, int intvalue);
 struct ASTnode *mkuastunary(int op, int type, struct ASTnode *left, int intvalue);
+void dumpAST(struct ASTnode *n, int label, int level);
 
 // expr.c
 struct ASTnode *binexpr(int n);
@@ -57,6 +58,7 @@ int cgcall(int r, int func_sym);
 void cgreturn(int r, int func_sym);
 int cgaddress(int id);
 int cgderef(int r, int type);
+int cgstorderef(int r1, int r2, int type);
 int cgshlconst(int r, int val);
 
 // stmt.c

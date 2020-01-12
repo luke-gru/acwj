@@ -11,18 +11,11 @@
 //      |      statement statements
 //      ;
 //
-// statement: print_statement
-//      |     declaration
-//      |     assignment_statement
+// statement: declaration
 //      |     if_statement
 //      |     while_statement
 //      ;
-//
-// print_statement: 'print' expression ';'  ;
-//
 // declaration: 'int' identifier ';'  ;
-//
-// assignment_statement: identifier '=' expression ';'   ;
 //
 // if_statement: if_head
 //      |        if_head 'else' compound_statement
@@ -34,60 +27,39 @@
 //
 // identifier: T_IDENT ;
 
-static struct ASTnode *print_statement(void) {
-  struct ASTnode *tree;
-  int reg;
-  int lefttype, righttype;
+/*static struct ASTnode *assignment_statement(void) {*/
+  /*struct ASTnode *left, *right, *tree;*/
+  /*int id;*/
 
-  // Match a 'print' as the first token
-  match(T_PRINT, "print");
+  /*// Ensure we have an identifier*/
+  /*ident();*/
 
-  // Parse the following expression
-  tree = binexpr(0);
+  /*// This could be a variable or a function call.*/
+  /*// If next token is '(', it's a function call*/
+  /*if (Token.token == T_LPAREN)*/
+    /*return (funcall());*/
 
-  tree = modify_type(tree, P_INT, 0);
-  if (tree == NULL)
-    fatal("Incompatible types"); // TODO: better message
+  /*// Check it's been defined then make a leaf node for it*/
+  /*if ((id = findglob(Text)) == -1) {*/
+    /*fatals("Undeclared variable", Text);*/
+  /*}*/
+  /*right = mkastleaf(A_LVIDENT, Gsym[id].type, id);*/
 
-  // Make an print AST tree
-  tree = mkuastunary(A_PRINT, P_NONE, tree, 0);
+  /*// Ensure we have an equals sign*/
+  /*match(T_ASSIGN, "=");*/
 
-  return (tree);
-}
+  /*// Parse the following expression*/
+  /*left = binexpr(0);*/
 
-static struct ASTnode *assignment_statement(void) {
-  struct ASTnode *left, *right, *tree;
-  int id;
+  /*left = modify_type(left, right->type, 0);*/
+  /*if (left == NULL)*/
+    /*fatal("Incompatible types"); // TODO: better message*/
 
-  // Ensure we have an identifier
-  ident();
+  /*// Make an assignment AST tree*/
+  /*tree = mkastnode(A_ASSIGN, P_INT, left, NULL, right, 0);*/
 
-  // This could be a variable or a function call.
-  // If next token is '(', it's a function call
-  if (Token.token == T_LPAREN)
-    return (funcall());
-
-  // Check it's been defined then make a leaf node for it
-  if ((id = findglob(Text)) == -1) {
-    fatals("Undeclared variable", Text);
-  }
-  right = mkastleaf(A_LVIDENT, Gsym[id].type, id);
-
-  // Ensure we have an equals sign
-  match(T_ASSIGN, "=");
-
-  // Parse the following expression
-  left = binexpr(0);
-
-  left = modify_type(left, right->type, 0);
-  if (left == NULL)
-    fatal("Incompatible types"); // TODO: better message
-
-  // Make an assignment AST tree
-  tree = mkastnode(A_ASSIGN, P_INT, left, NULL, right, 0);
-
-  return (tree);
-}
+  /*return (tree);*/
+/*}*/
 
 // Parse an IF statement including
 // any optional ELSE clause
@@ -188,8 +160,6 @@ static struct ASTnode *return_statement(void);
 static struct ASTnode *single_statement(void) {
   int type;
   switch (Token.token) {
-    case T_PRINT:
-      return (print_statement());
     case T_INT:
     case T_CHAR:
     case T_LONG:
@@ -197,8 +167,6 @@ static struct ASTnode *single_statement(void) {
       ident();
       var_declaration(type);
       return (NULL);		// No AST generated here
-    case T_IDENT:
-      return (assignment_statement());
     case T_IF:
       return (if_statement());
     case T_WHILE:
@@ -208,7 +176,7 @@ static struct ASTnode *single_statement(void) {
     case T_RETURN:
       return (return_statement());
     default:
-      fatals("Syntax error in single_statement(), token", tokenname(Token.token));
+      return (binexpr(0));
   }
 }
 
@@ -227,17 +195,19 @@ struct ASTnode *compound_statement(void) {
 
     // Some statements must be followed by a semicolon
     if (tree != NULL &&
-       (tree->op == A_PRINT || tree->op == A_ASSIGN || tree->op == A_RETURN || tree->op == A_FUNCALL))
+       (tree->op == A_ASSIGN || tree->op == A_RETURN || tree->op == A_FUNCALL)) {
       semi();
+    }
 
     // For each new tree, either save it in left
     // if left is empty, or glue the left and the
     // new tree together
     if (tree != NULL) {
-      if (left == NULL)
+      if (left == NULL) {
         left = tree;
-      else
+      } else {
         left = mkastnode(A_GLUE, P_NONE, left, NULL, tree, 0);
+      }
     }
     // When we hit a right curly bracket,
     // skip past it and return the AST

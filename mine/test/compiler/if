@@ -2,8 +2,8 @@ void main() {
   int i; int j;
   i=6; j=12;
   if (i < j) {
-    print i;
+    printint(i);
   } else {
-    print j;
+    printint(j);
   }
 }

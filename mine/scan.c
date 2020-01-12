@@ -7,16 +7,17 @@ static struct token *Rejtoken = NULL;
 
 char *toknames[] = {
   "T_EOF",
+  "T_ASSIGN",
   "T_PLUS", "T_MINUS",
   "T_STAR", "T_SLASH",
   "T_EQ", "T_NE",
   "T_LT", "T_GT", "T_LE", "T_GE",
-  "T_INTLIT", "T_SEMI", "T_ASSIGN", "T_IDENT",
+  "T_INTLIT", "T_SEMI", "T_IDENT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN",
   "T_AMPER", "T_ANDAND",
   "T_COMMA",
   // keywords
-  "T_PRINT", "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR", "T_LONG", "T_RETURN",
+  "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR", "T_LONG", "T_RETURN",
   NULL
 };
 
@@ -140,10 +141,6 @@ static int keyword(char *s) {
     case 'c':
       if (!strcmp(s, "char"))
         return (T_CHAR);
-      break;
-    case 'p':
-      if (!strcmp(s, "print"))
-        return (T_PRINT);
       break;
     case 'w':
       if (!strcmp(s, "while"))

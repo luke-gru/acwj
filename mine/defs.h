@@ -14,17 +14,18 @@
 
 // Tokens
 enum {
-  T_EOF,
+  T_EOF=0,
+  T_ASSIGN, // low prec
   T_PLUS, T_MINUS,
   T_STAR, T_SLASH,
   T_EQ, T_NE,
-  T_LT,T_GT, T_LE, T_GE,
-  T_INTLIT, T_SEMI, T_ASSIGN, T_IDENT,
+  T_LT,T_GT, T_LE, T_GE, // high prec
+  T_INTLIT, T_SEMI, T_IDENT,
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
   T_AMPER, T_ANDAND,
   T_COMMA,
   // keywords
-  T_PRINT, T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_RETURN,
+  T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_RETURN,
   T_LAST // sentinel
 };
 
@@ -39,13 +40,14 @@ struct token {
 
 // AST node types (maps 1:1 with some tokens)
 enum {
-  A_ADD=1, A_SUBTRACT,
+  A_ASSIGN=T_ASSIGN,
+  A_ADD, A_SUBTRACT,
   A_MULTIPLY, A_DIVIDE,
   A_EQ, A_NE,
   A_LT, A_GT, A_LE, A_GE,
   A_INTLIT,
-  A_IDENT, A_LVIDENT, A_ASSIGN, // end 1:1 mapping with T_*
-  A_PRINT, A_GLUE, A_IF, A_WHILE,
+  A_IDENT, A_LVIDENT, // end 1:1 mapping with T_*
+  A_GLUE, A_IF, A_WHILE,
   A_FUNCTION, A_RETURN, A_FUNCALL,
   A_WIDEN, A_SCALE,
   A_ADDR, A_DEREF
@@ -66,14 +68,15 @@ enum {
 // Abstract Syntax Tree structure
 struct ASTnode {
   int op;				// "Operation" to be performed on this tree
-  int type;
-  struct ASTnode *left;			// Left and right child trees
-  struct ASTnode *mid;
-  struct ASTnode *right;
+  int type;                             // ptype, or P_NONE if node has no type
+  int rvalue;                           // bool, true if the node is an rvalue
+  struct ASTnode *left;			// Left, mid, right child trees
+  struct ASTnode *mid; // can be NULL
+  struct ASTnode *right; // can be NULL
   union {
     int intvalue;		// For A_INTLIT, the integer value
     int id;			// For A_IDENT or A_FUNCTION, the symbol slot number
-    int size;                   // For A_SCALE, the size to scale by
+    int size;                   // For A_SCALE, the size to multiply by
   } v;
 };
 

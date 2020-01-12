@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -11,17 +12,11 @@
       |      '{' statement statements '}'
       ;
 
- statement: print_statement
-      |     declaration
-      |     assignment_statement
+ statement: declaration
       |     if_statement
       ;
 
- print_statement: 'print' expression ';'  ;
-
  declaration: 'int' identifier ';'  ;
-
- assignment_statement: identifier '=' expression ';'   ;
 
  if_statement: if_head
       |        if_head 'else' compound_statement
@@ -42,28 +37,30 @@ static struct ASTnode *primary(void) {
   case T_INTLIT:
     // For an INTLIT token, make a leaf AST node for it.
     // Make it a P_CHAR if it's within the P_CHAR range
-    if ((Token.intvalue) >= 0 && (Token.intvalue < 256))
+    if ((Token.intvalue) >= 0 && (Token.intvalue < 256)) {
       n = mkastleaf(A_INTLIT, P_CHAR, Token.intvalue);
-    else
+    } else {
       n = mkastleaf(A_INTLIT, P_INT, Token.intvalue);
+    }
     break;
   case T_IDENT:
     // This could be a variable or a function call.
     // Scan in the next token to find out
     scan(&Token);
     // It's a '(', so a function call
-    if (Token.token == T_LPAREN)
+    if (Token.token == T_LPAREN) {
       return (funcall());
+    }
     reject_token(&Token);
     // Check that this identifier exists
     id = findglob(Text);
-    if (id == -1)
+    if (id == -1) {
       fatals("Unknown variable", Text);
+    }
 
     // Make a leaf AST node for it
     n = mkastleaf(A_IDENT, Gsym[id].type, id);
     break;
-
   default:
     fatals("Syntax error in primary(), token", tokenname(Token.token));
   }
@@ -76,19 +73,20 @@ static struct ASTnode *primary(void) {
 
 // Convert a binary operator token into an AST operation.
 // We rely on a 1:1 mapping from token to AST operation
-static int arithop(int tokentype) {
+static int binastop(int tokentype) {
   if (tokentype > T_EOF && tokentype < T_INTLIT)
     return(tokentype);
-  fatals("Syntax error in arithop(), token", tokenname(tokentype));
+  fatals("Syntax error in binastop(), token", tokenname(tokentype));
 }
 
 // Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
-  0, 10, 10,			// T_EOF, T_PLUS, T_MINUS
-  20, 20,			// T_STAR, T_SLASH
-  30, 30,			// T_EQ, T_NE
-  40, 40, 40, 40		// T_LT, T_GT, T_LE, T_GE
+  0,  10,     // T_EOF, T_ASSIGN
+  20, 20,     // T_PLUS, T_MINUS
+  30, 30,     // T_STAR, T_SLASH
+  40, 40,     // T_EQ, T_NE
+  50, 50, 50, 50    // T_LT, T_GT, T_LE, T_GE
 };
 
 // Check that we have a binary operator and
@@ -101,6 +99,12 @@ static int op_precedence(int tokentype) {
   return (prec);
 }
 
+static int rightassoc(int tokentype) {
+  if (tokentype == T_ASSIGN) // `a = b = c;`, `=` is right associative
+    return(1);
+  return(0);
+}
+
 // Return an AST tree whose root is a binary operator.
 // Parameter ptp is the previous token's precedence.
 struct ASTnode *binexpr(int ptp) {
@@ -109,18 +113,22 @@ struct ASTnode *binexpr(int ptp) {
   int ASTop;
   int tokentype;
 
+  assert(Token.token != T_SEMI);
   // Get the primary tree on the left.
   // Fetch the next token at the same time.
   left = prefix();
 
   // If we hit a semicolon or ')', return just the left node
   tokentype = Token.token;
-  if (tokentype == T_SEMI || tokentype == T_RPAREN)
+  if (tokentype == T_SEMI || tokentype == T_RPAREN) {
+    left->rvalue = 1;
     return (left);
+  }
 
   // While the precedence of this token is
   // more than that of the previous token precedence
-  while (op_precedence(tokentype) > ptp) {
+  while ((op_precedence(tokentype) > ptp) ||
+         (rightassoc(tokentype) && op_precedence(tokentype) == ptp)) {
     // Fetch in the next integer literal
     scan(&Token);
 
@@ -128,15 +136,30 @@ struct ASTnode *binexpr(int ptp) {
     // precedence of our token to build a sub-tree
     right = binexpr(OpPrec[tokentype]);
 
-    ASTop = arithop(tokentype);
-    ltemp = modify_type(left, right->type, ASTop);
-    rtemp = modify_type(right, left->type, ASTop);
+    ASTop = binastop(tokentype);
+    if (ASTop == A_ASSIGN) {
+      right->rvalue = 1;
+      right = modify_type(right, left->type, 0);
+      if (right == NULL)
+        fatal("Incompatible expression in assignment");
 
-    if (ltemp == NULL && rtemp == NULL)
-      fatalv("Incompatible types %s and %s in binary expression", typename(left->type), typename(right->type));
+      // Make an assignment AST tree. However, switch
+      // left and right around, so that the right expression's
+      // code will be generated before the left expression
+      ltemp= left; left= right; right= ltemp;
+    } else {
+      left->rvalue = 1;
+      right->rvalue = 1;
 
-    if (ltemp != NULL) left = ltemp;
-    if (rtemp != NULL) right = rtemp;
+      ltemp = modify_type(left, right->type, ASTop);
+      rtemp = modify_type(right, left->type, ASTop);
+
+      if (ltemp == NULL && rtemp == NULL)
+        fatalv("Incompatible types %s and %s in binary expression", typename(left->type), typename(right->type));
+
+      if (ltemp != NULL) left = ltemp;
+      if (rtemp != NULL) right = rtemp;
+    }
 
     // Join that sub-tree with ours. Convert the token
     // into an AST operation at the same time.
@@ -145,8 +168,10 @@ struct ASTnode *binexpr(int ptp) {
     // Update the details of the current token.
     // If we hit a semicolon or ')', return just the left node
     tokentype = Token.token;
-    if (tokentype == T_SEMI || tokentype == T_RPAREN)
+    if (tokentype == T_SEMI || tokentype == T_RPAREN) {
+      left->rvalue = 1;
       return (left);
+    }
   }
 
   // Return the tree we have when the precedence
@@ -214,6 +239,7 @@ struct ASTnode *prefix(void) {
       tree = mkuastunary(A_DEREF, value_at(tree->type), tree, 0);
       break;
     default:
+      assert(Token.token != T_SEMI);
       tree = primary();
       break;
   }

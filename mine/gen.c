@@ -137,16 +137,21 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   case A_INTLIT:
     return (cgloadint(n->v.intvalue));
   case A_IDENT:
-    return (cgloadglob(n->v.id));
-  case A_LVIDENT:
-    return (cgstorglob(reg, n->v.id));
+    // Load our value if we are an rvalue
+    // or we are being dereferenced
+    if (n->rvalue || parentASTop == A_DEREF) {
+      return (cgloadglob(n->v.id));
+    } else {
+      return (NOREG); // lvalue, let the ASSIGN node do the 'store' work
+    }
   case A_ASSIGN:
-    // The work has already been done, return the result
-    return (rightreg);
-  case A_PRINT:
-    genprintint(leftreg);
-    genfreeregs();
-    return (NOREG);
+    switch (n->right->op) {
+      case A_IDENT: // ex: a = 12
+        return (cgstorglob(leftreg, n->right->v.id));
+      case A_DEREF: // ex: *a = 12
+        return (cgstorderef(leftreg, rightreg, n->right->type));
+      default: fatald("Can't A_ASSIGN in genAST(), op", n->op);
+    }
   case A_RETURN:
     cgreturn(leftreg, Functionid);
     return (NOREG);
@@ -168,7 +173,13 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   case A_ADDR:
     return (cgaddress(n->v.id));
   case A_DEREF:
-    return (cgderef(leftreg, n->left->type));
+    // If we are an rvalue, dereference to get the value we point at
+    // otherwise leave it for A_ASSIGN to store through the pointer
+    if (n->rvalue) {
+      return (cgderef(leftreg, n->left->type));
+    } else {
+      return (leftreg);
+    }
   default:
     fatald("Unknown AST operator", n->op);
   }

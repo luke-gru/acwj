@@ -7,15 +7,15 @@ int main() {
   int   f;
 
   a= 18;
-  print a;
+  printint(a);
   b= &a;
   c= *b;
-  print c;
+  printint(c);
 
   d= 12;
-  print d;
+  printint(d);
   e= &d;
   f= *e;
-  print f;
+  printint(f);
   return (0);
 }

@@ -63,9 +63,15 @@ struct ASTnode *function_declaration(int type) {
   // the last AST operation in the compound statement
   // was a return statement
   if (type != P_VOID) {
+    // Error if no statements in the function
+    if (tree == NULL) {
+      fatal("No statements in function with non-void type");
+    }
+
     finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
-    if (finalstmt == NULL || finalstmt->op != A_RETURN)
+    if (finalstmt == NULL || finalstmt->op != A_RETURN) {
       fatal("No return for function with non-void type");
+    }
   }
   return (mkuastunary(A_FUNCTION, type, tree, nameslot));
 }
@@ -81,6 +87,10 @@ void global_declarations(void) {
       // Parse the function declaration and
       // generate the assembly code for it
       tree = function_declaration(type);
+      if (O_dumpAST) {
+        dumpAST(tree, 0, 0);
+        fprintf(stdout, "\n");
+      }
       genAST(tree, NOREG, 0);
     } else {
       // Parse the global variable declaration

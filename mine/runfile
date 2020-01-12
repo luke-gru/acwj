@@ -4,6 +4,6 @@ set -e
 set -x
 
 make compiler &&
-./bin/compiler $1 &&
+./bin/compiler $@ &&
 cc out.s &&
 ./a.out
