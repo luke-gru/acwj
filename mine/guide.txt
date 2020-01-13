@@ -24,3 +24,54 @@ movq $1, %rdi # Move 1 into %rdi
 Movq $15, %rsi # Move 15 into %rsi
 call foo # Push return address and jump to label foo
 
+Example Program
+---------------
+```
+int main() {
+    int a, b;
+    a = 1000;
+    b = 2000;
+    printint(a+b);
+    return(0);
+}
+```
+
+parses to:
+
+```
+  A_INTLIT 1000 (lnode)
+  A_IDENT a (rnode)
+A_ASSIGN
+  A_INTLIT 2000 (lnode)
+  A_IDENT b (rnode)
+A_ASSIGN
+A_GLUE
+
+    A_IDENT rval a (lnode)
+    A_IDENT rval b (rnode)
+  A_ADD (lnode)
+A_FUNCALL printint
+A_GLUE
+
+    A_INTLIT 0 (lnode)
+  A_WIDEN (lnode)
+A_RETURN
+A_GLUE
+
+A_FUNCTION main
+```
+
+Generating A_ASSIGN asm code (gen.c)
+------------------------------------
+1) genAST on A_GLUE
+2) genAST on A_ASSIGN node (`a`)
+3) genAST on left node (A_INTLIT), loads a register with value 1000, returns it
+as `leftreg`
+4) genAST on right node (A_IDENT), returns sentinel value NOREG as A_ASSIGN
+takes care of generating the assignment code for non-rvalue identifiers.
+5) Calls cgstorglob(leftreg, symbol_for(`a`)), which generates a MOV
+instruction, moving the value of register leftreg into the variable, and
+returning the `leftreg` value. This value is returned because assignment is
+considered an expression in the language (`a = b = 1000`).
+6) Registers are freed (`leftreg`)
+...

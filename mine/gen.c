@@ -83,7 +83,7 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   int leftreg, rightreg;
 
   if (O_parseOnly)
-    assert(0); // shouldn't be called if O_parseOnly = 1
+    assert(0); // shouldn't even be called if O_parseOnly == 1
 
   // We now have specific AST node handling at the top
   switch (n->op) {

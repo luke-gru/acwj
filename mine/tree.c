@@ -76,7 +76,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       return;
   }
 
-  // Reset level to -2 for A_GLUE
+  // Reset level to -2 for A_GLUE (flatten nested hierarchy)
   if (n->op==A_GLUE) level= -2;
 
   // General AST node handling
@@ -87,7 +87,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
   for (int i=0; i < level; i++) fprintf(stdout, " ");
   switch (n->op) {
     case A_GLUE:
-      fprintf(stdout, "\n\n"); return;
+      fprintf(stdout, "GLUE\n\n"); return;
     case A_FUNCTION:
       fprintf(stdout, "A_FUNCTION %s\n", Gsym[n->v.id].name); return;
     case A_ADD:

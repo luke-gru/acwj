@@ -1,0 +1,7 @@
+int main() {
+    int a, b, c, d, e, f;
+    a = b = c = 1000;
+    d = e = f = 2000;
+    printint(a+b);
+    return(0);
+}
