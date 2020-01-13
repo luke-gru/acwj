@@ -92,7 +92,8 @@ struct ASTnode {
 // Storage classes
 enum {
     C_GLOBAL = 1,       // Globally visible symbol
-    C_LOCAL             // Locally visible symbol
+    C_LOCAL,            // Locally visible symbol
+    C_PARAM             // Locally visible function parameter
 };
 
 // Symbol table structure
@@ -102,7 +103,7 @@ struct symtable {
   int stype;                    // Structural type (function, variable)
   int class;                    // Storage class for the symbol (global, local)
   int endlabel;                 // for S_FUNCTION, the label to right where it's about to return to caller
-  int size;                     // for S_ARRAY, number of elements
+  int size;                     // for S_ARRAY, number of elements. For S_FUNCTION, number of parameters
   int posn;                     // For locals, the negative offset from the stack base pointer (rbp)
 };
 

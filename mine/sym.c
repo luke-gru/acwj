@@ -11,6 +11,7 @@ int findglob(char *s) {
   int i;
 
   for (i = 0; i < Globs; i++) {
+    if (Symtable[i].class == C_PARAM) continue;
     if (*s == *Gsym[i].name && !strcmp(s, Gsym[i].name)) {
       return (i);
     }
@@ -87,8 +88,9 @@ int addglob(char *name, int ptype, int stype, int size) {
 
 // Add a global symbol to the symbol table.
 // Return the slot number in the symbol table
-int addlocl(char *name, int ptype, int stype, int size) {
+int addlocl(char *name, int ptype, int stype, int isParam, int size) {
   int y;
+  int param;
 
   // If this is already in the symbol table, return the existing slot
   if ((y = findlocl(name)) != -1)
@@ -98,12 +100,25 @@ int addlocl(char *name, int ptype, int stype, int size) {
   // return the slot number
   y = newlocl();
   Gsym[y].name = strdup(name);
-  Gsym[y].class = C_LOCAL;
+  Gsym[y].class = isParam ? C_PARAM : C_LOCAL;
   Gsym[y].type = ptype;
   Gsym[y].stype = stype;
   Gsym[y].size = size;
   // NOTE: `cggetlocaloffset` must be called after all other fields are set
   Gsym[y].posn = cggetlocaloffset(y, 0);
+
+  // if it's a function parameter, add a new global symbol for it right after
+  // the function itself, for type checking purposes
+
+  if (isParam) {
+    param = newglob();
+    Gsym[param].name = strdup(name);
+    Gsym[param].class = C_PARAM;
+    Gsym[param].type = ptype;
+    Gsym[param].stype = stype;
+    Gsym[param].size = size;
+    Gsym[param].posn = 0;
+  }
 
   return (y);
 }

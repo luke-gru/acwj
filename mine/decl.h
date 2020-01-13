@@ -99,11 +99,11 @@ void fatalc(char *s, int c);
 int findglob(char *s);
 int findlocl(char *s);
 int addglob(char *name, int ptype, int stype, int size);
-int addlocl(char *name, int ptype, int stype, int size);
+int addlocl(char *name, int ptype, int stype, int isParam, int size);
 int findsymbol(char *s);
 
 // decl.c
-void var_declaration(int type, int isLocal);
+void var_declaration(int type, int isLocal, int isParam);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 int parse_type(int t);

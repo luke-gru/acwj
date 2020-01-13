@@ -7,6 +7,8 @@
 
 // Parse the current token and
 // return a primitive type enum value
+// TODO: allow type to be an array type without size given, like for
+// parameters: `char[] fmt`
 int parse_type(int t) {
   int type = P_NONE;
   if (t == T_CHAR) type = P_CHAR;
@@ -35,7 +37,7 @@ int parse_type(int t) {
 
 // Parse the declaration of a scalar variable or an array with a given size.
 // The identifier has been scanned & we have the type
-void var_declaration(int type, int isLocal) {
+void var_declaration(int type, int isLocal, int isParam) {
   int id;
   while (1) {
     // array variable
@@ -45,7 +47,11 @@ void var_declaration(int type, int isLocal) {
         // Add this as a known array and generate its space in assembly.
         // We treat the array as a pointer to its elements' type
         if (isLocal) {
-          addlocl(Text, pointer_to(type), S_ARRAY, Token.intvalue);
+          if (isParam) {
+            // FIXME: just make them pointers to their underlying type
+            fatal("Array parameters are not yet supported");
+          }
+          addlocl(Text, pointer_to(type), S_ARRAY, isParam, Token.intvalue);
         } else {
           addglob(Text, pointer_to(type), S_ARRAY, Token.intvalue);
         }
@@ -57,7 +63,9 @@ void var_declaration(int type, int isLocal) {
     // scalar variable
     } else {
       if (isLocal) {
-        addlocl(Text, type, S_VARIABLE, 1);
+        if (addlocl(Text, type, S_VARIABLE, isParam, 1) == -1) {
+          fatals("Duplicate local variable declaration", Text);
+        }
       } else {
         addglob(Text, type, S_VARIABLE, 1);
       }
@@ -76,16 +84,51 @@ void var_declaration(int type, int isLocal) {
   }
 }
 
+// param_declaration: <null>
+//           | variable_declaration
+//           | variable_declaration ',' param_declaration
+//
+// Parse the parameters in parentheses after the function name.
+// Add them as symbols to the symbol table and return the number
+// of parameters.
+static int param_declaration(void) {
+  int type;
+  int paramcnt=0;
+
+  // Loop until the final right parentheses. Current token starts
+  // the loop right after T_LPAREN.
+  while (Token.token != T_RPAREN) {
+    type = parse_type(Token.token);
+    ident();
+    var_declaration(type, 1, 1);
+    paramcnt++;
+
+    switch (Token.token) {
+      case T_COMMA:
+        scan(&Token);
+        break;
+      case T_RPAREN:
+        break;
+      default:
+        fatalv("Unexpected token in parameter list: %s", tokenname(Token.token));
+    }
+  }
+  return (paramcnt);
+}
+
 struct ASTnode *function_declaration(int type) {
   struct ASTnode *tree, *finalstmt;
   int nameslot;
+  int paramcnt;
 
   nameslot = addglob(Text, type, S_FUNCTION, 0);
-  Functionid = nameslot; // set currently parsed/generated function
-  cgresetlocals();
   lparen();
+  cgresetlocals();
+  paramcnt = param_declaration();
   rparen();
+  Symtable[nameslot].size = paramcnt;
 
+  Functionid = nameslot; // set currently parsed/generated function
   tree = compound_statement();
   // If the function type isn't P_VOID, check that
   // the last AST operation in the compound statement
@@ -124,7 +167,7 @@ void global_declarations(void) {
       }
     } else {
       // Parse the global variable declaration
-      var_declaration(type, 0);
+      var_declaration(type, 0, 0);
     }
 
     if (Token.token == T_EOF)
