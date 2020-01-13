@@ -46,7 +46,7 @@ int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
 void cgprintint(int r);
-int cgloadglob(int slot);
+int cgloadglob(int slot, int ASTop);
 int cgstorglob(int r, int slot);
 void cgglobsym(int slot);
 int cgcompare_and_set(int ASTop, int r1, int r2);
@@ -62,7 +62,16 @@ int cgderef(int r, int type);
 int cgstorderef(int r1, int r2, int type);
 int cgshlconst(int r, int val);
 void cgglobstr(int label, char *strval);
+int cgbitand(int r1, int r2);
+int cgbitor(int r1, int r2);
+int cgbitxor(int r1, int r2);
 int cgloadglobstr(int label);
+int cgshl(int r1, int r2);
+int cgshr(int r1, int r2);
+int cgnegate(int r1);
+int cginvert(int r1);
+int cglognot(int r1);
+int cgboolean(int r1, int ASTop, int label);
 
 // stmt.c
 struct ASTnode *compound_statement(void);

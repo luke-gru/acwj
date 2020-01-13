@@ -13,6 +13,7 @@ static void init() {
   Functionid = -1;
   addglob("printint", P_VOID, S_FUNCTION, 0);
   addglob("printchar", P_VOID, S_FUNCTION, 0);
+  addglob("printstring", P_VOID, S_FUNCTION, 0);
   O_dumpAST = 0; // when set to 1, so is O_parseOnly
   O_parseOnly = 0;
 }

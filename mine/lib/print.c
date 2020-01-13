@@ -6,3 +6,11 @@ void printint(long x) {
 void printchar(long x) {
   putc((char)(x & 0x7f), stdout);
 }
+
+void printstring(char *str) {
+  char *p = str;
+  while (*p) {
+    printchar(*p);
+    p++;
+  }
+}

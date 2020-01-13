@@ -143,7 +143,7 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     // Load our value if we are an rvalue
     // or we are being dereferenced
     if (n->rvalue || parentASTop == A_DEREF) {
-      return (cgloadglob(n->v.id));
+      return (cgloadglob(n->v.id, n->op));
     } else {
       return (NOREG); // lvalue, let the ASSIGN node do the 'store' work
     }
@@ -185,6 +185,35 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     }
   case A_STRLIT:
     return (cgloadglobstr(n->v.id));
+  case A_BITAND:
+    return (cgbitand(leftreg, rightreg));
+  case A_BITOR:
+    return (cgbitor(leftreg, rightreg));
+  case A_BITXOR:
+    return (cgbitxor(leftreg, rightreg));
+  case A_LSHIFT:
+    return (cgshl(leftreg, rightreg));
+  case A_RSHIFT:
+    return (cgshr(leftreg, rightreg));
+  case A_POSTINC: // doesn't have children
+    return (cgloadglob(n->v.id, n->op));
+  case A_POSTDEC: // doesn't have children
+    return (cgloadglob(n->v.id, n->op));
+  case A_PREINC: // has 1 child
+    return (cgloadglob(n->left->v.id, n->op));
+  case A_PREDEC: // has 1 child
+    return (cgloadglob(n->left->v.id, n->op));
+  case A_NEGATE:
+    return (cgnegate(leftreg));
+  case A_INVERT:
+    return (cginvert(leftreg));
+  case A_LOGNOT:
+    return (cglognot(leftreg));
+  case A_TOBOOL:
+    // If the parent AST node is an A_IF or A_WHILE, generate
+    // a compare followed by a jump. Otherwise, set the register
+    // to 0 or 1 based on it's zeroeness or non-zeroeness
+    return (cgboolean(leftreg, parentASTop, reg));
   default:
     assert(n->op < A_LAST);
     fatald("Unknown AST operator in genAST", n->op);

@@ -134,8 +134,8 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_BITOR\n"); return;
     case A_BITXOR:
       fprintf(stdout, "A_BITXOR\n"); return;
-    case A_AND:
-      fprintf(stdout, "A_AND\n"); return;
+    case A_BITAND:
+      fprintf(stdout, "A_BITAND\n"); return;
     case A_WIDEN:
       fprintf(stdout, "A_WIDEN\n"); return;
     case A_RETURN:
