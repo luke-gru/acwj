@@ -143,14 +143,22 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     // Load our value if we are an rvalue
     // or we are being dereferenced
     if (n->rvalue || parentASTop == A_DEREF) {
-      return (cgloadglob(n->v.id, n->op));
+      if (Symtable[n->v.id].class == C_LOCAL) {
+        return (cgloadlocal(n->v.id, n->op));
+      } else {
+        return (cgloadglob(n->v.id, n->op));
+      }
     } else {
       return (NOREG); // lvalue, let the ASSIGN node do the 'store' work
     }
   case A_ASSIGN:
     switch (n->right->op) {
       case A_IDENT: // ex: a = 12
-        return (cgstorglob(leftreg, n->right->v.id));
+        if (Symtable[n->right->v.id].class == C_LOCAL) {
+          return (cgstorlocal(leftreg, n->right->v.id));
+        } else {
+          return (cgstorglob(leftreg, n->right->v.id));
+        }
       case A_DEREF: // ex: *a = 12
         return (cgstorderef(leftreg, rightreg, n->right->type));
       default: fatald("Can't A_ASSIGN in genAST(), op", n->op);
@@ -196,13 +204,29 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   case A_RSHIFT:
     return (cgshr(leftreg, rightreg));
   case A_POSTINC: // doesn't have children
-    return (cgloadglob(n->v.id, n->op));
+    if (Symtable[n->v.id].class == C_LOCAL) {
+      return (cgloadlocal(n->v.id, n->op));
+    } else {
+      return (cgloadglob(n->v.id, n->op));
+    }
   case A_POSTDEC: // doesn't have children
-    return (cgloadglob(n->v.id, n->op));
+    if (Symtable[n->v.id].class == C_LOCAL) {
+      return (cgloadlocal(n->v.id, n->op));
+    } else {
+      return (cgloadglob(n->v.id, n->op));
+    }
   case A_PREINC: // has 1 child
-    return (cgloadglob(n->left->v.id, n->op));
+    if (Symtable[n->left->v.id].class == C_LOCAL) {
+      return (cgloadlocal(n->left->v.id, n->op));
+    } else {
+      return (cgloadglob(n->left->v.id, n->op));
+    }
   case A_PREDEC: // has 1 child
-    return (cgloadglob(n->left->v.id, n->op));
+    if (Symtable[n->left->v.id].class == C_LOCAL) {
+      return (cgloadlocal(n->left->v.id, n->op));
+    } else {
+      return (cgloadglob(n->left->v.id, n->op));
+    }
   case A_NEGATE:
     return (cgnegate(leftreg));
   case A_INVERT:

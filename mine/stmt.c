@@ -167,7 +167,7 @@ static struct ASTnode *single_statement(void) {
     case T_LONG:
       type = parse_type(Token.token);
       ident();
-      var_declaration(type);
+      var_declaration(type, 1);
       return (NULL);		// No AST generated here
     case T_IF:
       return (if_statement());

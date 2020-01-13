@@ -40,7 +40,9 @@ test_compiler: compiler
 	 ./bin/compiler  test/compiler/pointer_deref; \
 	 ./bin/compiler  test/compiler/basic_arrays; \
 	 ./bin/compiler  test/compiler/strings; \
-	 ./bin/compiler  test/compiler/operators)
+	 ./bin/compiler  test/compiler/operators; \
+	 ./bin/compiler  test/compiler/local_vars; \
+	 ./bin/compiler  test/compiler/local_array_vars)
 
 test_exec:
 	-(./runfile test/compiler/comparisons; \
@@ -59,6 +61,8 @@ test_exec:
 	  ./runfile  test/compiler/pointer_deref; \
 	  ./runfile  test/compiler/basic_arrays; \
 	  ./runfile  test/compiler/strings; \
-	  ./runfile  test/compiler/operators)
+	  ./runfile  test/compiler/operators; \
+	  ./runfile  test/compiler/local_vars; \
+	  ./runfile  test/compiler/local_array_vars)
 
 test: test_scanner test_parser test_compiler test_exec

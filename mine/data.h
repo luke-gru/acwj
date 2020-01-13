@@ -11,7 +11,10 @@ FILE     *Outfile;
 char     *Infilename;
 struct token Token;
 char   Text[TEXTLEN + 1];		// Last identifier scanned
-struct symtable Gsym[NSYMBOLS];	// Global symbol table
+#define Gsym Symtable
+struct symtable Symtable[NSYMBOLS];	// Global symbol table
+int    Globs;              // Position of next free global slot
+int    Locls;              // Position of next free local slot
 int    Functionid;         // Symbol id of the current function being parsed and code-generated
 int    O_dumpAST;          // option to print AST string representation to stdout
 int    O_parseOnly;        // option to not output any assembly language to a file

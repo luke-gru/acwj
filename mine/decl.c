@@ -35,24 +35,32 @@ int parse_type(int t) {
 
 // Parse the declaration of a scalar variable or an array with a given size.
 // The identifier has been scanned & we have the type
-void var_declaration(int type) {
+void var_declaration(int type, int isLocal) {
   int id;
   while (1) {
+    // array variable
     if (Token.token == T_LBRACKET) {
       scan(&Token);
       if (Token.token == T_INTLIT) {
         // Add this as a known array and generate its space in assembly.
         // We treat the array as a pointer to its elements' type
-        id = addglob(Text, pointer_to(type), S_ARRAY, Token.intvalue);
-        genglobsym(id);
+        if (isLocal) {
+          addlocl(Text, pointer_to(type), S_ARRAY, Token.intvalue);
+        } else {
+          addglob(Text, pointer_to(type), S_ARRAY, Token.intvalue);
+        }
       } else {
         fatal("Missing array size in array variable declaration");
       }
       scan(&Token); // integer literal array size
       match(T_RBRACKET, "]");
+    // scalar variable
     } else {
-      id = addglob(Text, type, S_VARIABLE, 1);
-      genglobsym(id);
+      if (isLocal) {
+        addlocl(Text, type, S_VARIABLE, 1);
+      } else {
+        addglob(Text, type, S_VARIABLE, 1);
+      }
     }
 
     if (Token.token == T_SEMI) {
@@ -74,6 +82,7 @@ struct ASTnode *function_declaration(int type) {
 
   nameslot = addglob(Text, type, S_FUNCTION, 0);
   Functionid = nameslot; // set currently parsed/generated function
+  cgresetlocals();
   lparen();
   rparen();
 
@@ -115,7 +124,7 @@ void global_declarations(void) {
       }
     } else {
       // Parse the global variable declaration
-      var_declaration(type);
+      var_declaration(type, 0);
     }
 
     if (Token.token == T_EOF)

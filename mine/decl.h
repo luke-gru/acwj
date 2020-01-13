@@ -48,6 +48,8 @@ int cgdiv(int r1, int r2);
 void cgprintint(int r);
 int cgloadglob(int slot, int ASTop);
 int cgstorglob(int r, int slot);
+int cgloadlocal(int slot, int ASTop);
+int cgstorlocal(int r, int slot);
 void cgglobsym(int slot);
 int cgcompare_and_set(int ASTop, int r1, int r2);
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
@@ -72,6 +74,9 @@ int cgnegate(int r1);
 int cginvert(int r1);
 int cglognot(int r1);
 int cgboolean(int r1, int ASTop, int label);
+//int cggetlocaloffset(int ptype, int isparam);
+int cggetlocaloffset(int slot, int isparam);
+void cgresetlocals(void);
 
 // stmt.c
 struct ASTnode *compound_statement(void);
@@ -92,10 +97,13 @@ void fatalc(char *s, int c);
 
 // sym.c
 int findglob(char *s);
+int findlocl(char *s);
 int addglob(char *name, int ptype, int stype, int size);
+int addlocl(char *name, int ptype, int stype, int size);
+int findsymbol(char *s);
 
 // decl.c
-void var_declaration(int type);
+void var_declaration(int type, int isLocal);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 int parse_type(int t);

@@ -13,7 +13,11 @@ static void init() {
   Line = 1;
   Putback = '\n';
   Functionid = -1;
+  Globs = 0;
+  Locls = NSYMBOLS-1;
   addglob("printint", P_VOID, S_FUNCTION, 0);
+  addglob("printchar", P_VOID, S_FUNCTION, 0);
+  addglob("printstring", P_VOID, S_FUNCTION, 0);
   O_dumpAST = 0;
   O_parseOnly = 1;
   Outfile = stdout; // just in case we try to dump some assembly somewhere, that this isn't NULL and doesn't segfault

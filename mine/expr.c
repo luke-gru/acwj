@@ -66,7 +66,7 @@ static struct ASTnode *postfix(void) {
     return (array_access());
 
   // A variable. Check that the variable exists.
-  id = findglob(Text);
+  id = findsymbol(Text);
   if (id == -1 || Gsym[id].stype != S_VARIABLE)
     fatals("Unknown variable", Text);
 
@@ -97,7 +97,7 @@ static struct ASTnode *array_access(void) {
 
   // Check that the identifier has been defined as an array
   // then make a leaf node for it that points at the base
-  if ((id = findglob(Text)) == -1 || Gsym[id].stype != S_ARRAY) {
+  if ((id = findsymbol(Text)) == -1 || Gsym[id].stype != S_ARRAY) {
     fatals("Undeclared array", Text);
   }
 
