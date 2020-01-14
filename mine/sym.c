@@ -86,6 +86,10 @@ int addglob(char *name, int ptype, int stype, int size) {
   return (y);
 }
 
+int addparam(char *name, int ptype, int stype, int size) {
+  return addlocl(name, ptype, stype, 1, size);
+}
+
 // Add a global symbol to the symbol table.
 // Return the slot number in the symbol table
 int addlocl(char *name, int ptype, int stype, int isParam, int size) {
@@ -108,7 +112,8 @@ int addlocl(char *name, int ptype, int stype, int isParam, int size) {
   Gsym[y].posn = cggetlocaloffset(y, 0);
 
   // if it's a function parameter, add a new global symbol for it right after
-  // the function itself, for type checking purposes
+  // the function itself, for type checking purposes, right after the global
+  // symbol for the function.
 
   if (isParam) {
     param = newglob();
@@ -117,7 +122,7 @@ int addlocl(char *name, int ptype, int stype, int isParam, int size) {
     Gsym[param].type = ptype;
     Gsym[param].stype = stype;
     Gsym[param].size = size;
-    Gsym[param].posn = 0;
+    Gsym[param].posn = Gsym[y].posn;
   }
 
   return (y);

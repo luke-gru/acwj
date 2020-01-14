@@ -6,6 +6,12 @@
 // Generic code generator
 // Copyright (c) 2019 Warren Toomey, GPL3
 
+// function call related (TODO: doesn't yet work for nested function calls
+// like (callA(callB(1))
+static int InFunCall = 0;
+static int NumArgsLoaded = 0;
+static int NumArgsToLoad = 0;
+
 // Generate and return a new label number
 static int genlabel(void) {
   static int id = 1;
@@ -81,6 +87,8 @@ static int genWhile(struct ASTnode *n) {
 // Return the register id with the tree's final value
 int genAST(struct ASTnode *n, int reg, int parentASTop) {
   int leftreg, rightreg;
+  leftreg = -1;
+  rightreg = -1;
 
   if (O_parseOnly)
     assert(0); // shouldn't even be called if O_parseOnly == 1
@@ -100,19 +108,44 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     case A_GLUE:
       // Do each child statement, and free the
       // registers after each child
-      genAST(n->left, NOREG, n->op);
+      leftreg = genAST(n->left, NOREG, n->op);
+      if (InFunCall && leftreg != NOREG) {
+        cgloadarg(leftreg, 0);
+        NumArgsLoaded++;
+      }
       genfreeregs();
-      genAST(n->right, NOREG, n->op);
+      rightreg = genAST(n->right, NOREG, n->op);
+      if (InFunCall && rightreg != NOREG) {
+        cgloadarg(rightreg, 0);
+        NumArgsLoaded++;
+      }
       genfreeregs();
       return (NOREG);
+    case A_FUNCALL:
+      /*assert(InFunCall == 0);*/ // NOTE: could be nested function call
+      InFunCall = 1;
+      NumArgsLoaded = 0;
+      NumArgsToLoad = Symtable[n->v.id].size;
+      cgclearargnum();
+      break;
+    default: // continue below
+      break;
   }
 
   // Get the left and right sub-tree values
   if (n->left) {
     leftreg = genAST(n->left, NOREG, n->op);
+    if (n->op == A_FUNCALL && leftreg != NOREG && NumArgsLoaded < NumArgsToLoad) {
+      cgloadarg(leftreg, 0);
+      NumArgsLoaded++;
+    }
   }
   if (n->right) {
     rightreg = genAST(n->right, leftreg, n->op);
+    if (n->op == A_FUNCALL && rightreg != NOREG && NumArgsLoaded < NumArgsToLoad) {
+      cgloadarg(leftreg, 0);
+      NumArgsLoaded++;
+    }
   }
 
   switch (n->op) {
@@ -143,10 +176,10 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     // Load our value if we are an rvalue
     // or we are being dereferenced
     if (n->rvalue || parentASTop == A_DEREF) {
-      if (Symtable[n->v.id].class == C_LOCAL) {
-        return (cgloadlocal(n->v.id, n->op));
-      } else {
+      if (Symtable[n->v.id].class == C_GLOBAL) {
         return (cgloadglob(n->v.id, n->op));
+      } else {
+        return (cgloadlocal(n->v.id, n->op));
       }
     } else {
       return (NOREG); // lvalue, let the ASSIGN node do the 'store' work
@@ -154,10 +187,10 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   case A_ASSIGN:
     switch (n->right->op) {
       case A_IDENT: // ex: a = 12
-        if (Symtable[n->right->v.id].class == C_LOCAL) {
-          return (cgstorlocal(leftreg, n->right->v.id));
-        } else {
+        if (Symtable[n->right->v.id].class == C_GLOBAL) {
           return (cgstorglob(leftreg, n->right->v.id));
+        } else {
+          return (cgstorlocal(leftreg, n->right->v.id));
         }
       case A_DEREF: // ex: *a = 12
         return (cgstorderef(leftreg, rightreg, n->right->type));
@@ -167,7 +200,8 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     cgreturn(leftreg, Functionid);
     return (NOREG);
   case A_FUNCALL:
-    return (cgcall(leftreg, n->v.id));
+    InFunCall = 0;
+    return (cgcall(n->v.id));
   case A_WIDEN:
     return (cgwiden(leftreg, n->left->type, n->type));
   case A_SCALE:
@@ -204,28 +238,28 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   case A_RSHIFT:
     return (cgshr(leftreg, rightreg));
   case A_POSTINC: // doesn't have children
-    if (Symtable[n->v.id].class == C_LOCAL) {
-      return (cgloadlocal(n->v.id, n->op));
-    } else {
+    if (Symtable[n->v.id].class == C_GLOBAL) {
       return (cgloadglob(n->v.id, n->op));
+    } else {
+      return (cgloadlocal(n->v.id, n->op));
     }
   case A_POSTDEC: // doesn't have children
-    if (Symtable[n->v.id].class == C_LOCAL) {
-      return (cgloadlocal(n->v.id, n->op));
-    } else {
+    if (Symtable[n->v.id].class == C_GLOBAL) {
       return (cgloadglob(n->v.id, n->op));
+    } else {
+      return (cgloadlocal(n->v.id, n->op));
     }
   case A_PREINC: // has 1 child
-    if (Symtable[n->left->v.id].class == C_LOCAL) {
-      return (cgloadlocal(n->left->v.id, n->op));
-    } else {
+    if (Symtable[n->left->v.id].class == C_GLOBAL) {
       return (cgloadglob(n->left->v.id, n->op));
+    } else {
+      return (cgloadlocal(n->left->v.id, n->op));
     }
   case A_PREDEC: // has 1 child
-    if (Symtable[n->left->v.id].class == C_LOCAL) {
-      return (cgloadlocal(n->left->v.id, n->op));
-    } else {
+    if (Symtable[n->left->v.id].class == C_GLOBAL) {
       return (cgloadglob(n->left->v.id, n->op));
+    } else {
+      return (cgloadlocal(n->left->v.id, n->op));
     }
   case A_NEGATE:
     return (cgnegate(leftreg));

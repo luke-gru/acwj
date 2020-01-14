@@ -1,0 +1,20 @@
+TODO
+====
+
+Functional
+----------
+* Get passing more than 6 arguments to functions working
+* Typechecking
+* Arrays as function parameters
+* Function prototypes
+* User-defined types
+* Type aliases
+
+Optimizations
+-------------
+* Omit frame pointer optimization
+* Register optimizations
+
+Would Be Nice
+-------------
+* Output debug information during compilation

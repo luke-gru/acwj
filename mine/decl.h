@@ -57,7 +57,9 @@ void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);
 int cgprimsize(int ptype);
-int cgcall(int r, int func_sym);
+void cgloadarg(int r, int type);
+void cgclearargnum(void);
+int cgcall(int func_sym);
 void cgreturn(int r, int func_sym);
 int cgaddress(int id);
 int cgderef(int r, int type);
@@ -94,12 +96,14 @@ void fatals(char *s1, char *s2);
 void fatalv(const char *fmt, ...);
 void fatald(char *s, int d);
 void fatalc(char *s, int c);
+void debugnoisy(const char *modulename, const char *fmt, ...);
 
 // sym.c
 int findglob(char *s);
 int findlocl(char *s);
 int addglob(char *name, int ptype, int stype, int size);
 int addlocl(char *name, int ptype, int stype, int isParam, int size);
+int addparam(char *name, int ptype, int stype, int size);
 int findsymbol(char *s);
 
 // decl.c

@@ -10,14 +10,36 @@
 #define INTSZ 4
 #define LONGSZ 8
 #define PTRSIZE 8
+
 #define NUMFREEREGS 4
+#define FIRSTPARAMREG 9
+#define MAXREGISTERPARAMS 6
+
+#ifdef NDEBUG
+#define
+#define cgdebug(fmt, ...) (void)0
+#else
+#define cgdebug(fmt, ...) debugnoisy("cg", fmt, __VA_ARGS__)
+#endif
 
 // List of available registers
 // and their names
 static int freereg[NUMFREEREGS];
-static char *reglist[NUMFREEREGS]  = { "%r8",  "%r9",  "%r10",  "%r11" };
-static char *breglist[NUMFREEREGS] = { "%r8b", "%r9b", "%r10b", "%r11b" };
-static char *dreglist[NUMFREEREGS] = { "%r8d", "%r9d", "%r10d", "%r11d" };
+static char *reglist[] = {
+  "%r10", "%r11", "%r12",
+  "%r13", "%r9", "%r8",
+  "%rcx", "%rdx", "%rsi", "%rdi"
+};
+static char *breglist[] = {
+  "%r10b", "%r11b", "%r12b",
+  "%r13b", "%r9b", "%r8b",
+  "%cl", "%dl", "%sil", "%dil"
+};
+static char *dreglist[] = {
+  "%r10d", "%r11d", "%r12d",
+  "%r13d", "%r9d", "%r8d",
+  "%ecx", "%edx", "%esi", "%edi"
+};
 
 // Array of type sizes in P_XXX order.
 // 0 means no size.
@@ -32,6 +54,10 @@ static int psize[] = {
 // We store the offset as positive to make aligning the stack pointer easier
 static int localOffset;
 static int stackOffset;
+
+// the currently generated argument number to a function call.
+// This is reset to 0 before every function call gets code-generated.
+static int ArgNum = 0;
 
 // Flag to say which section were are outputting in to
 enum { no_seg, text_seg, data_seg } currSeg = no_seg;
@@ -98,22 +124,42 @@ void cgpostamble() {
 }
 
 void cgfuncpreamble(int sym_id) {
-  char *name = Gsym[sym_id].name;
-  cgtextseg();
+  assert(Gsym[sym_id].stype == S_FUNCTION);
 
-  // Align the stack pointer to be a multiple of 16
-  // less than its previous value
-  stackOffset = (localOffset+15) & ~15;
-  // printf("preamble local %d stack %d\n", localOffset, stackOffset);
+  char *name = Gsym[sym_id].name;
+  int i;
+  int paramOffset = 16;         // Any pushed params start at this stack offset
+  int paramReg = FIRSTPARAMREG; // Index to the first param register in above reg lists
+
+  cgtextseg();
 
   fprintf(Outfile,
           "\t.globl\t%s\n"
           "\t.type\t%s, @function\n"
           "%s:\n"
           "\tpushq\t%%rbp\n"
-          "\tmovq\t%%rsp, %%rbp\n"
-          "\taddq\t$%d,%%rsp\n",
-          name, name, name, -stackOffset);
+          "\tmovq\t%%rsp, %%rbp\n",
+          name, name, name);
+
+  // Copy any in-register parameters to the stack.
+  // Stop after no more than six parameter registers
+  cgdebug("function preamble for %s\n", name);
+  int numParams = Symtable[sym_id].size;
+  assert(numParams <= MAXREGISTERPARAMS); // FIXME
+  for (i = sym_id+1; i < (sym_id+1+numParams); i++) {
+    if (Symtable[i].class != C_PARAM) {
+      assert(0);
+    }
+    assert(Symtable[i].posn < 0);
+    cgdebug("generating param store offset for param %s: %d\n", Symtable[i].name, Symtable[i].posn);
+    cgstorlocal(paramReg--, i);
+  }
+
+  // Align the stack pointer to be a multiple of 16
+  // less than its previous value
+  stackOffset = (localOffset+15) & ~15;
+  // printf("preamble local %d stack %d\n", localOffset, stackOffset);
+  fprintf(Outfile, "\taddq\t$%d,%%rsp\n", -stackOffset);
 }
 
 // Print out the assembly postamble
@@ -422,13 +468,26 @@ int cgprimsize(int ptype) {
   return (psize[ptype]);
 }
 
-int cgcall(int r, int sym_id) {
+void cgclearargnum() {
+  ArgNum = 0;
+}
+
+// TODO: use type
+void cgloadarg(int r, int type) {
+  assert(ArgNum <= MAXREGISTERPARAMS); // TODO: spill to stack if necessary
+  int rparam = FIRSTPARAMREG-ArgNum;
+  fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r], reglist[rparam]);
+  free_register(r);
+  ArgNum++;
+}
+
+// Call a function and return the register with the result.
+// The arguments must be loaded into registers with `cgloadarg`.
+int cgcall(int sym_id) {
   // Get a new register
   int outr = alloc_register();
-  fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
   fprintf(Outfile, "\tcall\t%s\n", Gsym[sym_id].name);
   fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
-  free_register(r);
   return (outr);
 }
 
@@ -589,7 +648,7 @@ int cgboolean(int r, int op, int label) {
 }
 
 int cggetlocaloffset(int slot, int isparam) {
-  assert(Symtable[slot].class == C_LOCAL);
+  assert(Symtable[slot].class == C_LOCAL || Symtable[slot].class == C_PARAM);
   int type = Symtable[slot].type;
   int stype = Symtable[slot].stype;
   if (stype == S_ARRAY) {

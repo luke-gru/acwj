@@ -16,7 +16,7 @@ int parse_type(int t) {
   if (t == T_LONG) type = P_LONG;
   if (t == T_VOID) type = P_VOID;
   if (type == P_NONE)
-    fatals("Illegal type, token", tokenname(t));
+    fatals("Expected a type, found token", tokenname(t));
 
   while (1) {
     scan(&Token);
@@ -35,8 +35,9 @@ int parse_type(int t) {
       ;
 */
 
-// Parse the declaration of a scalar variable or an array with a given size.
-// The identifier has been scanned & we have the type
+// Parse the declaration of 1 or more scalar variable and/or array variables with a given size.
+// The identifier has been scanned and we have the type. If `isParam` is true,
+// scan only 1 parameter.
 void var_declaration(int type, int isLocal, int isParam) {
   int id;
   while (1) {
@@ -70,6 +71,8 @@ void var_declaration(int type, int isLocal, int isParam) {
         addglob(Text, type, S_VARIABLE, 1);
       }
     }
+
+    if (isParam) return;
 
     if (Token.token == T_SEMI) {
       semi();
@@ -119,16 +122,16 @@ static int param_declaration(void) {
 struct ASTnode *function_declaration(int type) {
   struct ASTnode *tree, *finalstmt;
   int nameslot;
-  int paramcnt;
+  int paramcnt = 0;
 
-  nameslot = addglob(Text, type, S_FUNCTION, 0);
+  nameslot = addglob(Text, type, S_FUNCTION, paramcnt);
+  Functionid = nameslot; // set currently parsed/generated function
   lparen();
   cgresetlocals();
   paramcnt = param_declaration();
   rparen();
   Symtable[nameslot].size = paramcnt;
 
-  Functionid = nameslot; // set currently parsed/generated function
   tree = compound_statement();
   // If the function type isn't P_VOID, check that
   // the last AST operation in the compound statement

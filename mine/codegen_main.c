@@ -13,16 +13,23 @@ static void init() {
   Functionid = -1;
   Globs = 0;
   Locls = NSYMBOLS-1;
-  addglob("printint", P_VOID, S_FUNCTION, 0);
-  addglob("printchar", P_VOID, S_FUNCTION, 0);
-  addglob("printstring", P_VOID, S_FUNCTION, 0);
+
+  addglob("printint", P_VOID, S_FUNCTION, 1);
+  addparam("myint", P_INT, S_VARIABLE, 1);
+
+  addglob("printchar", P_VOID, S_FUNCTION, 1);
+  addparam("mychar", P_CHAR, S_VARIABLE, 1);
+
+  addglob("printstring", P_VOID, S_FUNCTION, 1);
+  addparam("mystring", P_CHARPTR, S_VARIABLE, 1);
+
   O_dumpAST = 0; // when set to 1, so is O_parseOnly
   O_parseOnly = 0;
 }
 
 // Print out a usage if started incorrectly
 static void usage(char *prog) {
-  fprintf(stderr, "Usage: %s [-T] infile\n", prog);
+  fprintf(stderr, "Usage: %s [-T] [-D] infile\n", prog);
   exit(1);
 }
 
@@ -45,6 +52,9 @@ void main(int argc, char *argv[]) {
         case 'T':
           O_dumpAST = 1;
           O_parseOnly = 1;
+          break;
+        case 'D':
+          O_debugNoisy = 1;
           break;
         default:
           fprintf(stderr, "Invalid option: %c\n", argv[i][j]);

@@ -71,7 +71,7 @@ enum {
 
 // Structural types
 enum {
-    S_VARIABLE, S_FUNCTION, S_ARRAY
+    S_VARIABLE=1, S_FUNCTION, S_ARRAY
 };
 
 // Abstract Syntax Tree structure

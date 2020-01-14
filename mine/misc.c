@@ -77,3 +77,15 @@ void fatalv(const char *fmt, ...) {
   }
   exit(1);
 }
+
+void debugnoisy(const char *modulename, const char *fmt, ...) {
+  if (!O_debugNoisy) return;
+  va_list ap;
+  va_start(ap, fmt);
+  fprintf(stderr, "[DEBUG %s]: ", modulename);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
+  if (fmt[strlen(fmt)-1] != '\n') {
+    fprintf(stderr, "%s", "\n");
+  }
+}

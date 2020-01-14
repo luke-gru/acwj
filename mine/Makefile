@@ -42,7 +42,9 @@ test_compiler: compiler
 	 ./bin/compiler  test/compiler/strings; \
 	 ./bin/compiler  test/compiler/operators; \
 	 ./bin/compiler  test/compiler/local_vars; \
-	 ./bin/compiler  test/compiler/local_array_vars)
+	 ./bin/compiler  test/compiler/local_array_vars; \
+	 ./bin/compiler  test/compiler/local_params)
+
 
 test_exec:
 	-(./runfile test/compiler/comparisons; \
@@ -63,6 +65,7 @@ test_exec:
 	  ./runfile  test/compiler/strings; \
 	  ./runfile  test/compiler/operators; \
 	  ./runfile  test/compiler/local_vars; \
-	  ./runfile  test/compiler/local_array_vars)
+	  ./runfile  test/compiler/local_array_vars; \
+	  ./runfile  test/compiler/local_params)
 
 test: test_scanner test_parser test_compiler test_exec

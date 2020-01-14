@@ -198,7 +198,7 @@ static int OpPrec[] = {
 // return its precedence.
 static int op_precedence(int tokentype) {
   if (tokentype >= T_INTLIT) {
-    fatald("Token with no precedence in op_precedence:", tokentype);
+    fatals("Token with no precedence in op_precedence:", tokenname(tokentype));
   }
   int prec = OpPrec[tokentype];
   if (prec == 0) {
@@ -226,9 +226,9 @@ struct ASTnode *binexpr(int ptp) {
   // Fetch the next token at the same time.
   left = prefix();
 
-  // If we hit a semicolon or ')', return just the left node
+  // If we hit a ';', ')', ']' or ',' return just the left node
   tokentype = Token.token;
-  if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET) {
+  if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET || tokentype == T_COMMA) {
     left->rvalue = 1;
     return (left);
   }
@@ -287,8 +287,10 @@ struct ASTnode *binexpr(int ptp) {
   return (left);
 }
 
+// Identifier is parsed, current token is '('.
 struct ASTnode *funcall(void) {
-  struct ASTnode *tree;
+  struct ASTnode *tree = NULL; // last parsed argument
+  struct ASTnode *left = NULL; // list of parsed arguments
   int id;
 
   // Check that the identifier has been defined,
@@ -301,16 +303,27 @@ struct ASTnode *funcall(void) {
   }
   lparen();
 
-  // Parse the following expression
-  tree = binexpr(0);
+  // Parse the argument list
+  while (Token.token != T_RPAREN) {
+    tree = binexpr(0);
+    if (left == NULL) {
+      left = tree;
+    } else {
+      left = mkastnode(A_GLUE, P_NONE, left, NULL, tree, 0);
+    }
+    if (Token.token == T_RPAREN) break;
+    if (Token.token == T_COMMA) {
+      scan(&Token);
+      continue;
+    }
+    fatalv("Unexpected token in argument list: %s", tokenname(Token.token));
+  }
+  rparen();
 
   // Build the function call AST node. Store the
   // function's return type as this node's type.
   // Also record the function's symbol-id
-  tree = mkuastunary(A_FUNCALL, Gsym[id].type, tree, id);
-
-  rparen();
-  return (tree);
+  return mkuastunary(A_FUNCALL, Gsym[id].type, left, id);
 }
 
 /**
