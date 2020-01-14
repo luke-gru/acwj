@@ -6,12 +6,6 @@
 // Generic code generator
 // Copyright (c) 2019 Warren Toomey, GPL3
 
-// function call related (TODO: doesn't yet work for nested function calls
-// like (callA(callB(1))
-static int InFunCall = 0;
-static int NumArgsLoaded = 0;
-static int NumArgsToLoad = 0;
-
 // Generate and return a new label number
 static int genlabel(void) {
   static int id = 1;
@@ -83,6 +77,34 @@ static int genWhile(struct ASTnode *n) {
   return (NOREG);
 }
 
+// Generate the code to copy the arguments of a
+// function call to its parameters, then call the
+// function itself. Return the register that holds
+// the function's return value.
+static int gen_funcall(struct ASTnode *n) {
+  struct ASTnode *gluetree = n->left;
+  int reg;
+  int numargs=0;
+
+  // If there is a list of arguments, walk this list
+  // from the last argument (right-hand child) to the
+  // first
+  while (gluetree) {
+    // Calculate the expression's value
+    reg = genAST(gluetree->right, NOREG, gluetree->op);
+    // Copy this into the n'th function parameter: size is 1, 2, 3, ...
+    cgcopyarg(reg, gluetree->v.size);
+    // Keep the first (highest) number of arguments
+    if (numargs==0) numargs= gluetree->v.size;
+    genfreeregs();
+    gluetree = gluetree->left;
+  }
+
+  // Call the function, clean up the stack (based on numargs),
+  // and return its result
+  return (cgcall(n->v.id, numargs));
+}
+
 // Given an AST, generate assembly code recursively.
 // Return the register id with the tree's final value
 int genAST(struct ASTnode *n, int reg, int parentASTop) {
@@ -109,25 +131,12 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
       // Do each child statement, and free the
       // registers after each child
       leftreg = genAST(n->left, NOREG, n->op);
-      if (InFunCall && leftreg != NOREG) {
-        cgloadarg(leftreg, 0);
-        NumArgsLoaded++;
-      }
       genfreeregs();
       rightreg = genAST(n->right, NOREG, n->op);
-      if (InFunCall && rightreg != NOREG) {
-        cgloadarg(rightreg, 0);
-        NumArgsLoaded++;
-      }
       genfreeregs();
       return (NOREG);
     case A_FUNCALL:
-      /*assert(InFunCall == 0);*/ // NOTE: could be nested function call
-      InFunCall = 1;
-      NumArgsLoaded = 0;
-      NumArgsToLoad = Symtable[n->v.id].size;
-      cgclearargnum();
-      break;
+      return (gen_funcall(n));
     default: // continue below
       break;
   }
@@ -135,17 +144,9 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   // Get the left and right sub-tree values
   if (n->left) {
     leftreg = genAST(n->left, NOREG, n->op);
-    if (n->op == A_FUNCALL && leftreg != NOREG && NumArgsLoaded < NumArgsToLoad) {
-      cgloadarg(leftreg, 0);
-      NumArgsLoaded++;
-    }
   }
   if (n->right) {
     rightreg = genAST(n->right, leftreg, n->op);
-    if (n->op == A_FUNCALL && rightreg != NOREG && NumArgsLoaded < NumArgsToLoad) {
-      cgloadarg(leftreg, 0);
-      NumArgsLoaded++;
-    }
   }
 
   switch (n->op) {
@@ -199,9 +200,6 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   case A_RETURN:
     cgreturn(leftreg, Functionid);
     return (NOREG);
-  case A_FUNCALL:
-    InFunCall = 0;
-    return (cgcall(n->v.id));
   case A_WIDEN:
     return (cgwiden(leftreg, n->left->type, n->type));
   case A_SCALE:

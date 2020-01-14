@@ -168,6 +168,7 @@ void global_declarations(void) {
       if (!O_parseOnly) {
         genAST(tree, NOREG, 0);
       }
+      freeloclsyms();
     } else {
       // Parse the global variable declaration
       var_declaration(type, 0, 0);

@@ -289,8 +289,8 @@ struct ASTnode *binexpr(int ptp) {
 
 // Identifier is parsed, current token is '('.
 struct ASTnode *funcall(void) {
-  struct ASTnode *tree = NULL; // last parsed argument
-  struct ASTnode *left = NULL; // list of parsed arguments
+  struct ASTnode *tree = NULL; // expression list
+  struct ASTnode *child = NULL; // last parsed argument
   int id;
 
   // Check that the identifier has been defined,
@@ -303,14 +303,15 @@ struct ASTnode *funcall(void) {
   }
   lparen();
 
+  int exprcount = 0;
   // Parse the argument list
   while (Token.token != T_RPAREN) {
-    tree = binexpr(0);
-    if (left == NULL) {
-      left = tree;
-    } else {
-      left = mkastnode(A_GLUE, P_NONE, left, NULL, tree, 0);
-    }
+    child = binexpr(0);
+    exprcount++;
+    // Build an A_GLUE AST node with the previous tree as the left child
+    // and the new expression as the right child. Store the expression count.
+    tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, exprcount);
+
     if (Token.token == T_RPAREN) break;
     if (Token.token == T_COMMA) {
       scan(&Token);
@@ -323,7 +324,7 @@ struct ASTnode *funcall(void) {
   // Build the function call AST node. Store the
   // function's return type as this node's type.
   // Also record the function's symbol-id
-  return mkuastunary(A_FUNCALL, Gsym[id].type, left, id);
+  return mkuastunary(A_FUNCALL, Gsym[id].type, tree, id);
 }
 
 /**

@@ -55,10 +55,6 @@ static int psize[] = {
 static int localOffset;
 static int stackOffset;
 
-// the currently generated argument number to a function call.
-// This is reset to 0 before every function call gets code-generated.
-static int ArgNum = 0;
-
 // Flag to say which section were are outputting in to
 enum { no_seg, text_seg, data_seg } currSeg = no_seg;
 
@@ -132,6 +128,7 @@ void cgfuncpreamble(int sym_id) {
   int paramReg = FIRSTPARAMREG; // Index to the first param register in above reg lists
 
   cgtextseg();
+  cgdebug("Generating func preamble for %s", name);
 
   fprintf(Outfile,
           "\t.globl\t%s\n"
@@ -141,24 +138,34 @@ void cgfuncpreamble(int sym_id) {
           "\tmovq\t%%rsp, %%rbp\n",
           name, name, name);
 
-  // Copy any in-register parameters to the stack.
+  // Copy any in-register parameters to the stack
   // Stop after no more than six parameter registers
-  cgdebug("function preamble for %s\n", name);
-  int numParams = Symtable[sym_id].size;
-  assert(numParams <= MAXREGISTERPARAMS); // FIXME
-  for (i = sym_id+1; i < (sym_id+1+numParams); i++) {
-    if (Symtable[i].class != C_PARAM) {
-      assert(0);
-    }
-    assert(Symtable[i].posn < 0);
-    cgdebug("generating param store offset for param %s: %d\n", Symtable[i].name, Symtable[i].posn);
+  for (i = NSYMBOLS - 1; i > Locls; i--) {
+    if (Symtable[i].class != C_PARAM) // parameters appear at end of locals list
+      break;
+    if (i < NSYMBOLS - 6)
+      break;
+    Symtable[i].posn = cggetlocaloffset(i, 1);
+    cgdebug("Generating parameter reg load for param %s, posn: %d", Symtable[i].name, Symtable[i].posn);
     cgstorlocal(paramReg--, i);
+  }
+
+  // For the remainder, if they are a parameter then they are
+  // already on the stack. If only a local, make a stack position.
+  for (; i > Locls; i--) {
+    if (Symtable[i].class == C_PARAM) {
+      Symtable[i].posn = paramOffset;
+      paramOffset += 8;
+      cgdebug("Generating parameter spill push for param %s, posn: %d", Symtable[i].name, Symtable[i].posn);
+    } else {
+      Symtable[i].posn = cggetlocaloffset(i, 0);
+      cgdebug("Generating local variable offset for var %s, posn: %d", Symtable[i].name, Symtable[i].posn);
+    }
   }
 
   // Align the stack pointer to be a multiple of 16
   // less than its previous value
-  stackOffset = (localOffset+15) & ~15;
-  // printf("preamble local %d stack %d\n", localOffset, stackOffset);
+  stackOffset = (localOffset + 15) & ~15;
   fprintf(Outfile, "\taddq\t$%d,%%rsp\n", -stackOffset);
 }
 
@@ -468,25 +475,33 @@ int cgprimsize(int ptype) {
   return (psize[ptype]);
 }
 
-void cgclearargnum() {
-  ArgNum = 0;
-}
+// argnum 1 is first argument to function
+void cgcopyarg(int r, int argnum) {
+  // If this is above the sixth argument, simply push the
+  // register on the stack. We rely on being called with
+  // successive arguments in the correct order for x86-64
+  if (argnum > 6) {
+    fprintf(Outfile, "\tpushq\t%s\n", reglist[r]); // last argument must be pushed first
+  } else {
+    // Otherwise, copy the value into one of the six registers
+    // used to hold parameter values
+    fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
+            reglist[FIRSTPARAMREG - argnum + 1]);
+  }
 
-// TODO: use type
-void cgloadarg(int r, int type) {
-  assert(ArgNum <= MAXREGISTERPARAMS); // TODO: spill to stack if necessary
-  int rparam = FIRSTPARAMREG-ArgNum;
-  fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r], reglist[rparam]);
   free_register(r);
-  ArgNum++;
 }
 
 // Call a function and return the register with the result.
 // The arguments must be loaded into registers with `cgloadarg`.
-int cgcall(int sym_id) {
+int cgcall(int sym_id, int numargs) {
   // Get a new register
   int outr = alloc_register();
   fprintf(Outfile, "\tcall\t%s\n", Gsym[sym_id].name);
+  if (numargs > 6) {
+    // restore spilled argument stack space
+    fprintf(Outfile, "\taddq\t$%d, %%rsp\n", 8*(numargs-6));
+  }
   fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
   return (outr);
 }
@@ -647,6 +662,8 @@ int cgboolean(int r, int op, int label) {
   return (r);
 }
 
+// NOTE: should not be called for parameters that are more than the sixth
+// parameter to a function.
 int cggetlocaloffset(int slot, int isparam) {
   assert(Symtable[slot].class == C_LOCAL || Symtable[slot].class == C_PARAM);
   int type = Symtable[slot].type;

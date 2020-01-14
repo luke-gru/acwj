@@ -87,7 +87,13 @@ int addglob(char *name, int ptype, int stype, int size) {
 }
 
 int addparam(char *name, int ptype, int stype, int size) {
-  return addlocl(name, ptype, stype, 1, size);
+  int param = newglob();
+  Gsym[param].name = strdup(name);
+  Gsym[param].class = C_PARAM;
+  Gsym[param].type = ptype;
+  Gsym[param].stype = stype;
+  Gsym[param].size = size;
+  Gsym[param].posn = 0;
 }
 
 // Add a global symbol to the symbol table.
@@ -109,7 +115,7 @@ int addlocl(char *name, int ptype, int stype, int isParam, int size) {
   Gsym[y].stype = stype;
   Gsym[y].size = size;
   // NOTE: `cggetlocaloffset` must be called after all other fields are set
-  Gsym[y].posn = cggetlocaloffset(y, 0);
+  Gsym[y].posn = 0;
 
   // if it's a function parameter, add a new global symbol for it right after
   // the function itself, for type checking purposes, right after the global
@@ -122,8 +128,13 @@ int addlocl(char *name, int ptype, int stype, int isParam, int size) {
     Gsym[param].type = ptype;
     Gsym[param].stype = stype;
     Gsym[param].size = size;
-    Gsym[param].posn = Gsym[y].posn;
+    Gsym[param].posn = 0;
   }
 
   return (y);
+}
+
+// Clear all the entries in the local symbol table
+void freeloclsyms(void) {
+  Locls = NSYMBOLS - 1;
 }

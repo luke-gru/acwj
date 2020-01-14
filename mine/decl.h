@@ -57,9 +57,9 @@ void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);
 int cgprimsize(int ptype);
-void cgloadarg(int r, int type);
+void cgcopyarg(int r, int argnum);
 void cgclearargnum(void);
-int cgcall(int func_sym);
+int cgcall(int func_sym, int numargs);
 void cgreturn(int r, int func_sym);
 int cgaddress(int id);
 int cgderef(int r, int type);
@@ -105,6 +105,7 @@ int addglob(char *name, int ptype, int stype, int size);
 int addlocl(char *name, int ptype, int stype, int isParam, int size);
 int addparam(char *name, int ptype, int stype, int size);
 int findsymbol(char *s);
+void freeloclsyms(void);
 
 // decl.c
 void var_declaration(int type, int isLocal, int isParam);
