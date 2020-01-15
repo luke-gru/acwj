@@ -25,6 +25,7 @@ static void init() {
 
   O_dumpAST = 0; // when set to 1, so is O_parseOnly
   O_parseOnly = 0;
+  O_debugNoisy = 0;
 }
 
 // Print out a usage if started incorrectly

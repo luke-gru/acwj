@@ -1,4 +1,4 @@
-void main() {
+int main() {
   int i; int j;
   i=6; j=12;
   if (i < j) {
@@ -6,4 +6,5 @@ void main() {
   } else {
     printint(j);
   }
+  return(0);
 }

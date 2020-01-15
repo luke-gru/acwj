@@ -67,7 +67,7 @@ static struct ASTnode *postfix(void) {
 
   // A variable. Check that the variable exists.
   id = findsymbol(Text);
-  if (id == -1 || Gsym[id].stype != S_VARIABLE)
+  if (id == -1 || (Gsym[id].stype != S_VARIABLE && Gsym[id].stype != S_ARRAY))
     fatals("Unknown variable", Text);
 
   switch (Token.token) {
@@ -298,7 +298,7 @@ struct ASTnode *funcall(void) {
   if ((id = findglob(Text)) == -1) {
     fatals("Undeclared function", Text);
   }
-  if (Gsym[id].stype != S_FUNCTION) {
+  if (Gsym[id].stype != S_FUNCTION && Gsym[id].stype != S_PROTO) {
     fatals("Tried to call non-function", Text);
   }
   lparen();

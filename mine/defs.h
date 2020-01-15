@@ -71,7 +71,7 @@ enum {
 
 // Structural types
 enum {
-    S_VARIABLE=1, S_FUNCTION, S_ARRAY
+    S_VARIABLE=1, S_FUNCTION, S_PROTO, S_ARRAY
 };
 
 // Abstract Syntax Tree structure
@@ -103,7 +103,7 @@ struct symtable {
   int stype;                    // Structural type (function, variable)
   int class;                    // Storage class for the symbol (global, local)
   int endlabel;                 // for S_FUNCTION, the label to right where it's about to return to caller
-  int size;                     // for S_ARRAY, number of elements. For S_FUNCTION, number of parameters
+  int size;                     // for S_ARRAY, number of elements. For S_FUNCTION and S_PROTO, number of parameters
   int posn;                     // For locals, the negative offset from the stack base pointer (rbp)
 };
 

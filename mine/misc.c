@@ -42,32 +42,31 @@ void rparen(void) {
 
 static void print_filename(void) {
   if (Infilename) {
-    fprintf(stderr, "%s: ", Infilename);
+    fprintf(stderr, "%s:%d ", Infilename, Line);
+  } else {
+    fprintf(stderr, "<nofile>:%d ", Line);
   }
 }
 
 // Print out fatal messages
 void fatal(char *s) {
-  print_filename();
   fatalv("%s on line %d", s, Line);
 }
 
 void fatals(char *s1, char *s2) {
-  print_filename();
   fatalv("%s:%s on line %d", s1, s2, Line);
 }
 
 void fatald(char *s, int d) {
-  print_filename();
   fatalv("%s: %d on line %d", s, d, Line);
 }
 
 void fatalc(char *s, int c) {
-  print_filename();
   fatalv("%s: '%c' on line %d", s, c, Line);
 }
 
 void fatalv(const char *fmt, ...) {
+  print_filename();
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);

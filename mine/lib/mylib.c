@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
 void printint(long x) {
   printf("%ld\n", x);
 }

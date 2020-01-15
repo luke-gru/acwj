@@ -1,4 +1,4 @@
-void main() {
+int main() {
     int x;
     x= 7 < 9;  printint(x);
     x= 7 <= 9; printint(x);
@@ -12,4 +12,5 @@ void main() {
 
     x= 7 != 7; printint(x);
     x= 7 == 8; printint(x);
+    return(0);
 }

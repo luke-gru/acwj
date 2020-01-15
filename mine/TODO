@@ -9,6 +9,10 @@ Functional
 * Function prototypes
 * User-defined types
 * Type aliases
+* Put string literals in read-only memory
+* Get array variables to decay to a pointer to their first element
+* Allow extern declarations, example: for `errno` to allow checking this value
+when compiling with mylib.c
 
 Optimizations
 -------------

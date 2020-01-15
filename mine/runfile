@@ -5,4 +5,4 @@ set -x
 
 make compiler &&
 ./bin/compiler $@ &&
-cc -o a.out out.s lib/print.c && ./a.out
+cc -o a.out out.s lib/mylib.c && ./a.out

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -63,7 +64,8 @@ int findsymbol(char *s) {
 }
 
 // Add a global symbol to the symbol table.
-// Return the slot number in the symbol table
+// Return the slot number in the symbol table.
+// Also, generates asm code for the symbol.
 int addglob(char *name, int ptype, int stype, int size) {
   int y;
 
@@ -93,12 +95,13 @@ int addparam(char *name, int ptype, int stype, int size) {
   Gsym[param].type = ptype;
   Gsym[param].stype = stype;
   Gsym[param].size = size;
-  Gsym[param].posn = 0;
+  Gsym[param].posn = 0; // set later
+  return param;
 }
 
 // Add a global symbol to the symbol table.
 // Return the slot number in the symbol table
-int addlocl(char *name, int ptype, int stype, int isParam, int size) {
+int addlocl(char *name, int ptype, int stype, int class, int size) {
   int y;
   int param;
 
@@ -110,31 +113,29 @@ int addlocl(char *name, int ptype, int stype, int isParam, int size) {
   // return the slot number
   y = newlocl();
   Gsym[y].name = strdup(name);
-  Gsym[y].class = isParam ? C_PARAM : C_LOCAL;
+  Gsym[y].class = class;
   Gsym[y].type = ptype;
   Gsym[y].stype = stype;
   Gsym[y].size = size;
-  // NOTE: `cggetlocaloffset` must be called after all other fields are set
-  Gsym[y].posn = 0;
-
-  // if it's a function parameter, add a new global symbol for it right after
-  // the function itself, for type checking purposes, right after the global
-  // symbol for the function.
-
-  if (isParam) {
-    param = newglob();
-    Gsym[param].name = strdup(name);
-    Gsym[param].class = C_PARAM;
-    Gsym[param].type = ptype;
-    Gsym[param].stype = stype;
-    Gsym[param].size = size;
-    Gsym[param].posn = 0;
-  }
+  Gsym[y].posn = 0; // set later
 
   return (y);
 }
 
-// Clear all the entries in the local symbol table
+// Given a function's slot number, copy the global parameters
+// from its prototype to be local parameters
+void copyfuncparams(int slot) {
+  assert(Symtable[slot].stype == S_FUNCTION); // function definition
+
+  int i, id = slot + 1;
+
+  for (i = 0; i < Symtable[slot].size; i++, id++) {
+    addlocl(Symtable[id].name, Symtable[id].type, Symtable[id].stype,
+            Symtable[id].class, Symtable[id].size);
+  }
+}
+
+// Clear all the entries in the  local symbol table
 void freeloclsyms(void) {
   Locls = NSYMBOLS - 1;
 }
