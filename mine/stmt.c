@@ -27,40 +27,6 @@
 //
 // identifier: T_IDENT ;
 
-/*static struct ASTnode *assignment_statement(void) {*/
-  /*struct ASTnode *left, *right, *tree;*/
-  /*int id;*/
-
-  /*// Ensure we have an identifier*/
-  /*ident();*/
-
-  /*// This could be a variable or a function call.*/
-  /*// If next token is '(', it's a function call*/
-  /*if (Token.token == T_LPAREN)*/
-    /*return (funcall());*/
-
-  /*// Check it's been defined then make a leaf node for it*/
-  /*if ((id = findglob(Text)) == -1) {*/
-    /*fatals("Undeclared variable", Text);*/
-  /*}*/
-  /*right = mkastleaf(A_LVIDENT, Gsym[id].type, id);*/
-
-  /*// Ensure we have an equals sign*/
-  /*match(T_ASSIGN, "=");*/
-
-  /*// Parse the following expression*/
-  /*left = binexpr(0);*/
-
-  /*left = modify_type(left, right->type, 0);*/
-  /*if (left == NULL)*/
-    /*fatal("Incompatible types"); // TODO: better message*/
-
-  /*// Make an assignment AST tree*/
-  /*tree = mkastnode(A_ASSIGN, P_INT, left, NULL, right, 0);*/
-
-  /*return (tree);*/
-/*}*/
-
 // Parse an IF statement including
 // any optional ELSE clause
 // and return its AST
@@ -77,7 +43,7 @@ struct ASTnode *if_statement(void) {
   condAST = binexpr(0);
 
   if (condAST->op < A_EQ || condAST->op > A_GE) {
-    condAST = mkuastunary(A_TOBOOL, condAST->type, condAST, 0);
+    condAST = mkuastunary(A_TOBOOL, condAST->type, condAST, NULL, 0);
   }
   rparen();
 
@@ -91,7 +57,7 @@ struct ASTnode *if_statement(void) {
     falseAST = compound_statement();
   }
   // Build and return the AST for this statement
-  return (mkastnode(A_IF, P_NONE, condAST, trueAST, falseAST, 0));
+  return (mkastnode(A_IF, P_NONE, condAST, trueAST, falseAST, NULL, 0));
 }
 
 struct ASTnode *while_statement(void) {
@@ -102,13 +68,13 @@ struct ASTnode *while_statement(void) {
 
   condAST = binexpr(0);
   if (condAST->op < A_EQ || condAST->op > A_GE) {
-    condAST = mkuastunary(A_TOBOOL, condAST->type, condAST, 0);
+    condAST = mkuastunary(A_TOBOOL, condAST->type, condAST, NULL, 0);
   }
   rparen();
 
   bodyAST = compound_statement();
 
-  return (mkastnode(A_WHILE, P_NONE, condAST, NULL, bodyAST, 0));
+  return (mkastnode(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, 0));
 }
 
 static struct ASTnode *single_statement(void);
@@ -131,7 +97,7 @@ static struct ASTnode *for_statement(void) {
   // Get the condition and the ';'
   condAST = binexpr(0);
   if (condAST->op < A_EQ || condAST->op > A_GE) {
-    condAST = mkuastunary(A_TOBOOL, condAST->type, condAST, 0);
+    condAST = mkuastunary(A_TOBOOL, condAST->type, condAST, NULL, 0);
   }
   semi();
 
@@ -146,13 +112,13 @@ static struct ASTnode *for_statement(void) {
   // Later on, we'll change the semantics for when some are missing
 
   // Glue the compound statement and the postop tree
-  tree = mkastnode(A_GLUE, P_NONE, bodyAST, NULL, postopAST, 0);
+  tree = mkastnode(A_GLUE, P_NONE, bodyAST, NULL, postopAST, NULL, 0);
 
   // Make a WHILE loop with the condition and this new body
-  tree = mkastnode(A_WHILE, P_NONE, condAST, NULL, tree, 0);
+  tree = mkastnode(A_WHILE, P_NONE, condAST, NULL, tree, NULL, 0);
 
   // And glue the preop tree to the A_WHILE tree
-  return (mkastnode(A_GLUE, P_NONE, preopAST, NULL, tree, 0));
+  return (mkastnode(A_GLUE, P_NONE, preopAST, NULL, tree, NULL, 0));
 }
 
 static struct ASTnode *return_statement(void);
@@ -167,7 +133,7 @@ static struct ASTnode *single_statement(void) {
     case T_LONG:
       type = parse_type(Token.token);
       ident();
-      var_declaration(type, 1, 0);
+      var_declaration(type, C_LOCAL);
       return (NULL);		// No AST generated here
     case T_IF:
       return (if_statement());
@@ -208,7 +174,7 @@ struct ASTnode *compound_statement(void) {
       if (left == NULL) {
         left = tree;
       } else {
-        left = mkastnode(A_GLUE, P_NONE, left, NULL, tree, 0);
+        left = mkastnode(A_GLUE, P_NONE, left, NULL, tree, NULL, 0);
       }
     }
     // When we hit a right curly bracket,
@@ -226,9 +192,9 @@ static struct ASTnode *return_statement(void) {
   struct ASTnode *tree;
   int returntype, functype;
 
-  assert(Functionid != -1); // TODO: error out, must be in function
+  assert(CurFunctionSym != NULL); // TODO: error out, must be in function
   // Can't return a value if function returns P_VOID
-  if (Gsym[Functionid].type == P_VOID)
+  if (CurFunctionSym->type == P_VOID)
     fatal("Can't return from a void function");
 
   // Ensure we have 'return' '('
@@ -238,12 +204,12 @@ static struct ASTnode *return_statement(void) {
   // Parse the following expression
   tree = binexpr(0);
 
-  tree = modify_type(tree, Gsym[Functionid].type, 0);
+  tree = modify_type(tree, CurFunctionSym->type, 0);
   if (tree == NULL)
     fatal("Incompatible types from return"); // TODO: better message
 
   // Add on the A_RETURN node
-  tree = mkuastunary(A_RETURN, P_NONE, tree, 0);
+  tree = mkuastunary(A_RETURN, P_NONE, tree, NULL, 0);
 
   rparen();
   return (tree);

@@ -9,9 +9,11 @@
 // Copyright (c) 2019 Warren Toomey, GPL3
 
 // Build and return a generic AST node
-struct ASTnode *mkastnode(int op, int type, struct ASTnode *left,
-        struct ASTnode *mid, struct ASTnode *right,
-        int intvalue) {
+struct ASTnode *mkastnode(int op, int type,
+    struct ASTnode *left,
+    struct ASTnode *mid,
+    struct ASTnode *right,
+    struct symtable *sym, int intvalue) {
   struct ASTnode *n;
 
   // Malloc a new ASTnode
@@ -26,19 +28,20 @@ struct ASTnode *mkastnode(int op, int type, struct ASTnode *left,
   n->left = left;
   n->mid = mid;
   n->right = right;
-  n->v.intvalue = intvalue;
+  n->sym = sym;
+  n->intvalue = intvalue;
   return (n);
 }
 
 
 // Make an AST leaf node
-struct ASTnode *mkastleaf(int op, int type, int intvalue) {
-  return (mkastnode(op, type, NULL, NULL, NULL, intvalue));
+struct ASTnode *mkastleaf(int op, int type, struct symtable *sym, int intvalue) {
+  return (mkastnode(op, type, NULL, NULL, NULL, sym, intvalue));
 }
 
 // Make a unary AST node: only one child
-struct ASTnode *mkuastunary(int op, int type, struct ASTnode *left, int intvalue) {
-  return (mkastnode(op, type, left, NULL, NULL, intvalue));
+struct ASTnode *mkuastunary(int op, int type, struct ASTnode *left, struct symtable *sym, int intvalue) {
+  return (mkastnode(op, type, left, NULL, NULL, sym, intvalue));
 }
 
 // Generate and return a new label number
@@ -89,7 +92,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_GLUE:
       fprintf(stdout, "GLUE\n\n"); return;
     case A_FUNCTION:
-      fprintf(stdout, "A_FUNCTION %s\n", Gsym[n->v.id].name); return;
+      fprintf(stdout, "A_FUNCTION %s\n", n->sym->name); return;
     case A_ADD:
       fprintf(stdout, "A_ADD\n"); return;
     case A_SUBTRACT:
@@ -115,14 +118,14 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_RSHIFT:
       fprintf(stdout, "A_RSHIFT\n"); return;
     case A_INTLIT:
-      fprintf(stdout, "A_INTLIT %d\n", n->v.intvalue); return;
+      fprintf(stdout, "A_INTLIT %d\n", n->intvalue); return;
     case A_STRLIT:
-      fprintf(stdout, "A_STRLIT (asm label %d)\n", n->v.id); return;
+      fprintf(stdout, "A_STRLIT (asm label %d)\n", n->intvalue); return;
     case A_IDENT:
       if (n->rvalue)
-        fprintf(stdout, "A_IDENT rval %s\n", Gsym[n->v.id].name);
+        fprintf(stdout, "A_IDENT rval %s\n", n->sym->name);
       else
-        fprintf(stdout, "A_IDENT %s\n", Gsym[n->v.id].name);
+        fprintf(stdout, "A_IDENT %s\n", n->sym->name);
       return;
     case A_ASSIGN:
       fprintf(stdout, "A_ASSIGN\n"); return;
@@ -141,9 +144,9 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_RETURN:
       fprintf(stdout, "A_RETURN\n"); return;
     case A_FUNCALL:
-      fprintf(stdout, "A_FUNCALL %s\n", Gsym[n->v.id].name); return;
+      fprintf(stdout, "A_FUNCALL %s\n", n->sym->name); return;
     case A_ADDR:
-      fprintf(stdout, "A_ADDR %s\n", Gsym[n->v.id].name); return;
+      fprintf(stdout, "A_ADDR %s\n", n->sym->name); return;
     case A_DEREF:
       if (n->rvalue)
         fprintf(stdout, "A_DEREF rval\n");
@@ -151,15 +154,15 @@ void dumpAST(struct ASTnode *n, int label, int level) {
         fprintf(stdout, "A_DEREF\n");
       return;
     case A_SCALE:
-      fprintf(stdout, "A_SCALE %d\n", n->v.size); return;
+      fprintf(stdout, "A_SCALE %d\n", n->size); return;
     case A_PREINC:
       fprintf(stdout, "A_PREINC\n"); return;
     case A_PREDEC:
       fprintf(stdout, "A_PREDEC\n"); return;
     case A_POSTINC:
-      fprintf(stdout, "A_POSTINC %s\n", Gsym[n->v.id].name); return;
+      fprintf(stdout, "A_POSTINC %s\n", n->sym->name); return;
     case A_POSTDEC:
-      fprintf(stdout, "A_POSTDEC %s\n", Gsym[n->v.id].name); return;
+      fprintf(stdout, "A_POSTDEC %s\n", n->sym->name); return;
     case A_NEGATE:
       fprintf(stdout, "A_NEGATE\n"); return;
     case A_INVERT:

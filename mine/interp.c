@@ -4,6 +4,8 @@
 
 // AST tree interpreter
 // Copyright (c) 2019 Warren Toomey, GPL3
+//
+// NOTE: deprecated
 
 // List of AST operators
 static char *ASTop[] = { "+", "-", "*", "/" };
@@ -22,7 +24,7 @@ int interpretAST(struct ASTnode *n) {
 
   // Debug: Print what we are about to do
   if (n->op == A_INTLIT)
-    printf("int %d\n", n->v.intvalue);
+    printf("int %d\n", n->intvalue);
   else
     printf("%d %s %d\n", leftval, ASTop[n->op], rightval);
 
@@ -36,7 +38,7 @@ int interpretAST(struct ASTnode *n) {
     case A_DIVIDE:
       return (leftval / rightval);
     case A_INTLIT:
-      return (n->v.intvalue);
+      return (n->intvalue);
     default:
       fprintf(stderr, "Unknown AST operator %d\n", n->op);
       exit(1);

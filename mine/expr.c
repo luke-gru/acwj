@@ -52,7 +52,7 @@ static struct ASTnode *array_access(void);
 // The identifier is already in Text.
 static struct ASTnode *postfix(void) {
   struct ASTnode *n;
-  int id;
+  struct symtable *varptr;
 
   // Scan in the next token to see if we have a postfix expression
   scan(&Token);
@@ -66,24 +66,24 @@ static struct ASTnode *postfix(void) {
     return (array_access());
 
   // A variable. Check that the variable exists.
-  id = findsymbol(Text);
-  if (id == -1 || (Gsym[id].stype != S_VARIABLE && Gsym[id].stype != S_ARRAY))
+  varptr = findsymbol(Text);
+  if (varptr == NULL || (varptr->stype != S_VARIABLE && varptr->stype != S_ARRAY))
     fatals("Unknown variable", Text);
 
   switch (Token.token) {
       // Post-increment: skip over the token
     case T_INC:
       scan(&Token);
-      n = mkastleaf(A_POSTINC, Gsym[id].type, id);
+      n = mkastleaf(A_POSTINC, varptr->type, varptr, 0);
       break;
       // Post-decrement: skip over the token
     case T_DEC:
       scan(&Token);
-      n = mkastleaf(A_POSTDEC, Gsym[id].type, id);
+      n = mkastleaf(A_POSTDEC, varptr->type, varptr, 0);
       break;
       // Just a variable reference
     default:
-      n = mkastleaf(A_IDENT, Gsym[id].type, id);
+      n = mkastleaf(A_IDENT, varptr->type, varptr, 0);
       break;
   }
   return (n);
@@ -93,15 +93,15 @@ static struct ASTnode *postfix(void) {
 // current token is '[', the identifier has been scanned.
 static struct ASTnode *array_access(void) {
   struct ASTnode *left, *right;
-  int id;
+  struct symtable *ary;
 
   // Check that the identifier has been defined as an array
   // then make a leaf node for it that points at the base
-  if ((id = findsymbol(Text)) == -1 || Gsym[id].stype != S_ARRAY) {
+  if ((ary = findsymbol(Text)) == NULL || ary->stype != S_ARRAY) {
     fatals("Undeclared array", Text);
   }
 
-  left = mkastleaf(A_ADDR, Gsym[id].type, id);
+  left = mkastleaf(A_ADDR, ary->type, ary, 0);
 
   // Get the '['
   scan(&Token);
@@ -123,8 +123,8 @@ static struct ASTnode *array_access(void) {
   // Return an AST tree where the array's base has the offset
   // added to it, and dereference the element. Still an lvalue
   // at this point.
-  left = mkastnode(A_ADD, Gsym[id].type, left, NULL, right, 0);
-  left = mkuastunary(A_DEREF, value_at(left->type), left, 0);
+  left = mkastnode(A_ADD, ary->type, left, NULL, right, NULL, 0);
+  left = mkuastunary(A_DEREF, value_at(left->type), left, NULL, 0);
   return (left);
 }
 
@@ -147,9 +147,9 @@ static struct ASTnode *primary(void) {
     // For an INTLIT token, make a leaf AST node for it.
     // Make it a P_CHAR if it's within the P_CHAR range
     if ((Token.intvalue) >= 0 && (Token.intvalue < 256)) {
-      n = mkastleaf(A_INTLIT, P_CHAR, Token.intvalue);
+      n = mkastleaf(A_INTLIT, P_CHAR, NULL, Token.intvalue);
     } else {
-      n = mkastleaf(A_INTLIT, P_INT, Token.intvalue);
+      n = mkastleaf(A_INTLIT, P_INT, NULL, Token.intvalue);
     }
     break;
   case T_IDENT:
@@ -162,7 +162,7 @@ static struct ASTnode *primary(void) {
     return (n);
   case T_STRLIT:
     id = genglobstr(Text);
-    n = mkastleaf(A_STRLIT, pointer_to(P_CHAR), id);
+    n = mkastleaf(A_STRLIT, pointer_to(P_CHAR), NULL, id);
     break;
   default:
     fatals("Expecting a primary expression, got token", tokenname(Token.token));
@@ -271,7 +271,7 @@ struct ASTnode *binexpr(int ptp) {
 
     // Join that sub-tree with ours. Convert the token
     // into an AST operation at the same time.
-    left = mkastnode(ASTop, left->type, left, NULL, right, 0);
+    left = mkastnode(ASTop, left->type, left, NULL, right, NULL, 0);
 
     // Update the details of the current token.
     // If we hit a semicolon or ')', return just the left node
@@ -291,14 +291,14 @@ struct ASTnode *binexpr(int ptp) {
 struct ASTnode *funcall(void) {
   struct ASTnode *tree = NULL; // expression list
   struct ASTnode *child = NULL; // last parsed argument
-  int id;
+  struct symtable *funcptr;
 
   // Check that the identifier has been defined,
   // then make a leaf node for it.
-  if ((id = findglob(Text)) == -1) {
+  if ((funcptr = findglob(Text)) == NULL) {
     fatals("Undeclared function", Text);
   }
-  if (Gsym[id].stype != S_FUNCTION && Gsym[id].stype != S_PROTO) {
+  if (funcptr->stype != S_FUNCTION && funcptr->stype != S_PROTO) {
     fatals("Tried to call non-function", Text);
   }
   lparen();
@@ -310,7 +310,7 @@ struct ASTnode *funcall(void) {
     exprcount++;
     // Build an A_GLUE AST node with the previous tree as the left child
     // and the new expression as the right child. Store the expression count.
-    tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, exprcount);
+    tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, NULL, exprcount);
 
     if (Token.token == T_RPAREN) break;
     if (Token.token == T_COMMA) {
@@ -321,10 +321,12 @@ struct ASTnode *funcall(void) {
   }
   rparen();
 
+  // XXX Check type of each argument against the function's prototype
+
   // Build the function call AST node. Store the
   // function's return type as this node's type.
   // Also record the function's symbol-id
-  return mkuastunary(A_FUNCALL, Gsym[id].type, tree, id);
+  return mkuastunary(A_FUNCALL, funcptr->type, tree, funcptr, 0);
 }
 
 /**
@@ -363,7 +365,7 @@ struct ASTnode *prefix(void) {
         fatal("* operator must be followed by an identifier or *");
 
       // Prepend an A_DEREF operation to the tree
-      tree = mkuastunary(A_DEREF, value_at(tree->type), tree, 0);
+      tree = mkuastunary(A_DEREF, value_at(tree->type), tree, NULL, 0);
       break;
     case T_MINUS:
       scan(&Token);
@@ -373,7 +375,7 @@ struct ASTnode *prefix(void) {
       // also widen this to int so that it's signed
       tree->rvalue = 1;
       tree = modify_type(tree, P_INT, 0);
-      tree = mkuastunary(A_NEGATE, tree->type, tree, 0);
+      tree = mkuastunary(A_NEGATE, tree->type, tree, NULL, 0);
       break;
     case T_INVERT:
       // Get the next token and parse it
@@ -384,7 +386,7 @@ struct ASTnode *prefix(void) {
       // Prepend a A_INVERT operation to the tree and
       // make the child an rvalue.
       tree->rvalue = 1;
-      tree = mkuastunary(A_INVERT, tree->type, tree, 0);
+      tree = mkuastunary(A_INVERT, tree->type, tree, NULL, 0);
       break;
     case T_LOGNOT:
       // Get the next token and parse it
@@ -395,7 +397,7 @@ struct ASTnode *prefix(void) {
       // Prepend a A_LOGNOT operation to the tree and
       // make the child an rvalue.
       tree->rvalue = 1;
-      tree = mkuastunary(A_LOGNOT, tree->type, tree, 0);
+      tree = mkuastunary(A_LOGNOT, tree->type, tree, NULL, 0);
       break;
     case T_INC:
       // Get the next token and parse it
@@ -408,7 +410,7 @@ struct ASTnode *prefix(void) {
         fatal("++ operator must be followed by an identifier");
 
       // Prepend an A_PREINC operation to the tree
-      tree = mkuastunary(A_PREINC, tree->type, tree, 0);
+      tree = mkuastunary(A_PREINC, tree->type, tree, NULL, 0);
       break;
     case T_DEC:
       // recursively as a prefix expression
@@ -420,7 +422,7 @@ struct ASTnode *prefix(void) {
         fatal("-- operator must be followed by an identifier");
 
       // Prepend an A_PREDEC operation to the tree
-      tree = mkuastunary(A_PREDEC, tree->type, tree, 0);
+      tree = mkuastunary(A_PREDEC, tree->type, tree, NULL, 0);
       break;
     default:
       assert(Token.token != T_SEMI);

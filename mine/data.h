@@ -12,11 +12,15 @@ char     *Infilename;                   // Currently worked on C source code fil
 char     *Outfilename;                  // Currently worked on assembly filename
 struct token Token;
 char   Text[TEXTLEN + 1];		// Last identifier scanned
-#define Gsym Symtable
-struct symtable Symtable[NSYMBOLS];	// Global symbol table
-int    Globs;              // Position of next free global slot
-int    Locls;              // Position of next free local slot
-int    Functionid;         // Symbol id of the current function being parsed and code-generated
+
+struct symtable *CurFunctionSym;        // Symbol ptr of the current function being parsed and code-generated
+
+// Symbol table lists
+struct symtable *Globalshead, *Globalstail;	// Global variables and functions
+struct symtable *Localshead,  *Localstail;	// Local variables
+struct symtable *Paramshead,  *Paramstail;	// Local parameters
+struct symtable *Typeshead,   *Typestail;	// Composite types
+
 int    O_dumpAST;          // option to print AST string representation to stdout
 int    O_parseOnly;        // option to not output any assembly language to a file
 int    O_debugNoisy;       // Turns on various debug messages, which go to stderr

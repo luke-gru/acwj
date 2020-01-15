@@ -36,60 +36,62 @@ int parse_type(int t) {
       ;
 */
 
-// Parse the declaration of 1 or more scalar variable and/or array variables with a given size.
-// The identifier has been scanned and we have the type. If `isParam` is true,
-// scan only 1 parameter.
-void var_declaration(int type, int isLocal, int isParam) {
-  int id;
-  while (1) {
-    // array variable
-    if (Token.token == T_LBRACKET) {
-      scan(&Token);
-      if (Token.token == T_INTLIT) {
-        // Add this as a known array and generate its space in assembly.
-        // We treat the array as a pointer to its elements' type
-        if (isLocal) {
-          if (isParam) {
-            // FIXME: just make them pointers to their underlying type
-            fatal("Array parameters are not yet supported");
-          }
-          addlocl(Text, pointer_to(type), S_ARRAY, isParam ? C_PARAM : C_LOCAL, Token.intvalue);
-        } else {
-          addglob(Text, pointer_to(type), S_ARRAY, Token.intvalue);
-        }
-      } else {
-        fatal("Missing array size in array variable declaration");
-      }
-      scan(&Token); // integer literal array size
-      match(T_RBRACKET, "]");
-    // scalar variable
-    } else {
-      if (isParam) {
-        if (addparam(Text, type, S_VARIABLE, 1) == -1) {
-          fatalv("Internal error: could not create parameter %s", Text);
-        }
-      } else if (isLocal) {
-        if (addlocl(Text, type, S_VARIABLE, C_LOCAL, 1) == -1) {
-          fatals("Duplicate local variable declaration", Text);
-        }
-      } else {
-        addglob(Text, type, S_VARIABLE, 1);
+// Parse the declaration of 1 scalar variable or array variable with a given size.
+// The identifier has been scanned and we have the type.
+// Return the pointer to variable's entry in the symbol table
+struct symtable *var_declaration(int type, int class) {
+  struct symtable *sym = NULL;
+
+  // See if this has already been declared
+  switch (class) {
+    case C_GLOBAL:
+      if (findglob(Text) != NULL)
+        fatals("Duplicate global variable declaration", Text);
+    case C_LOCAL:
+    case C_PARAM:
+      if (findlocl(Text) != NULL)
+        fatals("Duplicate local variable declaration", Text);
+  }
+
+  // Text now has the identifier's name.
+  // If the next token is a '['
+  if (Token.token == T_LBRACKET) {
+    // Skip past the '['
+    scan(&Token);
+
+    // Check we have an array size
+    if (Token.token == T_INTLIT) {
+      // Add this as a known array and generate its space in assembly.
+      // We treat the array as a pointer to its elements' type
+      switch (class) {
+        case C_GLOBAL:
+          sym = addglob(Text, pointer_to(type), S_ARRAY, Token.intvalue);
+          break;
+        case C_LOCAL:
+        case C_PARAM:
+          // TODO
+          fatal("For now, declaration of local arrays is not implemented");
       }
     }
-
-    if (isParam) return;
-
-    if (Token.token == T_SEMI) {
-      semi();
-      return;
-    } else if (Token.token == T_COMMA) {
-      scan(&Token);
-      ident();
-      continue;
-    } else {
-      fatalv("Unexpected token after variable declaration: %s", tokenname(Token.token));
+    // Ensure we have a following ']'
+    scan(&Token);
+    match(T_RBRACKET, "]");
+  } else {
+    // Add this as a known scalar
+    // and generate its space in assembly
+    switch (class) {
+      case C_GLOBAL:
+        sym = addglob(Text, type, S_VARIABLE, 1);
+        break;
+      case C_LOCAL:
+        sym = addlocl(Text, type, S_VARIABLE, 1);
+        break;
+      case C_PARAM:
+        sym = addparam(Text, type, S_VARIABLE, 1);
+        break;
     }
   }
+  return (sym);
 }
 
 // param_declaration: <null>
@@ -98,14 +100,17 @@ void var_declaration(int type, int isLocal, int isParam) {
 //
 // Parse the parameters in parentheses after the function name.
 // Add them as symbols to the symbol table and return the number
-// of parameters.
-static int param_declaration(int proto_id) {
+// of parameters. If funcsym is not NULL, there is an existing function
+// prototype, and the function has this symbol table pointer.
+
+static int param_declaration(struct symtable *funcsym) {
   int type;
   int proto_paramcnt = -1; // no proto
   int paramcnt = 0;
+  struct symtable *protoptr = NULL;
 
-  if (proto_id != -1) {
-    proto_paramcnt = Symtable[proto_id].size;
+  if (funcsym) {
+    protoptr = funcsym->member;
   }
 
   // Loop until the final right parentheses. Current token starts
@@ -115,17 +120,18 @@ static int param_declaration(int proto_id) {
     ident();
     // We have an existing prototype.
     // Check that this type matches the prototype.
-    if (proto_id != -1) {
-      if (type != Symtable[proto_id+paramcnt+1].type) {
+    if (protoptr) {
+      if (type != protoptr->type) {
         fatalv("Parameter type doesn't match prototype for parameter %d", paramcnt+1);
       }
       // no need for `var_declaration()` here, we copy the prototype's parameters to locals later
       // if this is indeed a function definition. We do need to update its
       // parameter names though, in case it is a definition.
-      assert(Symtable[proto_id+paramcnt+1].class == C_PARAM);
-      Symtable[proto_id+paramcnt+1].name = strdup(Text);
+      assert(protoptr->class == C_PARAM);
+      protoptr->name = strdup(Text);
+      protoptr = protoptr->next;
     } else {
-      var_declaration(type, 1, 1);
+      var_declaration(type, C_PARAM);
     }
     paramcnt++;
 
@@ -142,50 +148,53 @@ static int param_declaration(int proto_id) {
 
   // Check that the number of parameters in this list matches
   // any existing prototype
-  if ((proto_id != -1) && (paramcnt != proto_paramcnt)) {
-    fatals("Parameter count mismatch for function", Symtable[proto_id].name);
+  if (funcsym != NULL && (paramcnt != funcsym->nelems)) {
+    fatals("Parameter count mismatch for function", funcsym->name);
   }
   return (paramcnt);
 }
 
 struct ASTnode *function_declaration(int type) {
   struct ASTnode *tree, *finalstmt;
-  int funcslot;
-  int protoslot = -1;
-  int paramcnt = 0;
+  struct symtable *oldfuncsym, *newfuncsym = NULL;
+  int endlabel, paramcnt = 0;
 
-  protoslot = funcslot = findglob(Text);
-  if (protoslot != -1 && Symtable[protoslot].stype == S_PROTO) {
+  oldfuncsym = findglob(Text);
+  if (oldfuncsym && oldfuncsym->stype == S_PROTO) {
     // proto exists, check return type
-    if (type != Symtable[protoslot].type) {
+    if (type != oldfuncsym->type) {
       fatalv("Function return value must match prototype for function %s", Text);
     }
   // function definition already exists
-  } else if (protoslot != -1 && Symtable[protoslot].stype == S_FUNCTION) {
+  } else if (oldfuncsym && oldfuncsym->stype == S_FUNCTION) {
     // TODO: allow prototypes after function definitions
     fatalv("Cannot redefine or redeclare a defined function %s", Text);
   // global symbol conflict
-  } else if (protoslot != -1) {
+  } else if (oldfuncsym) {
     fatalv("Identifier %s already exists, cannot be a function", Text);
   } else {
-    funcslot = addglob(Text, type, S_FUNCTION, paramcnt);
-    Functionid = funcslot; // set currently parsed/generated function
+    newfuncsym = addglob(Text, type, S_FUNCTION, paramcnt);
   }
   lparen();
-  paramcnt = param_declaration(protoslot);
+  paramcnt = param_declaration(oldfuncsym);
   rparen();
-  Symtable[funcslot].size = paramcnt;
+
+  if (newfuncsym) {
+    newfuncsym->nelems = paramcnt;
+    newfuncsym->member = Paramshead;
+    oldfuncsym = newfuncsym;
+  }
+  // Clear out the parameter list
+  Paramshead = Paramstail = NULL;
+
+  CurFunctionSym = oldfuncsym;    // set currently parsed/generated function
 
   if (Token.token == T_SEMI) {
-    Symtable[funcslot].stype = S_PROTO; // actually a prototype
+    oldfuncsym->stype = S_PROTO; // actually a prototype
     scan(&Token);
     return NULL;
   }
-  Symtable[funcslot].stype = S_FUNCTION; // turn proto into real function
-
-  // This is not just a prototype.
-  // Copy the global parameters to be local parameters
-  copyfuncparams(funcslot);
+  oldfuncsym->stype = S_FUNCTION; // turn proto into real function
 
   cgresetlocals();
   tree = compound_statement();
@@ -203,7 +212,7 @@ struct ASTnode *function_declaration(int type) {
       fatal("No return for function with non-void type");
     }
   }
-  return (mkuastunary(A_FUNCTION, type, tree, funcslot));
+  return (mkuastunary(A_FUNCTION, type, tree, oldfuncsym, 0));
 }
 
 void global_declarations(void) {
@@ -231,7 +240,8 @@ void global_declarations(void) {
       }
     } else {
       // Parse the global variable declaration
-      var_declaration(type, 0, 0);
+      var_declaration(type, C_GLOBAL);
+      semi();
     }
 
     if (Token.token == T_EOF)

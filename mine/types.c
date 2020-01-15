@@ -49,7 +49,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
     if (lsize > rsize) return (NULL);
 
     // Widen to the right
-    if (rsize > lsize) return (mkuastunary(A_WIDEN, rtype, tree, 0));
+    if (rsize > lsize) return (mkuastunary(A_WIDEN, rtype, tree, NULL, 0));
   }
 
   // For pointers on the left
@@ -66,7 +66,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
     if (inttype(ltype) && ptrtype(rtype)) {
       rsize = genprimsize(value_at(rtype));
       if (rsize > 1) {
-        return (mkuastunary(A_SCALE, rtype, tree, rsize));
+        return (mkuastunary(A_SCALE, rtype, tree, NULL, rsize));
       } else {
         return (tree); // Size 1, no need to scale
       }

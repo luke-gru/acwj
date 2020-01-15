@@ -28,9 +28,7 @@ static void init_symtable() {
 static void init() {
   Line = 1;
   Putback = '\n';
-  Functionid = -1;
-  Globs = 0;
-  Locls = NSYMBOLS-1;
+  CurFunctionSym = NULL;
 
   O_dumpAST = 0; // when set to 1, so is O_parseOnly
   O_parseOnly = 0;

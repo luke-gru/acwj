@@ -90,11 +90,11 @@ struct ASTnode {
   struct ASTnode *left;			// Left, mid, right child trees
   struct ASTnode *mid;                  // can be NULL
   struct ASTnode *right;                // can be NULL
+  struct symtable *sym;		// For many AST nodes, the pointer to
   union {
-    int intvalue;		// For A_INTLIT, the integer value
-    int id;			// For A_IDENT or A_FUNCTION, the symbol slot number
+    int intvalue;		// For A_INTLIT, the integer value, for A_STRLIT the asm label
     int size;                   // For A_SCALE, the size to multiply by
-  } v;
+  };
 };
 
 // Storage classes
@@ -110,12 +110,23 @@ struct symtable {
   int type;                     // Primitive type
   int stype;                    // Structural type (function, variable)
   int class;                    // Storage class for the symbol (global, local)
-  int endlabel;                 // for S_FUNCTION, the label to right where it's about to return to caller
-  int size;                     // for S_ARRAY, number of elements. For S_FUNCTION and S_PROTO, number of parameters
-  int posn;                     // For locals, the negative offset from the stack base pointer (rbp)
+  union {
+      int endlabel;             // for S_FUNCTION, the label to right where it's about to return to caller
+      int size;                 // for S_ARRAY, number of elements.
+  };
+  union {
+    int nelems;			// For functions, # of params
+    int posn;			// For locals, the negative offset from the stack base pointer
+  };
+  struct symtable *next;        // next symbol in the list
+  struct symtable *member;      // First param for a function, first member for struct, union or enum
 };
 
-#define NOREG	-1		// Use NOREG when the AST generation
-				// functions have no register to return
+enum {
+  NOREG = -1,			// Use NOREG when the AST generation
+  				// functions have no register to return
+  NOLABEL = 0			// Use NOLABEL when we have no label to
+    				// pass to genAST()
+};
 
 #endif
