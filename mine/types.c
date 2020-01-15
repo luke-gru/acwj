@@ -1,20 +1,20 @@
 #include "defs.h"
 #include "decl.h"
 
-const char *typename(int ptype) {
+// NOTE: allocates strings, potentially a lot
+char *typename(int ptype) {
+  if (ptrtype(ptype)) {
+    int valuetype = value_at(ptype);
+    char *valuename = typename(valuetype);
+    return str_concat(valuename, "*");
+  }
   switch (ptype) {
   case P_CHAR:
-    return "char";
+    return strdup("char");
   case P_INT:
-    return "int";
+    return strdup("int");
   case P_LONG:
-    return "long";
-  case P_CHARPTR:
-    return "char*";
-  case P_LONGPTR:
-    return "long*";
-  case P_VOIDPTR:
-    return "void*";
+    return strdup("long");
   default:
     fatald("Invalid typename", ptype);
   }
@@ -22,26 +22,11 @@ const char *typename(int ptype) {
 }
 
 int inttype(int ptype) {
-  switch (ptype) {
-    case P_CHAR:
-    case P_INT:
-    case P_LONG:
-      return 1;
-    default:
-      return 0;
-  }
+  return ((ptype & P_PTR_BITS) == 0);
 }
 
 int ptrtype(int ptype) {
-  switch (ptype) {
-    case P_CHARPTR:
-    case P_INTPTR:
-    case P_LONGPTR:
-    case P_VOIDPTR:
-      return 1;
-    default:
-      return 0;
-  }
+  return ((ptype & P_PTR_BITS) != 0);
 }
 
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
@@ -92,28 +77,19 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
   return (NULL);
 }
 
+// Given a primitive type, return
+// the type which is a pointer to it
 int pointer_to(int type) {
-  int newtype;
-  switch (type) {
-    case P_VOID: newtype = P_VOIDPTR; break;
-    case P_CHAR: newtype = P_CHARPTR; break;
-    case P_INT:  newtype = P_INTPTR;  break;
-    case P_LONG: newtype = P_LONGPTR; break;
-    default:
-      fatald("Unrecognised in pointer_to: type", type);
+  // too many levels of indirection
+  if ((type & P_PTR_BITS) == P_PTR_BITS) {
+    fatald("Unrecognised in pointer_to: type", type);
   }
-  return (newtype);
+  return (type + 1);
 }
 
 int value_at(int type) {
-  int newtype;
-  switch (type) {
-    case P_VOIDPTR: newtype = P_VOID; break;
-    case P_CHARPTR: newtype = P_CHAR; break;
-    case P_INTPTR:  newtype = P_INT;  break;
-    case P_LONGPTR: newtype = P_LONG; break;
-    default:
-      fatald("Unrecognised in value_at: type", type);
+  if ((type & 0xf) == 0x0) {
+    fatald("Unrecognised in value_at: type", type);
   }
-  return (newtype);
+  return (type - 1);
 }

@@ -62,10 +62,18 @@ enum {
   A_LAST // sentinel
 };
 
-// Primitive types
+// 1111
+#define P_PTR_BITS (0xf)
+
+// Primitive types. The bottom 4 bits is an integer
+// value that represents the level of indirection,
+// e.g. 0= no pointer, 1= pointer, 2= pointer pointer etc.
 enum {
-    P_NONE, P_VOID, P_CHAR, P_INT, P_LONG,
-    P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR,
+    P_NONE=0,
+    P_VOID=16, //   10000
+    P_CHAR=32, //  100000
+    P_INT=48,  //  110000
+    P_LONG=64, // 1000000
     P_LAST // sentinel value
 };
 

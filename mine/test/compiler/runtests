@@ -61,7 +61,7 @@ do
         # capture the error messages. Compare
         # against the known-bad output. Same
         # mechanism as before
-    else if [ -f "err.$i" ]
+    else if [ -f "$i.err" ]
     then
         echo -n $i
         cd ../..

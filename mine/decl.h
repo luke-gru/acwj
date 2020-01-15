@@ -97,6 +97,7 @@ void fatalv(const char *fmt, ...);
 void fatald(char *s, int d);
 void fatalc(char *s, int c);
 void debugnoisy(const char *modulename, const char *fmt, ...);
+char *str_concat(char *str1, char *str2);
 
 // sym.c
 int findglob(char *s);
@@ -119,7 +120,7 @@ int parse_type(int t);
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
 int pointer_to(int ptype);
 int value_at(int ptype);
-const char *typename(int ptype);
+char *typename(int ptype);
 int inttype(int ptype);
 int ptrtype(int ptype);
 

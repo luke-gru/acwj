@@ -21,7 +21,7 @@ static void init_symtable() {
   addparam("mychar", P_CHAR, S_VARIABLE, 1);
 
   addglob("printstring", P_VOID, S_FUNCTION, 1);
-  addparam("mystring", P_CHARPTR, S_VARIABLE, 1);
+  addparam("mystring", pointer_to(P_CHAR), S_VARIABLE, 1);
 }
 
 // Initialise global variables
