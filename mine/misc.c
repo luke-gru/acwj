@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <unistd.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -74,6 +75,8 @@ void fatalv(const char *fmt, ...) {
   if (fmt[strlen(fmt)-1] != '\n') {
     fprintf(stderr, "%s", "\n");
   }
+  if (Outfile) fclose(Outfile);         // assembly FILE
+  if (Outfilename) unlink(Outfilename); // assembly file
   exit(1);
 }
 

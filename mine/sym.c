@@ -139,3 +139,8 @@ void copyfuncparams(int slot) {
 void freeloclsyms(void) {
   Locls = NSYMBOLS - 1;
 }
+
+void clear_symtable(void) {
+  Locls = NSYMBOLS - 1;
+  Globs = 0;
+}

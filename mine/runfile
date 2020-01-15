@@ -3,6 +3,4 @@
 set -e
 set -x
 
-make compiler &&
-./bin/compiler $@ &&
-cc -o a.out out.s lib/mylib.c && ./a.out
+make compiler && ./bin/compiler -o a.out $@ && ./a.out

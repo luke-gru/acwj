@@ -107,6 +107,7 @@ int addparam(char *name, int ptype, int stype, int size);
 int findsymbol(char *s);
 void freeloclsyms(void);
 void copyfuncparams(int slot);
+void clear_symtable(void);
 
 // decl.c
 void var_declaration(int type, int isLocal, int isParam);
