@@ -2,3 +2,5 @@ bin/*
 !bin/.gitignore
 out.s
 a.out
+mytest.c
+mytest.s

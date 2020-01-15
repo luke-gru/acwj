@@ -11,9 +11,9 @@ int main() {
 
   buf= "                                                             ";
 
-  zin = open("test/compiler/basic_cat", 0);
+  zin = open("test/compiler/basic_cat.c", 0);
   if (zin == -1) {
-    printstring("open 'test/compiler/basic_cat' failed\n");
+    printstring("open 'test/compiler/basic_cat.c' failed\n");
     return (1);
   }
   while ((cnt = read(zin, buf, 60)) > 0) {

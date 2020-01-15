@@ -1,0 +1,24 @@
+#!/bin/sh
+# Make the output files for each test (assumes compiler is in correct working order)
+
+cd test/compiler
+
+# Build our compiler if needed
+if [ ! -f ../../bin/compiler ]
+then (cd ../.. && make compiler)
+fi
+
+for i in *.c
+do if [ ! -f "$i.out" -a ! -f "$i.err" ]
+   then
+     ../../bin/compiler $i 2> "$i.err"
+     # If the err file is empty
+     if [ ! -s "$i.err" ]
+     then
+        rm -f "$i.err"
+        cc -Wno-implicit-function-declaration -o out $i ../../lib/mylib.c
+        ./out > "$i.out"
+      fi
+   fi
+   rm -f out out.s
+done

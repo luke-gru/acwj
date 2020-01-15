@@ -24,53 +24,56 @@ test_parser: parser
 		./bin/parser test/parser/array_decl
 
 test_compiler: compiler
-	./bin/compiler test/compiler/comparisons && \
-	 ./bin/compiler test/compiler/for_loop && \
-	 ./bin/compiler test/compiler/if && \
-	 ./bin/compiler test/compiler/main_function && \
-	 ./bin/compiler test/compiler/printint && \
-	 ./bin/compiler test/compiler/variables && \
-	 ./bin/compiler test/compiler/while && \
-	 ./bin/compiler test/compiler/types && \
-	 ./bin/compiler test/compiler/function_return && \
-	 ./bin/compiler test/compiler/pointers && \
-	 ./bin/compiler test/compiler/global_decls && \
-	 ./bin/compiler test/compiler/pointer_scaling && \
-	 ./bin/compiler test/compiler/assignment_expressions && \
-	 ./bin/compiler test/compiler/pointer_deref && \
-	 ./bin/compiler test/compiler/basic_arrays && \
-	 ./bin/compiler test/compiler/strings && \
-	 ./bin/compiler test/compiler/operators && \
-	 ./bin/compiler test/compiler/local_vars && \
-	 ./bin/compiler test/compiler/local_array_vars && \
-	 ./bin/compiler test/compiler/local_params && \
-	 ./bin/compiler test/compiler/local_params2 && \
-	 ./bin/compiler test/compiler/prototypes && \
-	 ./bin/compiler test/compiler/basic_cat
+	./bin/compiler test/compiler/comparisons.c && \
+	 ./bin/compiler test/compiler/for_loop.c && \
+	 ./bin/compiler test/compiler/if.c && \
+	 ./bin/compiler test/compiler/main_function.c && \
+	 ./bin/compiler test/compiler/printint.c && \
+	 ./bin/compiler test/compiler/variables.c && \
+	 ./bin/compiler test/compiler/while.c && \
+	 ./bin/compiler test/compiler/types.c && \
+	 ./bin/compiler test/compiler/function_return.c && \
+	 ./bin/compiler test/compiler/pointers.c && \
+	 ./bin/compiler test/compiler/global_decls.c && \
+	 ./bin/compiler test/compiler/pointer_scaling.c && \
+	 ./bin/compiler test/compiler/assignment_expressions.c && \
+	 ./bin/compiler test/compiler/pointer_deref.c && \
+	 ./bin/compiler test/compiler/basic_arrays.c && \
+	 ./bin/compiler test/compiler/strings.c && \
+	 ./bin/compiler test/compiler/operators.c && \
+	 ./bin/compiler test/compiler/local_vars.c && \
+	 ./bin/compiler test/compiler/local_array_vars.c && \
+	 ./bin/compiler test/compiler/local_params.c && \
+	 ./bin/compiler test/compiler/local_params2.c && \
+	 ./bin/compiler test/compiler/prototypes.c && \
+	 ./bin/compiler test/compiler/basic_cat.c
 
 test_exec:
-	./runfile test/compiler/comparisons && \
-			./runfile test/compiler/for_loop && \
-			./runfile test/compiler/if && \
-			./runfile test/compiler/main_function && \
-			./runfile test/compiler/printint && \
-			./runfile test/compiler/variables && \
-			./runfile test/compiler/while && \
-			./runfile test/compiler/types && \
-			./runfile test/compiler/function_return && \
-			./runfile test/compiler/pointers && \
-			./runfile test/compiler/global_decls &&\
-			./runfile test/compiler/pointer_scaling && \
-			./runfile test/compiler/assignment_expressions && \
-			./runfile test/compiler/pointer_deref && \
-			./runfile test/compiler/basic_arrays && \
-			./runfile test/compiler/strings && \
-			./runfile test/compiler/operators && \
-			./runfile test/compiler/local_vars && \
-			./runfile test/compiler/local_array_vars && \
-			./runfile test/compiler/local_params && \
-			./runfile test/compiler/local_params2 && \
-			./runfile test/compiler/prototypes && \
-			./runfile test/compiler/basic_cat
+	./runfile test/compiler/comparisons.c && \
+			./runfile test/compiler/for_loop.c && \
+			./runfile test/compiler/if.c && \
+			./runfile test/compiler/main_function.c && \
+			./runfile test/compiler/printint.c && \
+			./runfile test/compiler/variables.c && \
+			./runfile test/compiler/while.c && \
+			./runfile test/compiler/types.c && \
+			./runfile test/compiler/function_return.c && \
+			./runfile test/compiler/pointers.c && \
+			./runfile test/compiler/global_decls.c &&\
+			./runfile test/compiler/pointer_scaling.c && \
+			./runfile test/compiler/assignment_expressions.c && \
+			./runfile test/compiler/pointer_deref.c && \
+			./runfile test/compiler/basic_arrays.c && \
+			./runfile test/compiler/strings.c && \
+			./runfile test/compiler/operators.c && \
+			./runfile test/compiler/local_vars.c && \
+			./runfile test/compiler/local_array_vars.c && \
+			./runfile test/compiler/local_params.c && \
+			./runfile test/compiler/local_params2.c && \
+			./runfile test/compiler/prototypes.c && \
+			./runfile test/compiler/basic_cat.c
 
-test: test_scanner test_parser test_compiler test_exec
+test_regression:
+	./test/compiler/runtests
+
+test: test_scanner test_parser test_compiler test_exec test_regression
