@@ -221,7 +221,9 @@ struct ASTnode *binexpr(int ptp) {
   int ASTop;
   int tokentype;
 
-  assert(Token.token != T_SEMI);
+  if (Token.token == T_SEMI) {
+    fatal("Unexpected semicolon");
+  }
   // Get the primary tree on the left.
   // Fetch the next token at the same time.
   left = prefix();

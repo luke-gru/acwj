@@ -74,9 +74,11 @@ struct symtable *var_declaration(int type, int class) {
           sym = addglob(Text, pointer_to(type), S_ARRAY, Token.intvalue);
           break;
         case C_LOCAL:
+          sym = addlocl(Text, pointer_to(type), S_ARRAY, Token.intvalue);
+          break;
         case C_PARAM:
-          // TODO
-          fatal("For now, declaration of local arrays is not implemented");
+          sym = addparam(Text, pointer_to(type), S_ARRAY, Token.intvalue);
+          break;
       }
     }
     // Ensure we have a following ']'
