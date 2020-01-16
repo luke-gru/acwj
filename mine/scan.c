@@ -280,8 +280,19 @@ gettok:
       break;
     case '/':
       if ((c = next()) == '/') {
-        skip_until('\n');
-        goto gettok;
+        if (skip_until('\n') == EOF) {
+          return EOF;
+        } else {
+          goto gettok;
+        }
+      } else if (c == '*') {
+        int until;
+        while ((until = skip_until('*')) != EOF) {
+          if (next() == '/') {
+            goto gettok;
+          }
+        }
+        return EOF;
       } else {
         putback(c);
       }
