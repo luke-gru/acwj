@@ -103,6 +103,7 @@ enum {
     C_GLOBAL = 1,       // Globally visible symbol
     C_LOCAL,            // Locally visible symbol
     C_PARAM,            // Locally visible function parameter
+    C_STRUCT,           // Struct type
     C_MEMBER            // Member of a struct
 };
 

@@ -2,10 +2,10 @@
 #include "decl.h"
 
 // NOTE: allocates strings, potentially a lot
-char *typename(int ptype) {
+char *typename(int ptype, struct symtable *ctype) {
   if (ptrtype(ptype)) {
     int valuetype = value_at(ptype);
-    char *valuename = typename(valuetype);
+    char *valuename = typename(valuetype, ctype);
     return str_concat(valuename, "*");
   }
   switch (ptype) {
@@ -17,6 +17,8 @@ char *typename(int ptype) {
     return strdup("long");
   case P_VOID:
     return strdup("void");
+  case P_STRUCT:
+    return str_concat("struct ", ctype->name);
   default:
     fatald("Invalid typename", ptype);
   }

@@ -164,10 +164,10 @@ static int var_declaration_list(struct symtable *funcsym, int class,
     // We have an existing prototype.
     // Check that this type matches the prototype.
     if (protoptr) {
-      if (type != protoptr->type) {
+      if (type != protoptr->type) { // TODO: check struct types
         fatalv("Parameter type doesn't match prototype for parameter %d "
                "(expected %s got %s)",
-               paramcnt+1, typename(protoptr->type), typename(type));
+               paramcnt+1, typename(protoptr->type, protoptr->ctype), typename(type, ctype));
       }
       // no need for `var_declaration()` here, we copy the prototype's parameters to locals later
       // if this is indeed a function definition. We do need to update its
@@ -178,10 +178,10 @@ static int var_declaration_list(struct symtable *funcsym, int class,
     } else {
       if (class == C_PARAM) {
         debugnoisy("parse", "param %d for function %s has type %s",
-            paramcnt+1, CurFunctionSym->name, typename(type));
+            paramcnt+1, CurFunctionSym->name, typename(type, ctype));
       } else if (ctype) { // struct member
         debugnoisy("parse", "member %d for struct %s has type %s",
-            paramcnt+1, ctype->name, typename(type));
+            paramcnt+1, ctype->name, typename(type, ctype));
       }
       var_declaration(type, ctype, class);
     }
@@ -324,9 +324,6 @@ struct symtable *struct_declaration(void) {
 
   // Set the overall size of the struct
   ctype->size = offset;
-
-  ident();
-  ctype->name = strdup(Text); // update the struct's name
 
   return ctype;
 }

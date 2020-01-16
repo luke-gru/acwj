@@ -130,7 +130,7 @@ int parse_pointer_array_type(int ptype);
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
 int pointer_to(int ptype);
 int value_at(int ptype);
-char *typename(int ptype);
+char *typename(int ptype, struct symtable *ctype);
 int inttype(int ptype);
 int ptrtype(int ptype);
 int typesize(int type, struct symtable *ctype);

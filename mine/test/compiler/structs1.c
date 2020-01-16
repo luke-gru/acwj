@@ -1,8 +1,10 @@
-struct {
+struct Alpha {
   int a;
   int b;
   int c;
-} Alpha;
+};
+
+struct Alpha english;
 
 int main() {
   return(0);

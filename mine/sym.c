@@ -127,7 +127,7 @@ struct symtable *addlocl(char *name, int ptype, struct symtable *ctype, int styp
 
 // Add a symbol to the struct types list
 struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int size) {
-  struct symtable *sym = newsym(name, ptype, ctype, stype, C_GLOBAL, size, 0);
+  struct symtable *sym = newsym(name, ptype, ctype, stype, C_STRUCT, size, 0);
   appendsym(&Structshead, &Structstail, sym);
   return (sym);
 }

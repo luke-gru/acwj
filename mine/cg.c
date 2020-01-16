@@ -370,19 +370,20 @@ int cgstorlocal(int r, struct symtable *sym) {
 // Generate a global symbol
 void cgglobsym(struct symtable *sym) {
   assert(sym->class == C_GLOBAL);
-  if (sym->stype == S_FUNCTION)
-    return;
+  if (sym->stype == S_FUNCTION) return;
 
   int type = sym->type;
-  int typesize = cgprimsize(type);
+  int typesz = typesize(sym->type, sym->ctype);
+  int arysz = sym->size;
 
   cgdataseg();
   fprintf(Outfile, "\t.globl\t%s\n", sym->name);
-  fprintf(Outfile, "%s:", sym->name);
-  assert(sym->size > 0);
+  fprintf(Outfile, "%s:\n", sym->name);
+  assert(typesz > 0);
+  assert(arysz > 0);
 
-  for (int i =0; i < sym->size; i++) {
-    switch(typesize) {
+  for (int i = 0; i < arysz; i++) {
+    switch (typesz) {
       case CHARSZ:
         fprintf(Outfile, "\t.byte\t0\n");
         break;
@@ -393,7 +394,9 @@ void cgglobsym(struct symtable *sym) {
         fprintf(Outfile, "\t.quad\t0\n");
         break;
       default:
-        fatald("Unknown typesize in cgglobsym: ", typesize);
+        for (int j = 0; j < typesz; j++) {
+          fprintf(Outfile, "\t.byte\t0\n");
+        }
     }
   }
 }
@@ -453,6 +456,7 @@ int cgwiden(int r, int oldtype, int newtype) {
 }
 
 int cgprimsize(int ptype) {
+  char *x = 0;
   if (ptrtype(ptype)) return (PTRSZ);
   switch (ptype) {
     case P_CHAR: return (CHARSZ);

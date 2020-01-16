@@ -265,7 +265,7 @@ struct ASTnode *binexpr(int ptp) {
       rtemp = modify_type(right, left->type, ASTop);
 
       if (ltemp == NULL && rtemp == NULL)
-        fatalv("Incompatible types %s and %s in binary expression", typename(left->type), typename(right->type));
+        fatalv("Incompatible types %s and %s in binary expression", typename(left->type, NULL), typename(right->type, NULL));
 
       if (ltemp != NULL) left = ltemp;
       if (rtemp != NULL) right = rtemp;
