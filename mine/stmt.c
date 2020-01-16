@@ -127,13 +127,22 @@ static struct ASTnode *return_statement(void);
 // and return its AST
 static struct ASTnode *single_statement(void) {
   int type;
+  int basetype;
   switch (Token.token) {
     case T_INT:
     case T_CHAR:
     case T_LONG:
-      type = parse_type(Token.token);
+      basetype = parse_base_type(Token.token);
+found_type:
+      type = parse_pointer_array_type(basetype);
       ident();
       var_declaration(type, C_LOCAL);
+      if (Token.token == T_COMMA) {
+        scan(&Token);
+        goto found_type;
+      } else {
+        semi();
+      }
       return (NULL);		// No AST generated here
     case T_IF:
       return (if_statement());

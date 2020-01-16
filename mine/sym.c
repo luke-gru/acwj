@@ -129,7 +129,7 @@ struct symtable *findcomposite(char *s) {
   return (findsyminlist(s, Typeshead));
 }
 
-// Clear all the entries in the  local symbol table
+// Clear all the entries in the local symbol table
 void freeloclsyms(void) {
   Localshead = Localstail = NULL;
   Paramshead = Paramstail = NULL;

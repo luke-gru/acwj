@@ -1,5 +1,7 @@
 int main() {
-  int a, b, x;
+  int a;
+  int b;
+  int x;
   a = b = 10;
   x = a + b;
   if (x) { printstring("x is not zero\n"); }

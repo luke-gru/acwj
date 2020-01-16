@@ -8,9 +8,7 @@
 
 // Parse the current token and
 // return a primitive type enum value
-// TODO: allow type to be an array type without size given, like for
-// parameters: `char[] fmt`
-int parse_type(int t) {
+int parse_base_type(int t) {
   int type = P_NONE;
   if (t == T_CHAR) type = P_CHAR;
   if (t == T_INT)  type = P_INT;
@@ -18,16 +16,24 @@ int parse_type(int t) {
   if (t == T_VOID) type = P_VOID;
   if (type == P_NONE)
     fatals("Expected a type, found token", tokenname(t));
+  scan(&Token);
+  return type;
+}
 
-  while (1) {
+// Parse 0 or more '*'s after base type
+// TODO: get array types working
+int parse_pointer_array_type(int basetype) {
+  int type = basetype;
+  while (Token.token == T_STAR) {
     scan(&Token);
-    if (Token.token != T_STAR) {
-      break;
-    }
     type = pointer_to(type);
   }
-
   return (type);
+}
+
+int parse_full_type(int t) {
+  int type = parse_base_type(t);
+  return parse_pointer_array_type(type);
 }
 
 /**
@@ -111,18 +117,21 @@ static int param_declaration(struct symtable *funcsym) {
 
   if (funcsym) {
     protoptr = funcsym->member;
+    assert(funcsym->stype == S_PROTO);
   }
 
   // Loop until the final right parentheses. Current token starts
   // the loop right after T_LPAREN.
   while (Token.token != T_RPAREN) {
-    type = parse_type(Token.token);
+    type = parse_full_type(Token.token);
     ident();
     // We have an existing prototype.
     // Check that this type matches the prototype.
     if (protoptr) {
       if (type != protoptr->type) {
-        fatalv("Parameter type doesn't match prototype for parameter %d", paramcnt+1);
+        fatalv("Parameter type doesn't match prototype for parameter %d "
+               "(expected %s got %s)",
+               paramcnt+1, typename(protoptr->type), typename(type));
       }
       // no need for `var_declaration()` here, we copy the prototype's parameters to locals later
       // if this is indeed a function definition. We do need to update its
@@ -131,6 +140,8 @@ static int param_declaration(struct symtable *funcsym) {
       protoptr->name = strdup(Text);
       protoptr = protoptr->next;
     } else {
+      debugnoisy("parse", "param %d for function %s has type %s",
+          paramcnt+1, CurFunctionSym->name, typename(type));
       var_declaration(type, C_PARAM);
     }
     paramcnt++;
@@ -159,6 +170,9 @@ struct ASTnode *function_declaration(int type) {
   struct symtable *oldfuncsym, *newfuncsym = NULL;
   int endlabel, paramcnt = 0;
 
+  // Clear out the parameter list
+  Paramshead = Paramstail = NULL;
+
   oldfuncsym = findglob(Text);
   if (oldfuncsym && oldfuncsym->stype == S_PROTO) {
     // proto exists, check return type
@@ -173,7 +187,8 @@ struct ASTnode *function_declaration(int type) {
   } else if (oldfuncsym) {
     fatalv("Identifier %s already exists, cannot be a function", Text);
   } else {
-    newfuncsym = addglob(Text, type, S_FUNCTION, paramcnt);
+    newfuncsym = addglob(Text, type, S_FUNCTION, 0);
+    CurFunctionSym = newfuncsym;
   }
   lparen();
   paramcnt = param_declaration(oldfuncsym);
@@ -217,10 +232,12 @@ struct ASTnode *function_declaration(int type) {
 
 void global_declarations(void) {
   struct ASTnode *tree;
-  int type;
+  int type, basetype;
 
   while (1) {
-    type = parse_type(Token.token);
+    basetype = parse_base_type(Token.token);
+    type = parse_pointer_array_type(basetype);
+found_type:
     ident();
     if (Token.token == T_LPAREN) {
       // Parse the function declaration and
@@ -234,13 +251,18 @@ void global_declarations(void) {
         if (!O_parseOnly) {
           genAST(tree, NOREG, 0);
         }
-        freeloclsyms();
       } else {
         // prototype, do nothing
       }
+      freeloclsyms();
     } else {
-      // Parse the global variable declaration
+      // setup the symbol table
       var_declaration(type, C_GLOBAL);
+      if (Token.token == T_COMMA) {
+        scan(&Token);
+        type = parse_pointer_array_type(basetype);
+        goto found_type;
+      }
       semi();
     }
 

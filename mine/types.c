@@ -15,6 +15,8 @@ char *typename(int ptype) {
     return strdup("int");
   case P_LONG:
     return strdup("long");
+  case P_VOID:
+    return strdup("void");
   default:
     fatald("Invalid typename", ptype);
   }

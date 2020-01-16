@@ -116,7 +116,9 @@ void clear_symtable(void);
 struct symtable *var_declaration(int type, int class);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
-int parse_type(int t);
+int parse_full_type(int t);
+int parse_base_type(int t);
+int parse_pointer_array_type(int t);
 
 // types.c
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
