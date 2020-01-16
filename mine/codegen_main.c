@@ -14,14 +14,14 @@ int objcnt = 0;               // Position to insert next name
 
 // TODO: Remove this once I change all these calls in test/compiler to use printf() instead
 static void init_symtable() {
-  addglob("printint", P_VOID, S_FUNCTION, 1);
-  addparam("myint", P_INT, S_VARIABLE, 1);
+  addglob("printint", P_VOID, NULL, S_FUNCTION, 1);
+  addparam("myint", P_INT, NULL, S_VARIABLE, 1);
 
-  addglob("printchar", P_VOID, S_FUNCTION, 1);
-  addparam("mychar", P_CHAR, S_VARIABLE, 1);
+  addglob("printchar", P_VOID, NULL, S_FUNCTION, 1);
+  addparam("mychar", P_CHAR, NULL, S_VARIABLE, 1);
 
-  addglob("printstring", P_VOID, S_FUNCTION, 1);
-  addparam("mystring", pointer_to(P_CHAR), S_VARIABLE, 1);
+  addglob("printstring", P_VOID, NULL, S_FUNCTION, 1);
+  addparam("mystring", pointer_to(P_CHAR), NULL, S_VARIABLE, 1);
 
   freeloclsyms();
 }

@@ -95,3 +95,11 @@ int value_at(int type) {
   }
   return (type - 1);
 }
+
+// Given a type and a composite type pointer, return
+// the size of this type in bytes
+int typesize(int type, struct symtable *ctype) {
+  if (type == P_STRUCT)
+    return (ctype->size);
+  return (genprimsize(type));
+}

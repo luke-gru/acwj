@@ -128,15 +128,16 @@ static struct ASTnode *return_statement(void);
 static struct ASTnode *single_statement(void) {
   int type;
   int basetype;
+  struct symtable *ctype;
   switch (Token.token) {
     case T_INT:
     case T_CHAR:
     case T_LONG:
-      basetype = parse_base_type(Token.token);
+      basetype = parse_base_type(Token.token, &ctype);
 found_type:
       type = parse_pointer_array_type(basetype);
       ident();
-      var_declaration(type, C_LOCAL);
+      var_declaration(type, ctype, C_LOCAL);
       if (Token.token == T_COMMA) {
         scan(&Token);
         goto found_type;

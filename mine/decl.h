@@ -29,14 +29,15 @@ struct ASTnode *prefix(void);
 int interpretAST(struct ASTnode *n);
 
 // gen.c
-int genAST(struct ASTnode *n, int reg, int parentASTop);
+int  genAST(struct ASTnode *n, int reg, int parentASTop);
 void genpreamble(void);
 void genpostamble(void);
 void genfreeregs(void);
 void genprintint(int reg);
 void genglobsym(struct symtable *sym);
 int  genprimsize(int ptype);
-int genglobstr(char *strvalue);
+int  genglobstr(char *strvalue);
+int  genalign(int type, int offset, int direction);
 
 // cg.c
 void freeall_registers(void);
@@ -82,6 +83,7 @@ int cglognot(int r1);
 int cgboolean(int r1, int ASTop, int label);
 int cggetlocaloffset(struct symtable *sym);
 void cgresetlocals(void);
+int cgalign(int type, int offset, int direction);
 
 // stmt.c
 struct ASTnode *compound_statement(void);
@@ -105,20 +107,24 @@ char *str_concat(char *str1, char *str2);
 // sym.c
 struct symtable *findglob(char *s);
 struct symtable *findlocl(char *s);
-struct symtable *addglob(char *name, int ptype, int stype, int size);
-struct symtable *addlocl(char *name, int ptype, int stype, int size);
-struct symtable *addparam(char *name, int ptype, int stype, int size);
+struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int size);
+struct symtable *addlocl(char *name, int ptype, struct symtable *ctype, int stype, int size);
+struct symtable *addparam(char *name, int ptype, struct symtable *ctype, int stype, int size);
+struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int size);
+struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *findsymbol(char *s);
+struct symtable *findstruct(char *s);
+struct symtable *findmember(char *s);
 void freeloclsyms(void);
 void clear_symtable(void);
 
 // decl.c
-struct symtable *var_declaration(int type, int class);
-struct ASTnode *function_declaration(int type);
+struct symtable *var_declaration(int type, struct symtable *ctype, int class);
+struct ASTnode *function_declaration(int type, struct symtable *ctype);
 void global_declarations(void);
-int parse_full_type(int t);
-int parse_base_type(int t);
-int parse_pointer_array_type(int t);
+int parse_full_type(int t, struct symtable **ctype);
+int parse_base_type(int t, struct symtable **ctype);
+int parse_pointer_array_type(int ptype);
 
 // types.c
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
@@ -127,5 +133,6 @@ int value_at(int ptype);
 char *typename(int ptype);
 int inttype(int ptype);
 int ptrtype(int ptype);
+int typesize(int type, struct symtable *ctype);
 
 #endif

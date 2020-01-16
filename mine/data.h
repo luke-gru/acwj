@@ -19,7 +19,8 @@ struct symtable *CurFunctionSym;        // Symbol ptr of the current function be
 struct symtable *Globalshead, *Globalstail;	// Global variables and functions
 struct symtable *Localshead,  *Localstail;	// Local variables
 struct symtable *Paramshead,  *Paramstail;	// Local parameters
-struct symtable *Typeshead,   *Typestail;	// Composite types
+struct symtable *Structshead, *Structstail;	// Temp list of struct/union members
+struct symtable *Membershead, *Memberstail;	// List of struct types
 
 int    O_dumpAST;          // option to print AST string representation to stdout
 int    O_parseOnly;        // option to not output any assembly language to a file

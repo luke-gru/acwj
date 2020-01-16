@@ -299,6 +299,7 @@ void genglobsym(struct symtable *sym) {
   cgglobsym(sym);
 }
 
+// NOTE: works for pointers to all primitive types as well
 int genprimsize(int ptype) {
   cgprimsize(ptype); // fine if parseOnly, doesn't actually generate code
 }
@@ -308,4 +309,8 @@ int genglobstr(char *strvalue) {
   int l = genlabel();
   cgglobstr(l, strvalue);
   return (l);
+}
+
+int genalign(int type, int offset, int direction) {
+  return (cgalign(type, offset, direction));
 }

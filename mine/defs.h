@@ -32,7 +32,7 @@ enum {
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN, T_LBRACKET, T_RBRACKET,
   T_COMMA,
   // keywords
-  T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_RETURN,
+  T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_STRUCT, T_RETURN,
   T_LAST // sentinel
 };
 
@@ -70,10 +70,11 @@ enum {
 // e.g. 0= no pointer, 1= pointer, 2= pointer pointer etc.
 enum {
     P_NONE=0,
-    P_VOID=16, //   10000
-    P_CHAR=32, //  100000
-    P_INT=48,  //  110000
-    P_LONG=64, // 1000000
+    P_VOID=16,   //    10000
+    P_CHAR=32,   //   100000
+    P_INT=48,    //   110000
+    P_LONG=64,   //  1000000
+    P_STRUCT=96, //  1100000
     P_LAST // sentinel value
 };
 
@@ -101,13 +102,15 @@ struct ASTnode {
 enum {
     C_GLOBAL = 1,       // Globally visible symbol
     C_LOCAL,            // Locally visible symbol
-    C_PARAM             // Locally visible function parameter
+    C_PARAM,            // Locally visible function parameter
+    C_MEMBER            // Member of a struct
 };
 
 // Symbol table structure
 struct symtable {
   char *name;                   // Name of a symbol
   int type;                     // Primitive type
+  struct symtable *ctype;       // If needed, pointer to the composite type
   int stype;                    // Structural type (function, variable)
   int class;                    // Storage class for the symbol (global, local)
   union {
