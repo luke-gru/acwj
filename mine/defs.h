@@ -32,7 +32,7 @@ enum {
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN, T_LBRACKET, T_RBRACKET,
   T_COMMA, T_DOT, T_ARROW,
   // keywords
-  T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_STRUCT, T_RETURN,
+  T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_STRUCT, T_UNION, T_RETURN,
   T_LAST // sentinel
 };
 
@@ -75,6 +75,7 @@ enum {
     P_INT=48,    //   110000
     P_LONG=64,   //  1000000
     P_STRUCT=96, //  1100000
+    P_UNION=128, // 10000000
     P_LAST // sentinel value
 };
 
@@ -104,7 +105,8 @@ enum {
     C_LOCAL,            // Locally visible symbol
     C_PARAM,            // Locally visible function parameter
     C_STRUCT,           // Struct type
-    C_MEMBER            // Member of a struct
+    C_UNION,            // Union type
+    C_MEMBER            // Member of a struct or union
 };
 
 // Symbol table structure

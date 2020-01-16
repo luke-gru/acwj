@@ -148,16 +148,17 @@ static struct ASTnode *member_access(int withpointer) {
   // or a struct/union pointer
   if ((compvar = findsymbol(Text)) == NULL)
     fatals("Undeclared variable", Text);
-  if (withpointer && compvar->type != pointer_to(P_STRUCT))
+  // TODO: allow multiple levels of indirection
+  if (withpointer && compvar->type != pointer_to(P_STRUCT) && compvar->type != pointer_to(P_UNION))
     fatals("Undeclared variable", Text);
-  if (!withpointer && compvar->type != P_STRUCT)
+  if (!withpointer && compvar->type != P_STRUCT && compvar->type != P_UNION)
     fatals("Undeclared variable", Text);
 
   // If a pointer to a struct, get the pointer's value.
   // Otherwise, make a leaf node that points at the base
   // Either way, it's an rvalue
   if (withpointer) {
-    left = mkastleaf(A_IDENT, pointer_to(P_STRUCT), compvar, 0);
+    left = mkastleaf(A_IDENT, pointer_to(compvar->type), compvar, 0);
   } else {
     left = mkastleaf(A_ADDR, compvar->type, compvar, 0);
   }
@@ -176,8 +177,10 @@ static struct ASTnode *member_access(int withpointer) {
     if (!strcmp(m->name, Text))
       break;
 
-  if (m == NULL)
-    fatalv("No member %s found in struct %s: ", Text, typeptr->name);
+  if (m == NULL) {
+    fatalv("No member %s found in %s %s: ", Text,
+        compvar->type == P_STRUCT ? "struct" : "union", typeptr->name);
+  }
 
   // Build an A_INTLIT node with the offset
   right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);

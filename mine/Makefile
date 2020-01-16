@@ -47,7 +47,8 @@ test_compiler: compiler
 	 ./bin/compiler -S test/compiler/local_params2.c && \
 	 ./bin/compiler -S test/compiler/prototypes.c && \
 	 ./bin/compiler -S test/compiler/basic_cat.c && \
-	 ./bin/compiler -S test/compiler/structs1.c;
+	 ./bin/compiler -S test/compiler/structs1.c && \
+	 ./bin/compiler -S test/compiler/unions1.c;
 	rm test/compiler/*.s
 
 test_exec:
@@ -74,7 +75,8 @@ test_exec:
 			./runfile test/compiler/local_params2.c && \
 			./runfile test/compiler/prototypes.c && \
 			./runfile test/compiler/basic_cat.c && \
-			./runfile test/compiler/structs1.c;
+			./runfile test/compiler/structs1.c && \
+			./runfile test/compiler/unions1.c;
 
 	rm a.out
 

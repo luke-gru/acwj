@@ -111,9 +111,11 @@ struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int styp
 struct symtable *addlocl(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *addparam(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int size);
+struct symtable *addunion(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *findsymbol(char *s);
 struct symtable *findstruct(char *s);
+struct symtable *findunion(char *s);
 struct symtable *findmember(char *s);
 void freeloclsyms(void);
 void clear_symtable(void);

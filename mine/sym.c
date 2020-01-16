@@ -132,6 +132,13 @@ struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int st
   return (sym);
 }
 
+// Add a symbol to the union types list
+struct symtable *addunion(char *name, int ptype, struct symtable *ctype, int stype, int size) {
+  struct symtable *sym = newsym(name, ptype, ctype, stype, C_UNION, size, 0);
+  appendsym(&Unionshead, &Unionstail, sym);
+  return (sym);
+}
+
 // Add a struct member to the temp members list
 struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int stype, int size) {
   struct symtable *sym = newsym(name, ptype, ctype, stype, C_MEMBER, size, 0);
@@ -144,7 +151,14 @@ struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int st
 struct symtable *findstruct(char *s) {
   return (findsyminlist(s, Structshead));
 }
-// Find a member of the currently parsed struct.
+
+// Find a union type.
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findunion(char *s) {
+  return (findsyminlist(s, Unionshead));
+}
+
+// Find a member of the currently parsed struct/union.
 // Return a pointer to the found node or NULL if not found.
 struct symtable *findmember(char *s) {
   return (findsyminlist(s, Membershead));
@@ -163,5 +177,6 @@ void clear_symtable(void) {
   Localshead = Localstail = NULL;
   Paramshead = Paramstail = NULL;
   Structshead = Structstail = NULL;
+  Unionshead = Unionstail = NULL;
   Membershead = Memberstail = NULL;
 }

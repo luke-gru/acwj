@@ -6,7 +6,7 @@
 // Parsing of declarations
 // Copyright (c) 2019 Warren Toomey, GPL3
 //
-struct symtable *struct_declaration(void);
+struct symtable *composite_declaration(int comptype);
 
 // Parse the current token and
 // return a primitive type enum value
@@ -27,7 +27,11 @@ int parse_base_type(int t, struct symtable **ctype) {
       break;
     case T_STRUCT:
       type = P_STRUCT;
-      *ctype = struct_declaration();
+      *ctype = composite_declaration(P_STRUCT);
+      return type;
+    case T_UNION:
+      type = P_UNION;
+      *ctype = composite_declaration(P_UNION);
       return type;
     default:
       fatals("Expected a type, found token", tokenname(t));
@@ -272,31 +276,47 @@ struct ASTnode *function_declaration(int type, struct symtable *ctype) {
 }
 
 // Either declaring a struct variable or defining a new struct.
-struct symtable *struct_declaration(void) {
+struct symtable *composite_declaration(int comptype) {
   struct symtable *ctype = NULL;
   struct symtable *m;
   int offset;
 
-  // Skip the struct keyword
-  match(T_STRUCT, "struct");
-
-  // See if there is a following struct name
-  if (Token.token == T_IDENT) {
-    // Find any matching composite type
-    ctype = findstruct(Text);
-    scan(&Token);
+  switch(comptype) {
+    case P_STRUCT:
+      // Skip the struct keyword
+      match(T_STRUCT, "struct");
+      break;
+    case P_UNION:
+      // Skip the union keyword
+      match(T_UNION, "union");
+      break;
+    default:
+      assert(0);
   }
 
-  // If the next token isn't an LBRACE, this is the usage of an existing struct type.
+  // See if there is a following struct/union name
+  if (Token.token == T_IDENT) {
+    // Find any matching composite type
+    ctype = comptype == P_STRUCT ? findstruct(Text) : findunion(Text);
+    scan(&Token); // the identifier
+  }
+
+  // If the next token isn't an LBRACE, this is the usage of an existing struct/union type.
   // Return the pointer to the type.
   if (Token.token != T_LBRACE) {
-    if (ctype == NULL) fatals("unknown struct type", Text);
+    if (ctype == NULL) {
+      fatalv("unknown %s type: %s", comptype == P_STRUCT ? "struct" : "union", Text);
+    }
     return (ctype);
   }
 
   // Build the struct node and skip the left brace
-  ctype = addstruct(Text, P_STRUCT, NULL, 0, 0);
-  scan(&Token);
+  if (comptype == P_STRUCT) {
+    ctype = addstruct(Text, P_STRUCT, NULL, 0, 0);
+  } else {
+    ctype = addunion(Text, P_UNION, NULL, 0, 0);
+  }
+  lbrace();
 
   // Scan in the list of members and attach
   // to the struct type's node
@@ -311,18 +331,27 @@ struct symtable *struct_declaration(void) {
   // and find the first free byte after it
   m = ctype->member;
   m->posn = 0;
-  offset = typesize(m->type, m->ctype);
+  if (comptype == P_STRUCT) {
+    offset = typesize(m->type, m->ctype);
+  } else {
+    offset = typesize(m->type, NULL);
+  }
 
   // Set the position of each successive member in the struct
   for (m = m->next; m != NULL; m = m->next) {
     // Set the offset for this member
-    m->posn = genalign(m->type, offset, 1);
-
-    // Get the offset of the next free byte after this member
-    offset += typesize(m->type, m->ctype);
+    if (comptype == P_STRUCT) {
+      m->posn = genalign(m->type, offset, 1);
+      // Get the offset of the next free byte after this member
+      offset += typesize(m->type, m->ctype);
+    } else {
+      m->posn = 0;
+      int typesz = typesize(m->type, m->ctype);
+      if (typesz > offset) offset = typesz;
+    }
   }
 
-  // Set the overall size of the struct
+  // Set the overall size of the struct/union
   ctype->size = offset;
 
   return ctype;
@@ -337,9 +366,9 @@ void global_declarations(void) {
     basetype = parse_base_type(Token.token, &ctype);
     type = parse_pointer_array_type(basetype);
 found_type:
-    // struct definition
-    if (type == P_STRUCT && Token.token == T_SEMI) {
-      scan(&Token);
+    // struct/union definition
+    if ((type == P_STRUCT || type == P_UNION) && Token.token == T_SEMI) {
+      semi();
       continue;
     }
     ident();

@@ -22,6 +22,7 @@ struct symtable *Localshead,  *Localstail;	// Local variables
 struct symtable *Paramshead,  *Paramstail;	// Local parameters
 struct symtable *Structshead, *Structstail;	// Temp list of struct/union members
 struct symtable *Membershead, *Memberstail;	// List of struct types
+struct symtable *Unionshead,  *Unionstail;	// List of union types
 
 int    O_dumpAST;          // option to print AST string representation to stdout
 int    O_parseOnly;        // option to not output any assembly language to a file
