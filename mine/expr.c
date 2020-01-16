@@ -47,6 +47,7 @@
 */
 
 static struct ASTnode *array_access(void);
+static struct ASTnode *member_access(int withpointer);
 
 // Parse a postfix expression and return an AST node representing it.
 // The identifier is already in Text.
@@ -64,6 +65,12 @@ static struct ASTnode *postfix(void) {
   // An array reference
   if (Token.token == T_LBRACKET)
     return (array_access());
+
+  if (Token.token == T_DOT)
+    return (member_access(0));
+
+  if (Token.token == T_ARROW)
+    return (member_access(1));
 
   // A variable. Check that the variable exists.
   varptr = findsymbol(Text);
@@ -125,6 +132,60 @@ static struct ASTnode *array_access(void) {
   // at this point.
   left = mkastnode(A_ADD, ary->type, left, NULL, right, NULL, 0);
   left = mkuastunary(A_DEREF, value_at(left->type), left, NULL, 0);
+  return (left);
+}
+
+// Parse the member reference of a struct (or union, soon)
+// and return an AST tree for it. If withpointer is true,
+// the access is through a pointer to the member.
+static struct ASTnode *member_access(int withpointer) {
+  struct ASTnode *left, *right;
+  struct symtable *compvar;
+  struct symtable *typeptr;
+  struct symtable *m;
+
+  // Check that the identifer has been declared as a struct (or a union, later),
+  // or a struct/union pointer
+  if ((compvar = findsymbol(Text)) == NULL)
+    fatals("Undeclared variable", Text);
+  if (withpointer && compvar->type != pointer_to(P_STRUCT))
+    fatals("Undeclared variable", Text);
+  if (!withpointer && compvar->type != P_STRUCT)
+    fatals("Undeclared variable", Text);
+
+  // If a pointer to a struct, get the pointer's value.
+  // Otherwise, make a leaf node that points at the base
+  // Either way, it's an rvalue
+  if (withpointer) {
+    left = mkastleaf(A_IDENT, pointer_to(P_STRUCT), compvar, 0);
+  } else {
+    left = mkastleaf(A_ADDR, compvar->type, compvar, 0);
+  }
+  left->rvalue = 1;
+
+  // Get the details of the composite type
+  typeptr = compvar->ctype;
+
+  // Skip the '.' or '->' token and get the member's name
+  scan(&Token);
+  ident();
+
+  // Find the matching member's name in the type
+  // Die if we can't find it
+  for (m = typeptr->member; m != NULL; m = m->next)
+    if (!strcmp(m->name, Text))
+      break;
+
+  if (m == NULL)
+    fatalv("No member %s found in struct %s: ", Text, typeptr->name);
+
+  // Build an A_INTLIT node with the offset
+  right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);
+
+  // Add the member's offset to the base of the struct and
+  // dereference it. Still an lvalue at this point
+  left = mkastnode(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
+  left = mkuastunary(A_DEREF, m->type, left, NULL, 0);
   return (left);
 }
 

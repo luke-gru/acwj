@@ -5,6 +5,7 @@
 // Copyright (c) 2019 Warren Toomey, GPL3
 
 int      Line;
+int      Col;
 int      Putback;
 FILE     *Infile;                       // Currently worked on C source code FILE
 FILE     *Outfile;                      // Currently worked on assembly FILE

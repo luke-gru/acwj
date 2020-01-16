@@ -14,7 +14,7 @@ void match(int t, char *what) {
   if (Token.token == t) {
     scan(&Token);
   } else {
-    fatalv("%s expected on line %d, got: %s", what, Line, tokenname(Token.token));
+    fatalv("%s expected at %d:%d, got: %s", what, Line, Col, tokenname(Token.token));
   }
 }
 
@@ -43,27 +43,27 @@ void rparen(void) {
 
 static void print_filename(void) {
   if (Infilename) {
-    fprintf(stderr, "%s:%d ", Infilename, Line);
+    fprintf(stderr, "%s:%d:%d ", Infilename, Line, Col);
   } else {
-    fprintf(stderr, "<nofile>:%d ", Line);
+    fprintf(stderr, "<nofile>:%d:%d ", Line, Col);
   }
 }
 
 // Print out fatal messages
 void fatal(char *s) {
-  fatalv("%s on line %d", s, Line);
+  fatalv("%s at %d:%d", s, Line, Col);
 }
 
 void fatals(char *s1, char *s2) {
-  fatalv("%s:%s on line %d", s1, s2, Line);
+  fatalv("%s:%s at %d:%d", s1, s2, Line, Col);
 }
 
 void fatald(char *s, int d) {
-  fatalv("%s: %d on line %d", s, d, Line);
+  fatalv("%s: %d at %d:%d", s, d, Line, Col);
 }
 
 void fatalc(char *s, int c) {
-  fatalv("%s: '%c' on line %d", s, c, Line);
+  fatalv("%s: '%c' at %d:%d", s, c, Line, Col);
 }
 
 void fatalv(const char *fmt, ...) {

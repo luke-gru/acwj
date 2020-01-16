@@ -19,7 +19,7 @@ char *toknames[] = {
 
   "T_INTLIT", "T_SEMI", "T_IDENT", "T_STRLIT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN", "T_LBRACKET", "T_RBRACKET",
-  "T_COMMA",
+  "T_COMMA", "T_DOT", "T_ARROW",
   // keywords
   "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_RETURN",
   NULL
@@ -50,12 +50,16 @@ static int next(void) {
   if (Putback) {		// Use the character put
     c = Putback;		// back if there is one
     Putback = 0;
+    Col++;
     return (c);
   }
 
   c = fgetc(Infile);		// Read from input file
-  if ('\n' == c)
+  Col++;
+  if ('\n' == c) {
     Line++;			// Increment line count
+    Col = 0;
+  }
   return (c);
 }
 
@@ -63,9 +67,10 @@ static int next(void) {
 static void putback(int c) {
   assert(!Putback);
   Putback = c;
+  Col--;
 }
 
-// same as putback(), but API function for parser
+// similar to putback(), but API function for parser
 void reject_token(struct token *t) {
   if (Rejtoken) {
     fatal("Can't reject token twice");
@@ -82,6 +87,14 @@ static int skip(void) {
   c = next();
   while (' ' == c || '\t' == c || '\n' == c || '\r' == c || '\f' == c) {
     c = next();
+  }
+  return (c);
+}
+
+static int skip_until(int until_char) {
+  int c;
+  while ((c = next()) != until_char) {
+    if (c == EOF) return EOF;
   }
   return (c);
 }
@@ -231,6 +244,7 @@ int scan(struct token *t) {
     return (1);
   }
 
+gettok:
   // Skip whitespace
   c = skip();
 
@@ -251,6 +265,8 @@ int scan(struct token *t) {
     case '-':
       if ((c = next()) == '-') {
         t->token = T_DEC;
+      } else if (c == '>') {
+        t->token = T_ARROW;
       } else {
         putback(c);
         t->token = T_MINUS;
@@ -260,6 +276,12 @@ int scan(struct token *t) {
       t->token = T_STAR;
       break;
     case '/':
+      if ((c = next()) == '/') {
+        skip_until('\n');
+        goto gettok;
+      } else {
+        putback(c);
+      }
       t->token = T_SLASH;
       break;
     case ';':
@@ -354,6 +376,9 @@ int scan(struct token *t) {
     case '"':
       scan_str(Text);
       t->token = T_STRLIT;
+      break;
+    case '.':
+      t->token = T_DOT;
       break;
     default:
       // If it's a digit, scan the
