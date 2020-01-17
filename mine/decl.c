@@ -10,25 +10,55 @@ struct symtable *composite_declaration(int comptype);
 void enum_declaration(void);
 int typedef_declaration(struct symtable **ctype);
 
-// Given a typedef name, return the type it represents
-static int type_of_typedef(char *name, struct symtable **ctype) {
+static int type_of_typedef(char *name, struct symtable **ctype, int fail) {
   struct symtable *t;
   assert(Token.token == T_IDENT);
 
   // Look up the typedef in the list
   t = findtypedef(name);
   if (t == NULL) {
-    fatals("unknown type", name);
+    if (fail) {
+      fatals("unknown type", name);
+    } else {
+      return -1;
+    }
   }
   *ctype = t->ctype;
   ident();
   return (t->type);
 }
 
+// Given a typedef name, return the type it represents. Errors out if none
+// found.
+int type_of_typedef_fail(char *name, struct symtable **ctype) {
+  return type_of_typedef(name, ctype, 1);
+}
+
+// Given a typedef name, return the type it represents
+// Returns -1 if no type found
+int type_of_typedef_nofail(char *name, struct symtable **ctype) {
+  return type_of_typedef(name, ctype, 0);
+}
+
 // Parse the current token and
 // return a primitive type enum value
-int parse_base_type(int t, struct symtable **ctype) {
+int parse_base_type(int t, struct symtable **ctype, int *class) {
   int type = P_NONE;
+  int extern_static = 1;
+
+  while (extern_static) {
+    switch (Token.token) {
+      case T_EXTERN:
+        *class = C_EXTERN;
+        scan(&Token);
+        break;
+      default:
+        extern_static = 0;
+        break;
+    }
+  }
+
+  t = Token.token;
   switch (t) {
     case T_CHAR:
       type = P_CHAR;
@@ -58,7 +88,7 @@ int parse_base_type(int t, struct symtable **ctype) {
       type = typedef_declaration(ctype);
       return type;
     case T_IDENT: // might be typedef
-      type = type_of_typedef(Text, ctype);
+      type = type_of_typedef_fail(Text, ctype);
       return type;
     default:
       fatals("Expected a type, found token", tokenname(t));
@@ -78,8 +108,8 @@ int parse_pointer_array_type(int basetype) {
   return (type);
 }
 
-int parse_full_type(int t, struct symtable **ctype) {
-  int type = parse_base_type(t, ctype);
+int parse_full_type(int t, struct symtable **ctype, int *class) {
+  int type = parse_base_type(t, ctype, class);
   return parse_pointer_array_type(type);
 }
 
@@ -121,7 +151,8 @@ struct symtable *var_declaration(int type, struct symtable *ctype, int class) {
       // We treat the array as a pointer to its elements' type
       switch (class) {
         case C_GLOBAL:
-          sym = addglob(Text, pointer_to(type), ctype, S_ARRAY, Token.intvalue);
+        case C_EXTERN:
+          sym = addglob(Text, pointer_to(type), ctype, S_ARRAY, class, Token.intvalue);
           break;
         case C_LOCAL:
           sym = addlocl(Text, pointer_to(type), ctype, S_ARRAY, Token.intvalue);
@@ -142,10 +173,11 @@ struct symtable *var_declaration(int type, struct symtable *ctype, int class) {
     match(T_RBRACKET, "]");
   } else {
     // Add this as a known scalar
-    // and generate its space in assembly
+    // and generate its space in assembly, if appropriate
     switch (class) {
       case C_GLOBAL:
-        sym = addglob(Text, type, ctype, S_VARIABLE, 1);
+      case C_EXTERN:
+        sym = addglob(Text, type, ctype, S_VARIABLE, class, 1);
         break;
       case C_LOCAL:
         sym = addlocl(Text, type, ctype, S_VARIABLE, 1);
@@ -190,7 +222,7 @@ static int var_declaration_list(struct symtable *funcsym, int class,
   // Loop until the final right parentheses. Current token starts
   // the loop right after T_LPAREN.
   while (Token.token != end_token) {
-    type = parse_full_type(Token.token, &ctype);
+    type = parse_full_type(Token.token, &ctype, &class);
     ident();
     // We have an existing prototype.
     // Check that this type matches the prototype.
@@ -260,7 +292,8 @@ struct ASTnode *function_declaration(int type, struct symtable *ctype) {
   } else if (oldfuncsym) {
     fatalv("Identifier %s already exists, cannot be a function", Text);
   } else {
-    newfuncsym = addglob(Text, type, ctype, S_FUNCTION, 0);
+    // TODO: support extern functions
+    newfuncsym = addglob(Text, type, ctype, S_FUNCTION, C_GLOBAL, 0);
     CurFunctionSym = newfuncsym;
   }
   lparen();
@@ -447,19 +480,19 @@ void enum_declaration(void) {
 }
 
 /*
-  typedef_declaration: 'typedef' identifier existing_type
-                     | 'typedef' identifier existing_type variable_name
-                     ;
+  typedef_declaration: 'typedef' existing_type identifier
+                       ;
 */
 // Parse a typedef declaration and return the type
 // and ctype that it represents
 int typedef_declaration(struct symtable **ctype) {
   int type;
+  int class; // unused
 
   match(T_TYPEDEF, "typedef");
 
   // Get the actual type following the keyword
-  type = parse_full_type(Token.token, ctype);
+  type = parse_full_type(Token.token, ctype, &class);
 
   assert(Token.token == T_IDENT);
   // See if the typedef identifier already exists
@@ -478,10 +511,11 @@ void global_declarations(void) {
   int type, basetype;
   struct symtable *ctype = NULL;
   int tok;
+  int storage_class = C_GLOBAL;
 
   while (1) {
     tok = Token.token;
-    basetype = parse_base_type(tok, &ctype);
+    basetype = parse_base_type(tok, &ctype, &storage_class);
     type = parse_pointer_array_type(basetype);
 found_type:
     // struct/union/enum definition or typedef
@@ -494,6 +528,7 @@ found_type:
     if (Token.token == T_LPAREN) {
       // Parse the function declaration and
       // generate the assembly code for it
+      // TODO: pass storage class to function
       tree = function_declaration(type, ctype);
       if (tree) {
         if (O_dumpAST) {
@@ -501,15 +536,15 @@ found_type:
           fprintf(stdout, "\n");
         }
         if (!O_parseOnly) {
-          genAST(tree, NOREG, 0);
+          genAST(tree, NOREG, NOLABEL, NOLABEL, 0);
         }
       } else {
         // prototype, do nothing
       }
       freeloclsyms();
     } else {
-      // setup the symbol table
-      var_declaration(type, ctype, C_GLOBAL);
+      // populate the symbol table
+      var_declaration(type, ctype, storage_class);
       if (Token.token == T_COMMA) {
         scan(&Token);
         type = parse_pointer_array_type(basetype);

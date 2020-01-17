@@ -32,9 +32,9 @@ enum {
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN, T_LBRACKET, T_RBRACKET,
   T_COMMA, T_DOT, T_ARROW,
   // keywords
-  T_INT, T_IF, T_ELSE, T_WHILE, T_FOR,
+  T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_BREAK, T_CONTINUE,
   T_VOID, T_CHAR, T_LONG, T_STRUCT, T_UNION, T_ENUM,
-  T_TYPEDEF, T_RETURN,
+  T_TYPEDEF, T_RETURN, T_EXTERN,
   T_LAST // sentinel
 };
 
@@ -57,7 +57,7 @@ enum {
   A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, // end of mapping
 
   A_INTLIT, A_STRLIT, A_IDENT, A_GLUE,
-  A_IF, A_WHILE, A_FUNCTION, A_WIDEN, A_RETURN,
+  A_IF, A_WHILE, A_BREAK, A_CONTINUE, A_FUNCTION, A_WIDEN, A_RETURN,
   A_FUNCALL, A_DEREF, A_ADDR, A_SCALE,
   A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
   A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,
@@ -107,6 +107,7 @@ enum {
     C_GLOBAL = 1,       // Globally visible symbol
     C_LOCAL,            // Locally visible symbol
     C_PARAM,            // Locally visible function parameter
+    C_EXTERN,           // External globally visible symbol
     C_STRUCT,           // Struct type
     C_UNION,            // Union type
     C_ENUMTYPE,         // Enum type

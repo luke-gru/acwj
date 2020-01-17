@@ -14,7 +14,7 @@ static int genlabel(void) {
 
 // Generate the code for an IF statement
 // and an optional ELSE clause
-static int genIF(struct ASTnode *n) {
+static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   int Lfalse, Lend;
 
   // Generate two labels: one for the
@@ -29,11 +29,11 @@ static int genIF(struct ASTnode *n) {
   // Generate the condition code followed
   // by a zero jump to the false label.
   // We cheat by sending the Lfalse label as a register.
-  genAST(n->left, Lfalse, n->op);
+  genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
   genfreeregs();
 
   // Generate the true compound statement
-  genAST(n->mid, NOREG, n->op);
+  genAST(n->mid, NOREG, looptoplabel, loopendlabel, n->op);
   genfreeregs();
 
   // If there is an optional ELSE clause,
@@ -48,7 +48,7 @@ static int genIF(struct ASTnode *n) {
   // false compound statement and the
   // end label
   if (n->right) {
-    genAST(n->right, NOREG, n->op);
+    genAST(n->right, NOREG, looptoplabel, loopendlabel, n->op);
     genfreeregs();
     cglabel(Lend);
   }
@@ -66,10 +66,10 @@ static int genWhile(struct ASTnode *n) {
   // Generate the condition code followed
   // by a jump to the end label.
   // We cheat by sending the Lfalse label as a register.
-  genAST(n->left, Lend, n->op);
+  genAST(n->left, Lend, Lstart, Lend, n->op);
   genfreeregs();
 
-  genAST(n->right, NOREG, n->op);
+  genAST(n->right, NOLABEL, Lstart, Lend, n->op);
   genfreeregs();
 
   cgjump(Lstart);
@@ -91,7 +91,7 @@ static int gen_funcall(struct ASTnode *n) {
   // first
   while (gluetree) {
     // Calculate the expression's value
-    reg = genAST(gluetree->right, NOREG, gluetree->op);
+    reg = genAST(gluetree->right, NOREG, NOLABEL, NOLABEL, gluetree->op);
     // Copy this into the n'th function parameter: size is 1, 2, 3, ...
     cgcopyarg(reg, gluetree->size);
     // Keep the first (highest) number of arguments
@@ -107,7 +107,7 @@ static int gen_funcall(struct ASTnode *n) {
 
 // Given an AST, generate assembly code recursively.
 // Return the register id with the tree's final value
-int genAST(struct ASTnode *n, int reg, int parentASTop) {
+int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int parentASTop) {
   int leftreg, rightreg;
   leftreg = -1;
   rightreg = -1;
@@ -120,19 +120,25 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     case A_FUNCTION:
       cgfuncpreamble(n->sym);
       n->sym->endlabel = genlabel();
-      genAST(n->left, NOREG, n->op);
+      genAST(n->left, NOREG, NOLABEL, NOLABEL, n->op);
       cgfuncpostamble(n->sym);
       return (NOREG);
     case A_IF:
-      return (genIF(n));
+      return (genIF(n, looptoplabel, loopendlabel));
     case A_WHILE:
       return (genWhile(n));
+    case A_BREAK:
+      cgjump(loopendlabel);
+      return (NOREG);
+    case A_CONTINUE:
+      cgjump(looptoplabel);
+      return (NOREG);
     case A_GLUE:
       // Do each child statement, and free the
       // registers after each child
-      leftreg = genAST(n->left, NOREG, n->op);
+      leftreg = genAST(n->left, NOREG, looptoplabel, loopendlabel, n->op);
       genfreeregs();
-      rightreg = genAST(n->right, NOREG, n->op);
+      rightreg = genAST(n->right, NOREG, looptoplabel, loopendlabel, n->op);
       genfreeregs();
       return (NOREG);
     case A_FUNCALL:
@@ -143,10 +149,10 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 
   // Get the left and right sub-tree values
   if (n->left) {
-    leftreg = genAST(n->left, NOREG, n->op);
+    leftreg = genAST(n->left, NOREG, looptoplabel, looptoplabel, n->op);
   }
   if (n->right) {
-    rightreg = genAST(n->right, leftreg, n->op);
+    rightreg = genAST(n->right, leftreg, looptoplabel, loopendlabel, n->op);
   }
 
   switch (n->op) {
@@ -177,7 +183,7 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     // Load our value if we are an rvalue
     // or we are being dereferenced
     if (n->rvalue || parentASTop == A_DEREF) {
-      if (n->sym->class == C_GLOBAL) {
+      if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN) {
         return (cgloadglob(n->sym, n->op));
       } else {
         return (cgloadlocal(n->sym, n->op));
@@ -188,7 +194,7 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   case A_ASSIGN:
     switch (n->right->op) {
       case A_IDENT: // ex: a = 12
-        if (n->right->sym->class == C_GLOBAL) {
+        if (n->right->sym->class == C_GLOBAL || n->right->sym->class == C_EXTERN) {
           return (cgstorglob(leftreg, n->right->sym));
         } else {
           return (cgstorlocal(leftreg, n->right->sym));
@@ -236,25 +242,25 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   case A_RSHIFT:
     return (cgshr(leftreg, rightreg));
   case A_POSTINC: // doesn't have children
-    if (n->sym->class == C_GLOBAL) {
+    if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN) {
       return (cgloadglob(n->sym, n->op));
     } else {
       return (cgloadlocal(n->sym, n->op));
     }
   case A_POSTDEC: // doesn't have children
-    if (n->sym->class == C_GLOBAL) {
+    if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN) {
       return (cgloadglob(n->sym, n->op));
     } else {
       return (cgloadlocal(n->sym, n->op));
     }
   case A_PREINC: // has 1 child
-    if (n->left->sym->class == C_GLOBAL) {
+    if (n->left->sym->class == C_GLOBAL || n->left->sym->class == C_EXTERN) {
       return (cgloadglob(n->left->sym, n->op));
     } else {
       return (cgloadlocal(n->left->sym, n->op));
     }
   case A_PREDEC: // has 1 child
-    if (n->left->sym->class == C_GLOBAL) {
+    if (n->left->sym->class == C_GLOBAL || n->left->sym->class == C_EXTERN) {
       return (cgloadglob(n->left->sym, n->op));
     } else {
       return (cgloadlocal(n->left->sym, n->op));
@@ -265,11 +271,13 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     return (cginvert(leftreg));
   case A_LOGNOT:
     return (cglognot(leftreg));
-  case A_TOBOOL:
+  case A_TOBOOL: {
+    int endlabel = reg;
     // If the parent AST node is an A_IF or A_WHILE, generate
     // a compare followed by a jump. Otherwise, set the register
     // to 0 or 1 based on it's zeroeness or non-zeroeness
-    return (cgboolean(leftreg, parentASTop, reg));
+    return (cgboolean(leftreg, parentASTop, endlabel));
+  }
   default:
     assert(n->op < A_LAST);
     fatald("Unknown AST operator in genAST", n->op);

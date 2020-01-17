@@ -277,6 +277,7 @@ int cgloadglob(struct symtable *sym, int op) {
 int cgloadlocal(struct symtable *sym, int op) {
   // Get a new register
   int r = alloc_register();
+  assert(sym->class == C_LOCAL || sym->class == C_PARAM);
 
   int size = cgprimsize(sym->type);
 
@@ -654,9 +655,9 @@ int cglognot(int r) {
 // it's an IF or WHILE operation
 int cgboolean(int r, int op, int label) {
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
-  if (op == A_IF || op == A_WHILE)
+  if (op == A_IF || op == A_WHILE) { // NOTE: 'for' constructs are turned into A_WHILEs
     fprintf(Outfile, "\tje\tL%d\n", label);
-  else {
+  } else {
     fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
     fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
   }

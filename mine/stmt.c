@@ -27,6 +27,8 @@
 //
 // identifier: T_IDENT ;
 
+static int Looplevel;
+
 // Parse an IF statement including
 // any optional ELSE clause
 // and return its AST
@@ -72,7 +74,9 @@ struct ASTnode *while_statement(void) {
   }
   rparen();
 
+  Looplevel++;
   bodyAST = compound_statement();
+  Looplevel--;
 
   return (mkastnode(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, 0));
 }
@@ -105,8 +109,10 @@ static struct ASTnode *for_statement(void) {
   postopAST = single_statement();
   rparen();
 
+  Looplevel++;
   // Get the compound statement which is the body
   bodyAST = compound_statement();
+  Looplevel--;
 
   // For now, all four sub-trees have to be non-NULL.
   // Later on, we'll change the semantics for when some are missing
@@ -121,6 +127,20 @@ static struct ASTnode *for_statement(void) {
   return (mkastnode(A_GLUE, P_NONE, preopAST, NULL, tree, NULL, 0));
 }
 
+static struct ASTnode *break_statement() {
+  if (Looplevel == 0)
+    fatal("no loop to break out from");
+  match(T_BREAK, "break");
+  return (mkastleaf(A_BREAK, 0, NULL, 0));
+}
+
+static struct ASTnode *continue_statement() {
+  if (Looplevel == 0)
+    fatal("no loop to continue to");
+  match(T_CONTINUE, "continue");
+  return (mkastleaf(A_CONTINUE, 0, NULL, 0));
+}
+
 static struct ASTnode *return_statement(void);
 
 // Parse a single statement
@@ -128,17 +148,18 @@ static struct ASTnode *return_statement(void);
 static struct ASTnode *single_statement(void) {
   int type;
   int basetype;
+  int storage_class = C_LOCAL;
   struct symtable *ctype;
   switch (Token.token) {
-    // FIXME: get typedefs working here too
     case T_INT:
     case T_CHAR:
     case T_LONG:
-      basetype = parse_base_type(Token.token, &ctype);
+    case T_EXTERN:
+      basetype = parse_base_type(Token.token, &ctype, &storage_class);
 found_type:
       type = parse_pointer_array_type(basetype);
       ident();
-      var_declaration(type, ctype, C_LOCAL);
+      var_declaration(type, ctype, storage_class);
       if (Token.token == T_COMMA) {
         scan(&Token);
         goto found_type;
@@ -152,8 +173,17 @@ found_type:
       return (while_statement());
     case T_FOR:
       return (for_statement());
+    case T_BREAK:
+      return (break_statement());
+    case T_CONTINUE:
+      return (continue_statement());
     case T_RETURN:
       return (return_statement());
+    case T_IDENT:
+      if ((basetype = type_of_typedef_nofail(Text, &ctype)) != -1) {
+        goto found_type;
+      }
+      // fallthru
     default:
       return (binexpr(0));
   }
@@ -174,7 +204,8 @@ struct ASTnode *compound_statement(void) {
 
     // Some statements must be followed by a semicolon
     if (tree != NULL &&
-       (tree->op == A_ASSIGN || tree->op == A_RETURN || tree->op == A_FUNCALL)) {
+       (tree->op == A_ASSIGN || tree->op == A_RETURN || tree->op == A_FUNCALL ||
+        tree->op == A_BREAK || tree->op == A_CONTINUE)) {
       semi();
     }
 

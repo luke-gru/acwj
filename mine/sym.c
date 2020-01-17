@@ -62,16 +62,17 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype,
   node->member = NULL;
 
   // Generate any global space
-  if (class == C_GLOBAL)
+  if (class == C_GLOBAL) {
     genglobsym(node);
+  }
   return (node);
 }
 
 // Add a global symbol to the symbol table.
 // Return the slot number in the symbol table.
 // Also, generates asm code for the symbol.
-struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int size) {
-  struct symtable *sym = newsym(name, ptype, ctype, stype, C_GLOBAL, size, 0);
+struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int class, int size) {
+  struct symtable *sym = newsym(name, ptype, ctype, stype, class, size, 0);
   appendsym(&Globalshead, &Globalstail, sym);
   return (sym);
 }

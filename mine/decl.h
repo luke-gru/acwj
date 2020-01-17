@@ -29,7 +29,8 @@ struct ASTnode *prefix(void);
 int interpretAST(struct ASTnode *n);
 
 // gen.c
-int  genAST(struct ASTnode *n, int reg, int parentASTop);
+int  genAST(struct ASTnode *n, int reg,
+        int loopstartlabel, int loopendlabel, int parentASTop);
 void genpreamble(void);
 void genpostamble(void);
 void genfreeregs(void);
@@ -109,7 +110,7 @@ void setup_signal_handlers(void);
 // sym.c
 struct symtable *findglob(char *s);
 struct symtable *findlocl(char *s);
-struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int size);
+struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int class, int size);
 struct symtable *addlocl(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *addparam(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int size);
@@ -132,9 +133,12 @@ void clear_symtable(void);
 struct symtable *var_declaration(int type, struct symtable *ctype, int class);
 struct ASTnode *function_declaration(int type, struct symtable *ctype);
 void global_declarations(void);
-int parse_full_type(int t, struct symtable **ctype);
-int parse_base_type(int t, struct symtable **ctype);
+int parse_full_type(int t, struct symtable **ctype, int *class);
+int parse_base_type(int t, struct symtable **ctype, int *class);
 int parse_pointer_array_type(int ptype);
+// Given a typedef name, return the type it represents
+int type_of_typedef_fail(char *name, struct symtable **ctype);
+int type_of_typedef_nofail(char *name, struct symtable **ctype);
 
 // types.c
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
