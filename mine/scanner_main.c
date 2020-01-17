@@ -13,6 +13,7 @@
 static void init() {
   Line = 1;
   Putback = '\n';
+  setup_signal_handlers();
 }
 
 // Print out a usage if started incorrectly

@@ -21,6 +21,7 @@ static void init() {
   O_dumpAST = 0;
   O_parseOnly = 1;
   Outfile = stdout; // just in case we try to dump some assembly somewhere, that this isn't NULL and doesn't segfault
+  setup_signal_handlers();
 }
 
 // Print out a usage if started incorrectly

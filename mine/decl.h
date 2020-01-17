@@ -104,6 +104,7 @@ void fatald(char *s, int d);
 void fatalc(char *s, int c);
 void debugnoisy(const char *modulename, const char *fmt, ...);
 char *str_concat(char *str1, char *str2);
+void setup_signal_handlers(void);
 
 // sym.c
 struct symtable *findglob(char *s);
@@ -123,6 +124,7 @@ struct symtable *findunion(char *s);
 struct symtable *findmember(char *s);
 struct symtable *findenumtype(char *name);
 struct symtable *findenumval(char *name);
+struct symtable *findtypedef(char *name);
 void freeloclsyms(void);
 void clear_symtable(void);
 

@@ -1,11 +1,11 @@
 scanner: scanner_main.c scan.c misc.c
-	cc -o bin/scanner -g scanner_main.c scan.c misc.c
+	cc -o bin/scanner -g -rdynamic scanner_main.c scan.c misc.c
 
 parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
-	cc -o bin/parser -g expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
+	cc -o bin/parser -g -rdynamic expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
 
 compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
-	cc -o bin/compiler -g expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
+	cc -o bin/compiler -g -rdynamic expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
 
 clean:
 	rm -f *.o bin/* a.out out.s test/compiler/*.s test/compiler/*.o
@@ -48,10 +48,11 @@ test_compiler: compiler
 	 ./bin/compiler -S test/compiler/prototypes.c && \
 	 ./bin/compiler -S test/compiler/basic_cat.c && \
 	 ./bin/compiler -S test/compiler/structs1.c && \
-	 ./bin/compiler -S test/compiler/unions1.c;
+	 ./bin/compiler -S test/compiler/unions1.c && \
+	 ./bin/compiler -S test/compiler/typedef.c && \
 	rm test/compiler/*.s
 
-test_exec:
+test_exec: compiler
 	./runfile test/compiler/comparisons.c && \
 			./runfile test/compiler/for_loop.c && \
 			./runfile test/compiler/if.c && \
@@ -76,11 +77,12 @@ test_exec:
 			./runfile test/compiler/prototypes.c && \
 			./runfile test/compiler/basic_cat.c && \
 			./runfile test/compiler/structs1.c && \
-			./runfile test/compiler/unions1.c;
+			./runfile test/compiler/unions1.c && \
+			./runfile test/compiler/typedef.c;
 
 	rm a.out
 
-test_regression:
+test_regression: compiler
 	./test/compiler/runtests
 
 test: test_scanner test_parser test_compiler test_exec test_regression

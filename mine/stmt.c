@@ -130,6 +130,7 @@ static struct ASTnode *single_statement(void) {
   int basetype;
   struct symtable *ctype;
   switch (Token.token) {
+    // FIXME: get typedefs working here too
     case T_INT:
     case T_CHAR:
     case T_LONG:

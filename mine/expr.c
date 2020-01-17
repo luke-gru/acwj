@@ -82,8 +82,9 @@ static struct ASTnode *postfix(void) {
 
   // A variable. Check that the variable exists.
   varptr = findsymbol(Text);
-  if (varptr == NULL || (varptr->stype != S_VARIABLE && varptr->stype != S_ARRAY))
+  if (varptr == NULL || (varptr->stype != S_VARIABLE && varptr->stype != S_ARRAY)) {
     fatals("Unknown variable", Text);
+  }
 
   switch (Token.token) {
       // Post-increment: skip over the token

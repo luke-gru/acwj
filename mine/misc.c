@@ -1,8 +1,27 @@
 #include <stdarg.h>
 #include <unistd.h>
+#include <execinfo.h>
+#include <signal.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+
+static void print_stacktrace(int sig) {
+  void* callstack[128];
+  int i, frames = backtrace(callstack, 128);
+  char** strs = backtrace_symbols(callstack, frames);
+  if (sig)
+    fprintf(stdout, "Error: got signal %d\n", sig);
+  fprintf(stdout, "\nStack trace:\n");
+  for (i = 0; i < frames; ++i) {
+    fprintf(stdout, "%s\n", strs[i]);
+  }
+  free(strs);
+}
+
+void setup_signal_handlers(void) {
+  signal(SIGSEGV, print_stacktrace);
+}
 
 // Miscellaneous functions
 // Copyright (c) 2019 Warren Toomey, GPL3
@@ -77,7 +96,12 @@ void fatalv(const char *fmt, ...) {
   }
   if (Outfile) fclose(Outfile);         // assembly FILE
   if (Outfilename) unlink(Outfilename); // assembly file
+#ifdef NDEBUG
   exit(1);
+#else
+  print_stacktrace(0);
+  exit(1);
+#endif
 }
 
 void debugnoisy(const char *modulename, const char *fmt, ...) {

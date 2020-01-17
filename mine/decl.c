@@ -8,6 +8,22 @@
 //
 struct symtable *composite_declaration(int comptype);
 void enum_declaration(void);
+int typedef_declaration(struct symtable **ctype);
+
+// Given a typedef name, return the type it represents
+static int type_of_typedef(char *name, struct symtable **ctype) {
+  struct symtable *t;
+  assert(Token.token == T_IDENT);
+
+  // Look up the typedef in the list
+  t = findtypedef(name);
+  if (t == NULL) {
+    fatals("unknown type", name);
+  }
+  *ctype = t->ctype;
+  ident();
+  return (t->type);
+}
 
 // Parse the current token and
 // return a primitive type enum value
@@ -37,6 +53,12 @@ int parse_base_type(int t, struct symtable **ctype) {
     case T_ENUM:
       type = P_INT;
       enum_declaration();
+      return type;
+    case T_TYPEDEF:
+      type = typedef_declaration(ctype);
+      return type;
+    case T_IDENT: // might be typedef
+      type = type_of_typedef(Text, ctype);
       return type;
     default:
       fatals("Expected a type, found token", tokenname(t));
@@ -425,6 +447,33 @@ void enum_declaration(void) {
   rbrace();
 }
 
+/*
+  typedef_declaration: 'typedef' identifier existing_type
+                     | 'typedef' identifier existing_type variable_name
+                     ;
+*/
+// Parse a typedef declaration and return the type
+// and ctype that it represents
+int typedef_declaration(struct symtable **ctype) {
+  int type;
+
+  match(T_TYPEDEF, "typedef");
+
+  // Get the actual type following the keyword
+  type = parse_full_type(Token.token, ctype);
+
+  assert(Token.token == T_IDENT);
+  // See if the typedef identifier already exists
+  if (findtypedef(Text) != NULL)
+    fatals("redefinition of typedef", Text);
+
+  // It doesn't exist so add it to the typedef list
+  addtypedef(Text, type, *ctype, 0, 0);
+  ident();
+  assert(Token.token == T_SEMI);
+  return (type);
+}
+
 void global_declarations(void) {
   struct ASTnode *tree;
   int type, basetype;
@@ -436,8 +485,9 @@ void global_declarations(void) {
     basetype = parse_base_type(tok, &ctype);
     type = parse_pointer_array_type(basetype);
 found_type:
-    // struct/union definition
-    if ((type == P_STRUCT || type == P_UNION || tok == T_ENUM) && Token.token == T_SEMI) {
+    // struct/union/enum definition or typedef
+    if ((type == P_STRUCT || type == P_UNION || tok == T_ENUM || tok == T_TYPEDEF) &&
+        Token.token == T_SEMI) {
       semi();
       continue;
     }

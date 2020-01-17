@@ -41,6 +41,7 @@ static void init() {
   O_keepasm = 0;
 
   init_symtable();
+  setup_signal_handlers();
 }
 
 // Print out a usage if started incorrectly

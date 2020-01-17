@@ -220,4 +220,5 @@ void clear_symtable(void) {
   Unionshead = Unionstail = NULL;
   Membershead = Memberstail = NULL;
   Enumshead = Enumstail = NULL;
+  Typeshead = Typestail = NULL;
 }

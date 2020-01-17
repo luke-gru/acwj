@@ -65,7 +65,7 @@ do
     then
         echo -n $i
         cd ../..
-        ./bin/compiler -o test/compiler/out test/compiler/$i 2> "test/compiler/$i.trial"
+        ./bin/compiler -o test/compiler/out test/compiler/$i 1>/dev/null 2> "test/compiler/$i.trial"
         cd test/compiler
         cmp -s "$i.err" "$i.trial"
         if [ "$?" -eq "1" ]
