@@ -9,6 +9,11 @@
 char *objlist[MAXOBJ];        // List of object file names
 int objcnt = 0;               // Position to insert next name
 
+#ifndef INCDIR
+#error "INCDIR must be defined"
+#endif
+#define CPPCMD "cpp -nostdinc -isystem "
+
 // Compiler setup and top-level execution
 // Copyright (c) 2019 Warren Toomey, GPL3
 
@@ -83,13 +88,18 @@ char *alter_suffix(char *str, char suffix) {
 // Given an input filename, compile that file
 // down to assembly code. Return the new file's name
 static char *do_compile(char *filename) {
+  char cmd[TEXTLEN];
+
   Outfilename = alter_suffix(filename, 's');
   if (Outfilename == NULL) {
     fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
     exit(1);
   }
+
+  snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
+
   // Open up the input file
-  if ((Infile = fopen(filename, "r")) == NULL) {
+  if ((Infile = popen(cmd, "r")) == NULL) {
     fprintf(stderr, "Unable to open %s: %s\n", filename, strerror(errno));
     exit(1);
   }

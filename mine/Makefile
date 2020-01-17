@@ -1,11 +1,18 @@
-scanner: scanner_main.c scan.c misc.c
-	cc -o bin/scanner -g -rdynamic scanner_main.c scan.c misc.c
+INCDIR=/tmp/include
+BINDIR=/tmp
 
-parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
-	cc -o bin/parser -g -rdynamic expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
+install_includes:
+	mkdir -p $(INCDIR)
+	rsync -a system/include/. $(INCDIR)
 
-compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
-	cc -o bin/compiler -g -rdynamic expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
+scanner: scanner_main.c scan.c misc.c install_includes
+	cc -o bin/scanner -DINCDIR=\"$(INCDIR)\" -g -rdynamic scanner_main.c scan.c misc.c
+
+parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c install_includes
+	cc -o bin/parser -DINCDIR=\"$(INCDIR)\" -g -rdynamic expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
+
+compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c install_includes
+	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -g -rdynamic expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
 
 clean:
 	rm -f *.o bin/* a.out out.s test/compiler/*.s test/compiler/*.o
@@ -50,6 +57,7 @@ test_compiler: compiler
 	 ./bin/compiler -S test/compiler/structs1.c && \
 	 ./bin/compiler -S test/compiler/unions1.c && \
 	 ./bin/compiler -S test/compiler/typedef.c && \
+	 ./bin/compiler -S test/compiler/preprocessor.c;
 	rm test/compiler/*.s
 
 test_exec: compiler
@@ -78,11 +86,15 @@ test_exec: compiler
 			./runfile test/compiler/basic_cat.c && \
 			./runfile test/compiler/structs1.c && \
 			./runfile test/compiler/unions1.c && \
-			./runfile test/compiler/typedef.c;
-
+			./runfile test/compiler/typedef.c && \
+			./runfile test/compiler/preprocessor.c;
 	rm a.out
 
 test_regression: compiler
 	./test/compiler/runtests
 
 test: test_scanner test_parser test_compiler test_exec test_regression
+
+install: compiler install_includes
+	cp ./bin/compiler $(BINDIR)
+	chmox +x $(BINDIR)/compiler

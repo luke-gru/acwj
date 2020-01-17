@@ -2,16 +2,25 @@
 #include <unistd.h>
 #include <execinfo.h>
 #include <signal.h>
+#include <string.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+
+static int LastSig = 0;
 
 static void print_stacktrace(int sig) {
   void* callstack[128];
   int i, frames = backtrace(callstack, 128);
   char** strs = backtrace_symbols(callstack, frames);
-  if (sig)
-    fprintf(stdout, "Error: got signal %d\n", sig);
+  if (LastSig && LastSig == sig) {
+    fprintf(stdout, "Error: got signal %s again, aborting\n", strsignal(sig));
+    exit(1);
+  }
+  if (sig) {
+    fprintf(stdout, "Error: got signal %s\n", strsignal(sig));
+    LastSig = sig;
+  }
   fprintf(stdout, "\nStack trace:\n");
   for (i = 0; i < frames; ++i) {
     fprintf(stdout, "%s\n", strs[i]);

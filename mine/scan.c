@@ -48,6 +48,7 @@ static int chrpos(char *s, int c) {
 // Get the next character from the input file.
 static int next(void) {
   int c;
+  int l;
 
   if (Putback) {		// Use the character put
     c = Putback;		// back if there is one
@@ -57,6 +58,31 @@ static int next(void) {
   }
 
   c = fgetc(Infile);		// Read from input file
+
+  while (c == '#') {                    // We've hit a pre-processor statement
+    scan(&Token);                       // Get the line number into l
+    if (Token.token != T_INTLIT)
+      fatals("Expecting pre-processor line number, got:", Text);
+    l = Token.intvalue;
+
+    scan(&Token);                       // Get the filename in Text
+    if (Token.token != T_STRLIT)
+      fatals("Expecting pre-processor file name, got:", Text);
+
+    if (Text[0] != '<') {               // If this is a real filename
+      if (strcmp(Text, Infilename) != 0)     // and not the one we have now
+        Infilename = strdup(Text);      // save it. Then update the line num
+      Line = l;
+      Col = 0;
+    }
+
+    // Skip to the end of the line
+    while ((c = fgetc(Infile)) != '\n') {
+    }
+    Col = 0;
+    c = fgetc(Infile);                  // and get the next character
+  }
+
   Col++;
   if ('\n' == c) {
     Line++;			// Increment line count

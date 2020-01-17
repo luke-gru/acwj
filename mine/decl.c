@@ -251,6 +251,7 @@ struct ASTnode *function_declaration(int type, struct symtable *ctype) {
     if (type != oldfuncsym->type) {
       fatalv("Function return value must match prototype for function %s", Text);
     }
+    CurFunctionSym = oldfuncsym;
   // function definition already exists
   } else if (oldfuncsym && oldfuncsym->stype == S_FUNCTION) {
     // TODO: allow prototypes after function definitions
@@ -273,8 +274,6 @@ struct ASTnode *function_declaration(int type, struct symtable *ctype) {
   }
   // Clear out the parameter list
   Paramshead = Paramstail = NULL;
-
-  CurFunctionSym = oldfuncsym;    // set currently parsed/generated function
 
   if (Token.token == T_SEMI) {
     oldfuncsym->stype = S_PROTO; // actually a prototype
