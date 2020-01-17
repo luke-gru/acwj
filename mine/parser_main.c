@@ -7,17 +7,20 @@
 
 // Compiler setup and top-level execution
 // Copyright (c) 2019 Warren Toomey, GPL3
+//
+#ifndef INCDIR
+#error "INCDIR must be defined"
+#endif
+#define CPPCMD "cpp -nostdinc -isystem "
 
 // Initialise global variables
 static void init() {
   Line = 1;
   Putback = '\n';
-  Functionid = -1;
-  Globs = 0;
-  Locls = NSYMBOLS-1;
-  addglob("printint", P_VOID, S_FUNCTION, 0);
-  addglob("printchar", P_VOID, S_FUNCTION, 0);
-  addglob("printstring", P_VOID, S_FUNCTION, 0);
+  CurFunctionSym = NULL;
+  addglob("printint", P_VOID, NULL, S_FUNCTION, 0);
+  addglob("printchar", P_VOID, NULL, S_FUNCTION, 0);
+  addglob("printstring", P_VOID, NULL, S_FUNCTION, 0);
   O_dumpAST = 0;
   O_parseOnly = 1;
   Outfile = stdout; // just in case we try to dump some assembly somewhere, that this isn't NULL and doesn't segfault
@@ -34,6 +37,8 @@ static void usage(char *prog) {
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
 void main(int argc, char *argv[]) {
+  char cmd[TEXTLEN];
+  char *filename;
   if (argc < 2)
     usage(argv[0]);
 
@@ -54,13 +59,14 @@ void main(int argc, char *argv[]) {
     }
   }
 
-  if ((Infile = fopen(argv[argc-1], "r")) == NULL) {
-    fatalv("Unable to open %s: %s\n", argv[argc-1], strerror(errno));
+  filename = argv[argc-1];
+  snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
+  if ((Infile = popen(cmd, "r")) == NULL) {
+    fatalv("Unable to open %s: %s\n", filename, strerror(errno));
   }
-  Infilename = strdup(argv[argc-1]);
+  Infilename = strdup(filename);
 
   scan(&Token);			// Get the first token from the input
   global_declarations();
-  fclose(Infile);
   exit(0);
 }

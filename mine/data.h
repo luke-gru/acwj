@@ -7,12 +7,12 @@
 int      Line;
 int      Col;
 int      Putback;
-FILE     *Infile;                       // Currently worked on C source code FILE
+FILE     *Infile;                       // Currently worked on C source code FILE (NOTE: opened by popen(), so don't call fclose() on it)
 FILE     *Outfile;                      // Currently worked on assembly FILE
 char     *Infilename;                   // Currently worked on C source code filename
 char     *Outfilename;                  // Currently worked on assembly filename
-struct token Token;
-char   Text[TEXTLEN + 1];		// Last identifier scanned
+struct   token Token;
+char     Text[TEXTLEN + 1];		// Last identifier scanned
 
 struct symtable *CurFunctionSym;        // Symbol ptr of the current function being parsed and code-generated
 
