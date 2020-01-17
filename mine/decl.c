@@ -7,6 +7,7 @@
 // Copyright (c) 2019 Warren Toomey, GPL3
 //
 struct symtable *composite_declaration(int comptype);
+void enum_declaration(void);
 
 // Parse the current token and
 // return a primitive type enum value
@@ -32,6 +33,10 @@ int parse_base_type(int t, struct symtable **ctype) {
     case T_UNION:
       type = P_UNION;
       *ctype = composite_declaration(P_UNION);
+      return type;
+    case T_ENUM:
+      type = P_INT;
+      enum_declaration();
       return type;
     default:
       fatals("Expected a type, found token", tokenname(t));
@@ -357,17 +362,82 @@ struct symtable *composite_declaration(int comptype) {
   return ctype;
 }
 
+void enum_declaration(void) {
+  struct symtable *etype = NULL, *enumval = NULL;
+  char *name = NULL;
+  int intval = 0;
+
+  match(T_ENUM, "enum");
+
+  // If there's a following enum type name, get a
+  // pointer to any existing enum type node.
+  if (Token.token == T_IDENT) {
+    etype = findenumtype(Text);
+    name = strdup(Text);        // As it gets tromped soon
+    scan(&Token); // ident
+  }
+
+  // If the next token isn't a LBRACE, check
+  // that we have an enum type name, then return
+  if (Token.token != T_LBRACE) {
+    if (etype == NULL) {
+      fatals("undeclared enum type:", name);
+    }
+    return;
+  }
+
+  // we're defining a new enum
+  lbrace();
+  if (etype != NULL) {
+    fatals("enum type redeclared:", etype->name);
+  }
+  // Build an enum type node for this identifier
+  etype = addenum(name, C_ENUMTYPE, 0);
+  // Loop to get all the enum values
+  while (1) {
+    // Ensure we have an identifier
+    // Copy it in case there's an int literal coming up
+    ident();
+    name = strdup(Text);
+
+    // Ensure this enum value hasn't been declared before
+    enumval = findenumval(name);
+    if (enumval != NULL)
+      fatals("enum value redeclared:", name);
+
+    // If the next token is an '=', skip it and
+    // get the following int literal
+    if (Token.token == T_ASSIGN) {
+      scan(&Token);
+      if (Token.token != T_INTLIT)
+        fatal("Expected int literal after '='");
+      intval = Token.intvalue;
+      scan(&Token); // the int literal
+    }
+    // Build an enum value node for this identifier.
+    // Increment the value for the next enum identifier.
+    etype = addenum(name, C_ENUMVAL, intval++);
+    // Bail out on a right curly bracket, else get a comma
+    if (Token.token == T_RBRACE)
+      break;
+    comma();
+  }
+  rbrace();
+}
+
 void global_declarations(void) {
   struct ASTnode *tree;
   int type, basetype;
   struct symtable *ctype = NULL;
+  int tok;
 
   while (1) {
-    basetype = parse_base_type(Token.token, &ctype);
+    tok = Token.token;
+    basetype = parse_base_type(tok, &ctype);
     type = parse_pointer_array_type(basetype);
 found_type:
     // struct/union definition
-    if ((type == P_STRUCT || type == P_UNION) && Token.token == T_SEMI) {
+    if ((type == P_STRUCT || type == P_UNION || tok == T_ENUM) && Token.token == T_SEMI) {
       semi();
       continue;
     }

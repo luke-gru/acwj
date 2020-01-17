@@ -54,9 +54,17 @@ static struct ASTnode *member_access(int withpointer);
 static struct ASTnode *postfix(void) {
   struct ASTnode *n;
   struct symtable *varptr;
+  struct symtable *enumptr;
+
+  // If the identifier matches an enum value,
+  // return an A_INTLIT node
+  if ((enumptr = findenumval(Text)) != NULL) {
+    ident();
+    return (mkastleaf(A_INTLIT, P_INT, NULL, enumptr->posn));
+  }
 
   // Scan in the next token to see if we have a postfix expression
-  scan(&Token);
+  ident();
 
   // Function call
   if (Token.token == T_LPAREN)

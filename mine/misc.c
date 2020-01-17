@@ -18,15 +18,12 @@ void match(int t, char *what) {
   }
 }
 
-// Match a semicon and fetch the next token
 void semi(void) {
   match(T_SEMI, ";");
 }
-
 void ident(void) {
   match(T_IDENT, "identifier");
 }
-
 void lbrace(void) {
   match(T_LBRACE, "{");
 }
@@ -39,6 +36,9 @@ void lparen(void) {
 }
 void rparen(void) {
   match(T_RPAREN, ")");
+}
+void comma(void) {
+  match(T_COMMA, ",");
 }
 
 static void print_filename(void) {

@@ -21,7 +21,9 @@ char *toknames[] = {
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN", "T_LBRACKET", "T_RBRACKET",
   "T_COMMA", "T_DOT", "T_ARROW",
   // keywords
-  "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_UNION", "T_RETURN",
+  "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR",
+  "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_UNION", "T_ENUM",
+  "T_TYPEDEF", "T_RETURN",
   NULL
 };
 
@@ -148,6 +150,8 @@ static int keyword(char *s) {
     case 'e':
       if (!strcmp(s, "else"))
         return (T_ELSE);
+      if (!strcmp(s, "enum"))
+        return (T_ENUM);
       break;
     case 'i':
       if (!strcmp(s, "if"))
@@ -186,6 +190,10 @@ static int keyword(char *s) {
     case 'u':
       if (!strcmp(s, "union"))
         return (T_UNION);
+    case 't':
+      if (!strcmp(s, "typedef"))
+        return (T_TYPEDEF);
+
   }
   return (0);
 }

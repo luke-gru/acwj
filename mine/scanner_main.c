@@ -30,7 +30,7 @@ static void scanfile() {
     printf("Token %s", tokenname(T.token));
     if (T.token == T_INTLIT)
       printf(", value %d", T.intvalue);
-    printf(" (line %d)", Line);
+    printf(" (at %d:%d)", Line, Col);
     printf("\n");
   }
 }

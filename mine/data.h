@@ -23,6 +23,8 @@ struct symtable *Paramshead,  *Paramstail;	// Local parameters
 struct symtable *Structshead, *Structstail;	// Temp list of struct/union members
 struct symtable *Membershead, *Memberstail;	// List of struct types
 struct symtable *Unionshead,  *Unionstail;	// List of union types
+struct symtable *Enumshead,   *Enumstail;	// List of enum types and values
+struct symtable *Typeshead,   *Typestail;	// List of typedefs
 
 int    O_dumpAST;          // option to print AST string representation to stdout
 int    O_parseOnly;        // option to not output any assembly language to a file

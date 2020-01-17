@@ -96,6 +96,7 @@ void lbrace(void);
 void rbrace(void);
 void lparen(void);
 void rparen(void);
+void comma(void);
 void fatal(char *s);
 void fatals(char *s1, char *s2);
 void fatalv(const char *fmt, ...);
@@ -113,10 +114,15 @@ struct symtable *addparam(char *name, int ptype, struct symtable *ctype, int sty
 struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *addunion(char *name, int ptype, struct symtable *ctype, int stype, int size);
 struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int stype, int size);
+struct symtable *addenum(char *name, int class, int value);
+struct symtable *addtypedef(char *name, int type, struct symtable *ctype,
+			   int stype, int size);
 struct symtable *findsymbol(char *s);
 struct symtable *findstruct(char *s);
 struct symtable *findunion(char *s);
 struct symtable *findmember(char *s);
+struct symtable *findenumtype(char *name);
+struct symtable *findenumval(char *name);
 void freeloclsyms(void);
 void clear_symtable(void);
 

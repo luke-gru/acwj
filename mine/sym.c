@@ -25,49 +25,14 @@ void appendsym(struct symtable **head, struct symtable **tail,
 
 // Search for a symbol in a specific list.
 // Return a pointer to the found node or NULL if not found.
-static struct symtable *findsyminlist(char *s, struct symtable *list) {
-  for (; list != NULL; list = list->next)
-    if ((list->name != NULL) && !strcmp(s, list->name))
+static struct symtable *findsyminlist(char *s, struct symtable *list, int class) {
+  for (; list != NULL; list = list->next) {
+    if (class && class != list->class) continue;
+    if ((list->name != NULL) && !strcmp(s, list->name)) {
       return (list);
+    }
+  }
   return (NULL);
-}
-
-// Determine if the symbol s is in the global symbol table.
-// Return a pointer to the found node or NULL if not found.
-struct symtable *findglob(char *s) {
-  return (findsyminlist(s, Globalshead));
-}
-
-// Determine if the symbol s is in the local symbol table.
-// Return a pointer to the found node or NULL if not found.
-struct symtable *findlocl(char *s) {
-  struct symtable *node;
-
-  // Look for a parameter if we are in a function's body
-  if (CurFunctionSym) {
-    node = findsyminlist(s, CurFunctionSym->member);
-    if (node)
-      return (node);
-  }
-  return (findsyminlist(s, Localshead));
-}
-
-// Determine if the symbol s is in the symbol table.
-// Return a pointer to the found node or NULL if not found.
-struct symtable *findsymbol(char *s) {
-  struct symtable *node;
-
-  // Look for a parameter if we are in a function's body
-  if (CurFunctionSym) {
-    node = findsyminlist(s, CurFunctionSym->member);
-    if (node)
-      return (node);
-  }
-  // Otherwise, try the local and global symbol lists
-  node = findsyminlist(s, Localshead);
-  if (node)
-    return (node);
-  return (findsyminlist(s, Globalshead));
 }
 
 // Create a symbol node to be added to a symbol table list.
@@ -86,7 +51,7 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype,
     fatal("Unable to malloc a symbol table node in newsym");
 
   // Fill in the values
-  node->name = strdup(name);
+  node->name = name ? strdup(name) : NULL;
   node->type = type;
   node->ctype = ctype;
   node->stype = stype;
@@ -146,22 +111,97 @@ struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int st
   return (sym);
 }
 
+// Add an enum type or value to the enum list.
+// Class is C_ENUMTYPE or C_ENUMVAL.
+// Use posn to store the int value for C_ENUMVAL.
+struct symtable *addenum(char *name, int class, int value) {
+  struct symtable *sym = newsym(name, P_INT, NULL, 0, class, 0, value);
+  appendsym(&Enumshead, &Enumstail, sym);
+  return (sym);
+}
+
+// Add a typedef to the typedef list
+struct symtable *addtypedef(char *name, int type, struct symtable *ctype,
+			   int stype, int size) {
+  struct symtable *sym = newsym(name, type, ctype, stype, C_TYPEDEF, size, 0);
+  appendsym(&Typeshead, &Typestail, sym);
+  return (sym);
+}
+
+// Determine if the symbol s is in the global symbol table.
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findglob(char *s) {
+  return (findsyminlist(s, Globalshead, 0));
+}
+
+// Determine if the symbol s is in the local symbol table.
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findlocl(char *s) {
+  struct symtable *node;
+
+  // Look for a parameter if we are in a function's body
+  if (CurFunctionSym) {
+    node = findsyminlist(s, CurFunctionSym->member, 0);
+    if (node)
+      return (node);
+  }
+  return (findsyminlist(s, Localshead, 0));
+}
+
+// Determine if the symbol s is in the symbol table.
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findsymbol(char *s) {
+  struct symtable *node;
+
+  // Look for a parameter if we are in a function's body
+  if (CurFunctionSym) {
+    node = findsyminlist(s, CurFunctionSym->member, 0);
+    if (node) return (node);
+  }
+  // Otherwise, try the locals
+  node = findsyminlist(s, Localshead, 0);
+  if (node) return (node);
+  // Otherwise, look for global enum values
+  node = findenumval(s);
+  if (node) return (node);
+  // Otherwise, try the globals
+  return (findsyminlist(s, Globalshead, 0));
+}
+
 // Find a struct type.
 // Return a pointer to the found node or NULL if not found.
 struct symtable *findstruct(char *s) {
-  return (findsyminlist(s, Structshead));
+  return (findsyminlist(s, Structshead, 0));
 }
 
 // Find a union type.
 // Return a pointer to the found node or NULL if not found.
 struct symtable *findunion(char *s) {
-  return (findsyminlist(s, Unionshead));
+  return (findsyminlist(s, Unionshead, 0));
 }
 
 // Find a member of the currently parsed struct/union.
 // Return a pointer to the found node or NULL if not found.
 struct symtable *findmember(char *s) {
-  return (findsyminlist(s, Membershead));
+  return (findsyminlist(s, Membershead, 0));
+}
+
+// Find an enum type in the enum list
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findenumtype(char *s) {
+  return (findsyminlist(s, Enumshead, C_ENUMTYPE));
+}
+
+// Find an enum value in the enum list
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findenumval(char *s) {
+  return (findsyminlist(s, Enumshead, C_ENUMVAL));
+}
+
+// Find a type in the tyedef list
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findtypedef(char *s) {
+  return (findsyminlist(s, Typeshead, 0));
 }
 
 // Clear all the entries in the local symbol table
@@ -179,4 +219,5 @@ void clear_symtable(void) {
   Structshead = Structstail = NULL;
   Unionshead = Unionstail = NULL;
   Membershead = Memberstail = NULL;
+  Enumshead = Enumstail = NULL;
 }
