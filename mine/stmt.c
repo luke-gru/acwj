@@ -28,6 +28,7 @@
 // identifier: T_IDENT ;
 
 static int Looplevel;
+static int Switchlevel;
 
 // Parse an IF statement including
 // any optional ELSE clause
@@ -81,11 +82,11 @@ struct ASTnode *while_statement(void) {
   return (mkastnode(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, 0));
 }
 
-static struct ASTnode *single_statement(void);
+struct ASTnode *single_statement(void);
 
 // Parse a FOR statement
 // and return its AST
-static struct ASTnode *for_statement(void) {
+struct ASTnode *for_statement(void) {
   struct ASTnode *condAST, *bodyAST;
   struct ASTnode *preopAST, *postopAST;
   struct ASTnode *tree;
@@ -127,25 +128,104 @@ static struct ASTnode *for_statement(void) {
   return (mkastnode(A_GLUE, P_NONE, preopAST, NULL, tree, NULL, 0));
 }
 
-static struct ASTnode *break_statement() {
-  if (Looplevel == 0)
-    fatal("no loop to break out from");
+struct ASTnode *switch_statement(void) {
+  struct ASTnode *left, *n;
+  int casecount = 0;
+  int inloop = 1;
+  int seendefault = 0;
+  int casevalue = 0;
+  struct ASTnode *casetree = NULL, *casetail = NULL, *c;
+  int ASTop;
+
+  match(T_SWITCH, "switch");
+  lparen();
+
+  left = binexpr(0);
+  rparen();
+  lbrace();
+
+  if (!inttype(left->type))
+    fatal("Switch expression is not of integer type");
+
+  // Build an A_SWITCH subtree with the expression as
+  // the child
+  n = mkuastunary(A_SWITCH, 0, left, NULL, 0);
+  Switchlevel++;
+  while (inloop) {
+    switch(Token.token) {
+      case T_RBRACE:
+        if (casecount == 0) {
+          fatal("no cases in switch");
+        }
+        inloop = 0;
+        break;
+      case T_CASE:
+      case T_DEFAULT:
+        if (seendefault) {
+          fatal("case or default after existing default");
+        }
+        if (Token.token == T_DEFAULT) {
+          ASTop = A_DEFAULT;
+          seendefault = 1;
+          scan(&Token);
+        } else {
+          ASTop = A_CASE;
+          scan(&Token);
+          left = binexpr(0);
+          if (left->op != A_INTLIT) {
+            fatal("Expecting integer literal for case value");
+          }
+          casevalue = left->intvalue;
+          // Walk the list of existing case values to ensure
+          // that there isn't a duplicate case value
+          for (c = casetree; c != NULL; c = c->right) {
+            if (casevalue == c->intvalue) {
+              fatalv("Duplicate case value %d", c->intvalue);
+            }
+          }
+        }
+        match(T_COLON, ":");
+        left = compound_statement();
+        casecount++;
+        // Build a sub-tree with the compound statement as the left child
+        // and link it in to the growing A_CASE tree
+        if (casetree==NULL) {
+          casetree = casetail = mkuastunary(ASTop, 0, left, NULL, casevalue);
+        } else {
+          casetail->right= mkuastunary(ASTop, 0, left, NULL, casevalue);
+          casetail = casetail->right;
+        }
+        break;
+      default:
+        fatalv("Unexpected token in switch: %s", tokenname(Token.token));
+    }
+  }
+  Switchlevel--;
+  n->intvalue = casecount;
+  n->right = casetree;
+  rbrace();
+  return(n);
+}
+
+struct ASTnode *break_statement() {
+  if (Looplevel == 0 && Switchlevel == 0)
+    fatal("no loop or switch to break out from");
   match(T_BREAK, "break");
   return (mkastleaf(A_BREAK, 0, NULL, 0));
 }
 
-static struct ASTnode *continue_statement() {
+struct ASTnode *continue_statement() {
   if (Looplevel == 0)
     fatal("no loop to continue to");
   match(T_CONTINUE, "continue");
   return (mkastleaf(A_CONTINUE, 0, NULL, 0));
 }
 
-static struct ASTnode *return_statement(void);
+struct ASTnode *return_statement(void);
 
 // Parse a single statement
 // and return its AST
-static struct ASTnode *single_statement(void) {
+struct ASTnode *single_statement(void) {
   int type;
   int basetype;
   int storage_class = C_LOCAL;
@@ -173,6 +253,8 @@ found_type:
       return (while_statement());
     case T_FOR:
       return (for_statement());
+    case T_SWITCH:
+      return (switch_statement());
     case T_BREAK:
       return (break_statement());
     case T_CONTINUE:
@@ -230,7 +312,7 @@ struct ASTnode *compound_statement(void) {
 }
 
 // Parse a return statement and return its AST
-static struct ASTnode *return_statement(void) {
+struct ASTnode *return_statement(void) {
   struct ASTnode *tree;
   int returntype, functype;
 

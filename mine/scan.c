@@ -19,11 +19,11 @@ char *toknames[] = {
 
   "T_INTLIT", "T_SEMI", "T_IDENT", "T_STRLIT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN", "T_LBRACKET", "T_RBRACKET",
-  "T_COMMA", "T_DOT", "T_ARROW",
+  "T_COMMA", "T_DOT", "T_ARROW", "T_COLON",
   // keywords
   "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_BREAK", "T_CONTINUE",
   "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_UNION", "T_ENUM",
-  "T_TYPEDEF", "T_RETURN", "T_EXTERN",
+  "T_SWITCH", "T_CASE", "T_DEFAULT", "T_TYPEDEF", "T_RETURN", "T_EXTERN",
   NULL
 };
 
@@ -192,6 +192,8 @@ static int keyword(char *s) {
         return (T_CHAR);
       if (!strcmp(s, "continue"))
         return (T_CONTINUE);
+      if (!strcmp(s, "case"))
+        return (T_CASE);
       break;
     case 'w':
       if (!strcmp(s, "while"))
@@ -204,6 +206,10 @@ static int keyword(char *s) {
     case 'b':
       if (!strcmp(s, "break"))
         return (T_BREAK);
+      break;
+    case 'd':
+      if (!strcmp(s, "default"))
+        return (T_DEFAULT);
       break;
     case 'v':
       if (!strcmp(s, "void"))
@@ -220,6 +226,8 @@ static int keyword(char *s) {
     case 's':
       if (!strcmp(s, "struct"))
         return (T_STRUCT);
+      if (!strcmp(s, "switch"))
+        return (T_SWITCH);
       break;
     case 'u':
       if (!strcmp(s, "union"))
@@ -342,6 +350,9 @@ gettok:
       break;
     case ';':
       t->token = T_SEMI;
+      break;
+    case ':':
+      t->token = T_COLON;
       break;
     case '{':
       t->token = T_LBRACE;

@@ -46,12 +46,12 @@
           ;
 */
 
-static struct ASTnode *array_access(void);
-static struct ASTnode *member_access(int withpointer);
+struct ASTnode *array_access(void);
+struct ASTnode *member_access(int withpointer);
 
 // Parse a postfix expression and return an AST node representing it.
 // The identifier is already in Text.
-static struct ASTnode *postfix(void) {
+struct ASTnode *postfix(void) {
   struct ASTnode *n;
   struct symtable *varptr;
   struct symtable *enumptr;
@@ -107,7 +107,7 @@ static struct ASTnode *postfix(void) {
 
 // Only deals with array access after an identifier (variable). Ex: `print(a[4]);`
 // current token is '[', the identifier has been scanned.
-static struct ASTnode *array_access(void) {
+struct ASTnode *array_access(void) {
   struct ASTnode *left, *right;
   struct symtable *ary;
 
@@ -147,7 +147,7 @@ static struct ASTnode *array_access(void) {
 // Parse the member reference of a struct (or union, soon)
 // and return an AST tree for it. If withpointer is true,
 // the access is through a pointer to the member.
-static struct ASTnode *member_access(int withpointer) {
+struct ASTnode *member_access(int withpointer) {
   struct ASTnode *left, *right;
   struct symtable *compvar;
   struct symtable *typeptr;
@@ -211,7 +211,7 @@ static struct ASTnode *member_access(int withpointer) {
 */
 // Parse a primary factor and return an
 // AST node representing it.
-static struct ASTnode *primary(void) {
+struct ASTnode *primary(void) {
   struct ASTnode *n;
   int id;
 
@@ -301,9 +301,9 @@ struct ASTnode *binexpr(int ptp) {
   // Fetch the next token at the same time.
   left = prefix();
 
-  // If we hit a ';', ')', ']' or ',' return just the left node
+  // If we hit a ';', ':', ')', ']' or ',' return just the left node
   tokentype = Token.token;
-  if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET || tokentype == T_COMMA) {
+  if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET || tokentype == T_COMMA || tokentype == T_COLON) {
     left->rvalue = 1;
     return (left);
   }

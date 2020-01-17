@@ -39,6 +39,7 @@ void genglobsym(struct symtable *sym);
 int  genprimsize(int ptype);
 int  genglobstr(char *strvalue);
 int  genalign(int type, int offset, int direction);
+int  genlabel(void);
 
 // cg.c
 void freeall_registers(void);
@@ -85,6 +86,8 @@ int cgboolean(int r1, int ASTop, int label);
 int cggetlocaloffset(struct symtable *sym);
 void cgresetlocals(void);
 int cgalign(int type, int offset, int direction);
+void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
+    int *caselabels, int *casevals, int defaultlabel);
 
 // stmt.c
 struct ASTnode *compound_statement(void);

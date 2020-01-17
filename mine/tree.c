@@ -55,6 +55,7 @@ static int gendumplabel(void) {
 // traversal of the tree that genAST() follows
 void dumpAST(struct ASTnode *n, int label, int level) {
   int Lfalse, Lstart, Lend;
+  struct ASTnode *casen;
 
   switch (n->op) {
     case A_IF:
@@ -77,6 +78,20 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       dumpAST(n->left, Lend, level+2);
       dumpAST(n->right, NOLABEL, level+2);
       return;
+    case A_SWITCH:
+      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      fprintf(stdout, "A_SWITCH %d\n", n->intvalue);
+      for (casen = n->right; casen != NULL; casen=casen->right) {
+        dumpAST(casen, NOLABEL, level); // case node itself, with integer value
+        dumpAST(casen->left, NOLABEL, level+2); // compound statements
+      }
+      return;
+    case A_CASE:
+      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      fprintf(stdout, "A_CASE %d\n", n->intvalue); return;
+    case A_DEFAULT:
+      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      fprintf(stdout, "A_DEFAULT\n"); return;
   }
 
   // Reset level to -2 for A_GLUE (flatten nested hierarchy)
@@ -171,6 +186,10 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_LOGNOT\n"); return;
     case A_TOBOOL:
       fprintf(stdout, "A_TOBOOL\n"); return;
+    case A_BREAK:
+      fprintf(stdout, "A_BREAK\n"); return;
+    case A_CONTINUE:
+      fprintf(stdout, "A_CONTINUE\n"); return;
     default:
       assert(n->op < A_LAST);
       fatald("Unknown dumpAST AST node operator", n->op);

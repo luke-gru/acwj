@@ -7,7 +7,7 @@
 // Copyright (c) 2019 Warren Toomey, GPL3
 
 // Generate and return a new label number
-static int genlabel(void) {
+int genlabel(void) {
   static int id = 1;
   return (id++);
 }
@@ -65,10 +65,11 @@ static int genWhile(struct ASTnode *n) {
 
   // Generate the condition code followed
   // by a jump to the end label.
-  // We cheat by sending the Lfalse label as a register.
+  // We cheat by sending the Lend label as a register.
   genAST(n->left, Lend, Lstart, Lend, n->op);
   genfreeregs();
 
+  // compound statement
   genAST(n->right, NOLABEL, Lstart, Lend, n->op);
   genfreeregs();
 
@@ -105,6 +106,63 @@ static int gen_funcall(struct ASTnode *n) {
   return (cgcall(n->sym, numargs));
 }
 
+int genSwitch(struct ASTnode *n) {
+  int *casevals, *caselabels;
+  int Linternal_switch_dispatch, Lend;
+  int i, reg, defaultlabel = 0, casecount = 0;
+  struct ASTnode *c;
+
+  int numcases = n->intvalue;
+  // Create jump table memory
+  // Create arrays for the case values and associated labels.
+  // Ensure that we have at least one position in each array.
+  casevals = (int *) malloc((numcases + 1) * sizeof(int));
+  caselabels = (int *) malloc((numcases + 1) * sizeof(int));
+  // Generate labels for the internal switch dispatch, and the
+  // end of the switch statement. Set a default label for
+  // the end of the switch, in case we don't have a default.
+  Linternal_switch_dispatch = genlabel();
+  Lend = genlabel();
+  defaultlabel = Lend;
+
+  // Output the code to calculate the switch condition
+  reg = genAST(n->left, NOREG, NOLABEL, NOLABEL, 0);
+  cgjump(Linternal_switch_dispatch);
+  genfreeregs();
+
+  // Walk the right-child linked list to
+  // generate the code for each case
+  for (i = 0, c = n->right; c != NULL; i++, c = c->right) {
+
+    // Get a label for this case. Store it
+    // and the case value in the arrays.
+    // Record if it is the default case.
+    caselabels[i] = genlabel();
+    casevals[i] = c->intvalue;
+    cglabel(caselabels[i]);
+    if (c->op == A_DEFAULT)
+      defaultlabel = caselabels[i];
+    else
+      casecount++;
+
+    // Generate the case code. Pass in the end label for the breaks
+    genAST(c->left, NOREG, NOLABEL, Lend, 0);
+    genfreeregs();
+  }
+
+  // Ensure the last case jumps past the switch table
+  cgjump(Lend);
+
+  // Now output the switch table and the end label.
+  cgswitch(reg, casecount, Linternal_switch_dispatch, caselabels, casevals, defaultlabel);
+  cglabel(Lend);
+
+  free(caselabels);
+  free(casevals);
+
+  return (NOREG);
+}
+
 // Given an AST, generate assembly code recursively.
 // Return the register id with the tree's final value
 int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int parentASTop) {
@@ -127,6 +185,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       return (genIF(n, looptoplabel, loopendlabel));
     case A_WHILE:
       return (genWhile(n));
+    case A_SWITCH:
+      return (genSwitch(n));
     case A_BREAK:
       cgjump(loopendlabel);
       return (NOREG);

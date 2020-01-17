@@ -49,6 +49,8 @@ static int stackOffset;
 // Flag to say which section were are outputting in to
 enum { no_seg, text_seg, data_seg } currSeg = no_seg;
 
+static int Needs_case_eval_code = 0;
+
 void cgtextseg() {
   if (currSeg != text_seg) {
     fputs("\t.text\n", Outfile);
@@ -107,7 +109,33 @@ void cgpreamble()
 
 // Print out the assembly postamble
 void cgpostamble() {
-  (void)0; // do nothing
+  if (Needs_case_eval_code) {
+    cgtextseg();
+    // internal switch(expr) routine
+    // params: %rdx = switch table, %rax = expr
+    fputs(
+	  "__internal_switch:\n"
+	  "        pushq   %rsi\n"
+	  "        movq    %rdx, %rsi\n"
+	  "        movq    %rax, %rbx\n"
+	  "        cld\n"
+	  "        lodsq\n"
+	  "        movq    %rax, %rcx\n"
+	  "__internal_switch_next:\n"
+	  "        lodsq\n"
+	  "        movq    %rax, %rdx\n"
+	  "        lodsq\n"
+	  "        cmpq    %rdx, %rbx\n"
+	  "        jnz     __internal_switch_no\n"
+	  "        popq    %rsi\n"
+	  "        jmp     *%rax\n"
+	  "__internal_switch_no:\n"
+	  "        loop    __internal_switch_next\n"
+	  "        lodsq\n"
+	  "        popq    %rsi\n"
+    "        jmp     *%rax\n"
+    "\n", Outfile);
+  }
 }
 
 void cgfuncpreamble(struct symtable *sym) {
@@ -712,4 +740,51 @@ int cgalign(int type, int offset, int direction) {
   alignment= 4;
   offset = (offset + direction * (alignment-1)) & ~(alignment-1);
   return (offset);
+}
+
+// Generate a switch jump table and the code to
+// load the registers and call the __internal_switch code
+/*
+ * Example jump table:
+    L14:                                # Switch jump table
+        .quad   3                       # Three case values
+        .quad   1, L10                  # case 1: jump to L10
+        .quad   2, L11                  # case 2: jump to L11
+        .quad   3, L12                  # case 3: jump to L12
+        .quad   L13                     # default: jump to L13
+ */
+void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
+    int *caselabels, int *casevals, int defaultlabel) {
+
+  Needs_case_eval_code = 1; // output this in postamble
+
+  int i, label;
+
+  // Get a label for the jump table
+  label = genlabel();
+  cglabel(label);
+
+  // Heuristic. If we have no cases, create one case
+  // which points to the default case
+  if (casecount == 0) {
+    casevals[0] = 0; // unused
+    caselabels[0] = defaultlabel;
+    casecount = 1;
+  }
+
+  // Generate the jump table.
+  fprintf(Outfile, "\t.quad\t%d\n", casecount);
+  for (i = 0; i < casecount; i++) {
+    fprintf(Outfile, "\t.quad\t%d, L%d\n", casevals[i], caselabels[i]);
+  }
+  fprintf(Outfile, "\t.quad\tL%d\n", defaultlabel);
+
+  // Load the specific registers
+  cglabel(internal_switch_dispatch_label);
+  // %rax has switch value
+  fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+  // %rdx has address of jump table
+  fprintf(Outfile, "\tleaq\tL%d(%%rip), %%rdx\n", label);
+  // jump to case dispatch
+  fprintf(Outfile, "\tjmp\t__internal_switch\n");
 }
