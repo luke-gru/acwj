@@ -24,6 +24,7 @@ void dumpAST(struct ASTnode *n, int label, int level);
 struct ASTnode *binexpr(int n);
 struct ASTnode *funcall(void);
 struct ASTnode *prefix(void);
+struct ASTnode *expression_list(int endtoken);
 
 // interp.c (deprecated)
 int interpretAST(struct ASTnode *n);
@@ -90,10 +91,12 @@ void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
     int *caselabels, int *casevals, int defaultlabel);
 
 // stmt.c
-struct ASTnode *compound_statement(void);
+struct ASTnode *compound_statement(int inswitch);
 
 // misc.c
+int column(void);
 void match(int t, char *what);
+void scan_if_match(int t);
 void semi(void);
 void ident(void);
 void lbrace(void);

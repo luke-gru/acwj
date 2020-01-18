@@ -59,7 +59,9 @@ test_compiler: compiler
 	 ./bin/compiler -S test/compiler/typedef.c && \
 	 ./bin/compiler -S test/compiler/preprocessor.c && \
 	 ./bin/compiler -S test/compiler/extern.c && \
-	 ./bin/compiler -S test/compiler/break_continue.c;
+	 ./bin/compiler -S test/compiler/break_continue.c && \
+	 ./bin/compiler -S test/compiler/switch.c && \
+	 ./bin/compiler -S test/compiler/dangling_else.c;
 	rm test/compiler/*.s
 
 test_exec: compiler
@@ -90,7 +92,9 @@ test_exec: compiler
 			./runfile test/compiler/unions1.c && \
 			./runfile test/compiler/typedef.c && \
 			./runfile test/compiler/preprocessor.c && \
-			./runfile test/compiler/break_continue.c;
+			./runfile test/compiler/break_continue.c && \
+			./runfile test/compiler/switch.c && \
+			./runfile test/compiler/dangling_else.c;
 	rm a.out
 
 test_regression: compiler

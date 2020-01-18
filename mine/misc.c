@@ -7,9 +7,40 @@
 #include "data.h"
 #include "decl.h"
 
+// Miscellaneous functions
+// Copyright (c) 2019 Warren Toomey, GPL3
+
 static int LastSig = 0;
 
+int column() {
+  if (Col < 0) { // can happen due to putback() in scan.c
+    return 0;
+  }
+  return Col;
+}
+
+static void print_filename(FILE *f) {
+  if (Infilename) {
+    if (Token.token == T_EOF) {
+      fprintf(f, "%s:<EOF> ", Infilename);
+    } else {
+      fprintf(f, "%s:%d:%d ", Infilename, Line, column());
+    }
+  } else {
+    if (Token.token == T_EOF) {
+      fprintf(f, "%s", "<nofile>:<EOF> ");
+    } else {
+      fprintf(f, "<nofile>:%d:%d ", Line, column());
+    }
+  }
+}
+
 static void print_stacktrace(int sig) {
+  if (sig) {
+    print_filename(stdout);
+    fprintf(stdout, "\n");
+  }
+
   void* callstack[128];
   int i, frames = backtrace(callstack, 128);
   char** strs = backtrace_symbols(callstack, frames);
@@ -26,14 +57,16 @@ static void print_stacktrace(int sig) {
     fprintf(stdout, "%s\n", strs[i]);
   }
   free(strs);
+  if (sig) {
+    exit(1);
+  }
 }
 
 void setup_signal_handlers(void) {
   signal(SIGSEGV, print_stacktrace);
 }
 
-// Miscellaneous functions
-// Copyright (c) 2019 Warren Toomey, GPL3
+
 
 // Ensure that the current token is t,
 // and fetch the next token. Otherwise
@@ -42,7 +75,14 @@ void match(int t, char *what) {
   if (Token.token == t) {
     scan(&Token);
   } else {
-    fatalv("%s expected at %d:%d, got: %s", what, Line, Col, tokenname(Token.token));
+    fatalv("%s expected at %d:%d, got: %s", what, Line, column(), tokenname(Token.token));
+  }
+}
+
+// If the current token is the following, fetch the next.
+void scan_if_match(int t) {
+  if (Token.token == t) {
+    scan(&Token);
   }
 }
 
@@ -69,33 +109,26 @@ void comma(void) {
   match(T_COMMA, ",");
 }
 
-static void print_filename(void) {
-  if (Infilename) {
-    fprintf(stderr, "%s:%d:%d ", Infilename, Line, Col);
-  } else {
-    fprintf(stderr, "<nofile>:%d:%d ", Line, Col);
-  }
-}
 
 // Print out fatal messages
 void fatal(char *s) {
-  fatalv("%s at %d:%d", s, Line, Col);
+  fatalv("%s at %d:%d", s, Line, column());
 }
 
 void fatals(char *s1, char *s2) {
-  fatalv("%s:%s at %d:%d", s1, s2, Line, Col);
+  fatalv("%s:%s at %d:%d", s1, s2, Line, column());
 }
 
 void fatald(char *s, int d) {
-  fatalv("%s: %d at %d:%d", s, d, Line, Col);
+  fatalv("%s: %d at %d:%d", s, d, Line, column());
 }
 
 void fatalc(char *s, int c) {
-  fatalv("%s: '%c' at %d:%d", s, c, Line, Col);
+  fatalv("%s: '%c' at %d:%d", s, c, Line, column());
 }
 
 void fatalv(const char *fmt, ...) {
-  print_filename();
+  print_filename(stderr);
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);

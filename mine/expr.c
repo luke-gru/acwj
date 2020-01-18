@@ -46,6 +46,41 @@
           ;
 */
 
+// expression_list: <null>
+//        | expression
+//        | expression ',' expression_list
+//        ;
+
+// Parse a list of zero or more comma-separated expressions and
+// return an AST composed of A_GLUE nodes with the left-hand child
+// being the sub-tree of previous expressions (or NULL) and the right-hand
+// child being the next expression. Each A_GLUE node will have size field
+// set to the number of expressions in the tree at this point. If no
+// expressions are parsed, NULL is returned
+struct ASTnode *expression_list(int endtoken) {
+  struct ASTnode *child, *tree = NULL;
+  int exprcount = 1;
+  // Loop until the end token
+  while (Token.token != endtoken) {
+
+    // Parse the next expression
+    child = binexpr(0);
+
+    // Build an A_GLUE AST node ...
+    tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, NULL, exprcount);
+    exprcount++;
+
+    // Stop when we reach the end token
+    if (Token.token == endtoken) break;
+
+    // Must have a ',' at this point
+    match(T_COMMA, ",");
+  }
+
+  // Return the tree of expressions (can be NULL)
+  return (tree);
+}
+
 struct ASTnode *array_access(void);
 struct ASTnode *member_access(int withpointer);
 
@@ -365,7 +400,6 @@ struct ASTnode *binexpr(int ptp) {
 // Identifier is parsed, current token is '('.
 struct ASTnode *funcall(void) {
   struct ASTnode *tree = NULL; // expression list
-  struct ASTnode *child = NULL; // last parsed argument
   struct symtable *funcptr;
 
   // Check that the identifier has been defined,
@@ -378,29 +412,14 @@ struct ASTnode *funcall(void) {
   }
   lparen();
 
-  int exprcount = 0;
-  // Parse the argument list
-  while (Token.token != T_RPAREN) {
-    child = binexpr(0);
-    exprcount++;
-    // Build an A_GLUE AST node with the previous tree as the left child
-    // and the new expression as the right child. Store the expression count.
-    tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, NULL, exprcount);
+  tree = expression_list(T_RPAREN);
 
-    if (Token.token == T_RPAREN) break;
-    if (Token.token == T_COMMA) {
-      scan(&Token);
-      continue;
-    }
-    fatalv("Unexpected token in argument list: %s", tokenname(Token.token));
-  }
   rparen();
 
   // XXX Check type of each argument against the function's prototype
 
   // Build the function call AST node. Store the
   // function's return type as this node's type.
-  // Also record the function's symbol-id
   return mkuastunary(A_FUNCALL, funcptr->type, tree, funcptr, 0);
 }
 

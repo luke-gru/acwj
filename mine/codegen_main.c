@@ -87,7 +87,7 @@ char *alter_suffix(char *str, char suffix) {
 
 // Given an input filename, compile that file
 // down to assembly code. Return the new file's name
-static char *do_compile(char *filename) {
+char *do_compile(char *filename) {
   char cmd[TEXTLEN];
 
   Outfilename = alter_suffix(filename, 's');

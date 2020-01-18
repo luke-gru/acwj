@@ -30,6 +30,8 @@
 static int Looplevel;
 static int Switchlevel;
 
+struct ASTnode *single_statement(void);
+
 // Parse an IF statement including
 // any optional ELSE clause
 // and return its AST
@@ -51,13 +53,13 @@ struct ASTnode *if_statement(void) {
   rparen();
 
   // Get the AST for the compound statement
-  trueAST = compound_statement();
+  trueAST = single_statement();
 
   // If we have an 'else', skip it
   // and get the AST for the compound statement
   if (Token.token == T_ELSE) {
     scan(&Token);
-    falseAST = compound_statement();
+    falseAST = single_statement();
   }
   // Build and return the AST for this statement
   return (mkastnode(A_IF, P_NONE, condAST, trueAST, falseAST, NULL, 0));
@@ -76,13 +78,12 @@ struct ASTnode *while_statement(void) {
   rparen();
 
   Looplevel++;
-  bodyAST = compound_statement();
+  bodyAST = single_statement();
   Looplevel--;
 
   return (mkastnode(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, 0));
 }
 
-struct ASTnode *single_statement(void);
 
 // Parse a FOR statement
 // and return its AST
@@ -95,8 +96,8 @@ struct ASTnode *for_statement(void) {
   match(T_FOR, "for");
   lparen();
 
-  // Get the pre_op statement and the ';'
-  preopAST = single_statement();
+  // Get the pre_op expr list and the ';'
+  preopAST = expression_list(T_SEMI);
   semi();
 
   // Get the condition and the ';'
@@ -107,12 +108,12 @@ struct ASTnode *for_statement(void) {
   semi();
 
   // Get the post_op statement and the ')'
-  postopAST = single_statement();
+  postopAST = expression_list(T_RPAREN);
   rparen();
 
   Looplevel++;
   // Get the compound statement which is the body
-  bodyAST = compound_statement();
+  bodyAST = single_statement();
   Looplevel--;
 
   // For now, all four sub-trees have to be non-NULL.
@@ -185,7 +186,9 @@ struct ASTnode *switch_statement(void) {
           }
         }
         match(T_COLON, ":");
-        left = compound_statement();
+        scan_if_match(T_LBRACE);
+        left = compound_statement(1);
+        scan_if_match(T_RBRACE);
         casecount++;
         // Build a sub-tree with the compound statement as the left child
         // and link it in to the growing A_CASE tree
@@ -211,6 +214,7 @@ struct ASTnode *break_statement() {
   if (Looplevel == 0 && Switchlevel == 0)
     fatal("no loop or switch to break out from");
   match(T_BREAK, "break");
+  semi();
   return (mkastleaf(A_BREAK, 0, NULL, 0));
 }
 
@@ -218,6 +222,7 @@ struct ASTnode *continue_statement() {
   if (Looplevel == 0)
     fatal("no loop to continue to");
   match(T_CONTINUE, "continue");
+  semi();
   return (mkastleaf(A_CONTINUE, 0, NULL, 0));
 }
 
@@ -230,7 +235,14 @@ struct ASTnode *single_statement(void) {
   int basetype;
   int storage_class = C_LOCAL;
   struct symtable *ctype;
+  struct ASTnode *stmt;
+
   switch (Token.token) {
+    case T_LBRACE:
+      lbrace();
+      stmt = compound_statement(0);
+      rbrace();
+      return (stmt);
     case T_INT:
     case T_CHAR:
     case T_LONG:
@@ -267,29 +279,19 @@ found_type:
       }
       // fallthru
     default:
-      return (binexpr(0));
+      stmt = binexpr(0);
+      semi(); return (stmt);
   }
 }
 
-// Parse a compound statement
-// and return its AST
-struct ASTnode *compound_statement(void) {
+// Parse a compound statement and return its AST. Last token was '{'
+struct ASTnode *compound_statement(int inswitch) {
   struct ASTnode *left = NULL;
   struct ASTnode *tree;
-
-  // Require a left curly bracket
-  lbrace();
 
   while (1) {
     // Parse a single statement
     tree = single_statement();
-
-    // Some statements must be followed by a semicolon
-    if (tree != NULL &&
-       (tree->op == A_ASSIGN || tree->op == A_RETURN || tree->op == A_FUNCALL ||
-        tree->op == A_BREAK || tree->op == A_CONTINUE)) {
-      semi();
-    }
 
     // For each new tree, either save it in left
     // if left is empty, or glue the left and the
@@ -301,19 +303,18 @@ struct ASTnode *compound_statement(void) {
         left = mkastnode(A_GLUE, P_NONE, left, NULL, tree, NULL, 0);
       }
     }
-    // When we hit a right curly bracket,
-    // skip past it and return the AST
+
     if (Token.token == T_RBRACE) {
-      rbrace();
       return (left);
     }
+    if (inswitch && (Token.token == T_CASE || Token.token == T_DEFAULT)) return (left);
   }
   assert(0);
 }
 
 // Parse a return statement and return its AST
 struct ASTnode *return_statement(void) {
-  struct ASTnode *tree;
+  struct ASTnode *tree = NULL;
   int returntype, functype;
 
   assert(CurFunctionSym != NULL); // TODO: error out, must be in function
@@ -323,18 +324,21 @@ struct ASTnode *return_statement(void) {
 
   // Ensure we have 'return' '('
   match(T_RETURN, "return");
-  lparen();
+  lparen(); // for some reason, force '(' for now
 
-  // Parse the following expression
-  tree = binexpr(0);
+  if (Token.token != T_RPAREN) {
+    // Parse the following expression
+    tree = binexpr(0);
 
-  tree = modify_type(tree, CurFunctionSym->type, 0);
-  if (tree == NULL)
-    fatal("Incompatible types from return"); // TODO: better message
+    tree = modify_type(tree, CurFunctionSym->type, 0);
+    if (tree == NULL)
+      fatal("Incompatible types from return"); // TODO: better message
 
-  // Add on the A_RETURN node
-  tree = mkuastunary(A_RETURN, P_NONE, tree, NULL, 0);
+    // Add on the A_RETURN node
+    tree = mkuastunary(A_RETURN, P_NONE, tree, NULL, 0);
+  }
 
   rparen();
+  semi();
   return (tree);
 }

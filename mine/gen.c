@@ -173,6 +173,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   if (O_parseOnly)
     assert(0); // shouldn't even be called if O_parseOnly == 1
 
+  assert(n);
+
   // We now have specific AST node handling at the top
   switch (n->op) {
     case A_FUNCTION:
@@ -196,10 +198,14 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     case A_GLUE:
       // Do each child statement, and free the
       // registers after each child
-      leftreg = genAST(n->left, NOREG, looptoplabel, loopendlabel, n->op);
+      if (n->left) {
+        leftreg = genAST(n->left, NOREG, looptoplabel, loopendlabel, n->op);
+      }
       genfreeregs();
-      rightreg = genAST(n->right, NOREG, looptoplabel, loopendlabel, n->op);
-      genfreeregs();
+      if (n->right) {
+        rightreg = genAST(n->right, NOREG, looptoplabel, loopendlabel, n->op);
+        genfreeregs();
+      }
       return (NOREG);
     case A_FUNCALL:
       return (gen_funcall(n));

@@ -316,7 +316,9 @@ struct ASTnode *function_declaration(int type, struct symtable *ctype) {
   oldfuncsym->stype = S_FUNCTION; // turn proto into real function
 
   cgresetlocals();
-  tree = compound_statement();
+  lbrace();
+  tree = compound_statement(0);
+  rbrace();
   // If the function type isn't P_VOID, check that
   // the last AST operation in the compound statement
   // was a return statement

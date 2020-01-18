@@ -3,21 +3,15 @@ TODO
 
 Functional
 ----------
-* Get passing more than 6 arguments to functions working
-* Typechecking
-* Arrays as function parameters
-* Function prototypes
-* User-defined types
-* Type aliases
+* Allow arrays as function parameters
 * Put string literals in read-only memory
 * Get array variables to decay to a pointer to their first element
-* Allow extern declarations, example: for `errno` to allow checking this value
-when compiling with mylib.c
+* Get extern functions working
 
 Optimizations
 -------------
-* Omit frame pointer optimization
-* Register optimizations
+* Omit the frame pointer as micro-optimization, use stack pointer offsets instead
+* Various register optimizations
 
 Would Be Nice
 -------------
