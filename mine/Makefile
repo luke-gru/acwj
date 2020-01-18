@@ -61,7 +61,8 @@ test_compiler: compiler
 	 ./bin/compiler -S test/compiler/extern.c && \
 	 ./bin/compiler -S test/compiler/break_continue.c && \
 	 ./bin/compiler -S test/compiler/switch.c && \
-	 ./bin/compiler -S test/compiler/dangling_else.c;
+	 ./bin/compiler -S test/compiler/dangling_else.c && \
+	 ./bin/compiler -S test/compiler/multi_decl.c;
 	rm test/compiler/*.s
 
 test_exec: compiler
@@ -94,7 +95,8 @@ test_exec: compiler
 			./runfile test/compiler/preprocessor.c && \
 			./runfile test/compiler/break_continue.c && \
 			./runfile test/compiler/switch.c && \
-			./runfile test/compiler/dangling_else.c;
+			./runfile test/compiler/dangling_else.c && \
+			./runfile test/compiler/multi_decl.c;
 	rm a.out
 
 test_regression: compiler

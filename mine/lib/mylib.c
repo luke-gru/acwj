@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <errno.h>
 void printint(long x) {
-  printf("%ld\n", x);
+  printf("%d\n", (int)x);
 }
 
 void printchar(long x) {

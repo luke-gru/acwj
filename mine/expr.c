@@ -227,7 +227,7 @@ struct ASTnode *member_access(int withpointer) {
   }
 
   // Build an A_INTLIT node with the offset
-  right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);
+  right = mkastleaf(A_INTLIT, P_LONG, NULL, m->posn);
 
   // Add the member's offset to the base of the struct and
   // dereference it. Still an lvalue at this point

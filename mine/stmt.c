@@ -231,9 +231,6 @@ struct ASTnode *return_statement(void);
 // Parse a single statement
 // and return its AST
 struct ASTnode *single_statement(void) {
-  int type;
-  int basetype;
-  int storage_class = C_LOCAL;
   struct symtable *ctype;
   struct ASTnode *stmt;
 
@@ -243,22 +240,27 @@ struct ASTnode *single_statement(void) {
       stmt = compound_statement(0);
       rbrace();
       return (stmt);
-    case T_INT:
+    case T_IDENT:
+      // We have to see if the identifier matches a typedef.
+      // If not, treat it as an expression.
+      // Otherwise, fall down to the declaration_list() call.
+      if (type_of_typedef_nofail(Text, &ctype) == -1) {
+        stmt = binexpr(0);
+        semi();
+        return (stmt);
+      }
+      // fallthru
     case T_CHAR:
+    case T_INT:
     case T_LONG:
     case T_EXTERN:
-      basetype = parse_base_type(Token.token, &ctype, &storage_class);
-found_type:
-      type = parse_pointer_array_type(basetype);
-      ident();
-      var_declaration(type, ctype, storage_class);
-      if (Token.token == T_COMMA) {
-        scan(&Token);
-        goto found_type;
-      } else {
-        semi();
-      }
-      return (NULL);		// No AST generated here
+    case T_STRUCT:
+    case T_UNION:
+    case T_ENUM:
+    case T_TYPEDEF:
+      declaration_list(&ctype, C_LOCAL, T_SEMI, T_EOF);
+      semi();
+      return (NULL);
     case T_IF:
       return (if_statement());
     case T_WHILE:
@@ -273,11 +275,6 @@ found_type:
       return (continue_statement());
     case T_RETURN:
       return (return_statement());
-    case T_IDENT:
-      if ((basetype = type_of_typedef_nofail(Text, &ctype)) != -1) {
-        goto found_type;
-      }
-      // fallthru
     default:
       stmt = binexpr(0);
       semi(); return (stmt);

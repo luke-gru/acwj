@@ -403,13 +403,20 @@ void cgglobsym(struct symtable *sym) {
 
   int type = sym->type;
   int typesz = typesize(sym->type, sym->ctype);
+  cgdebug("Generating global symbol %s (type=%s) with size %d", sym->name, typename(sym->type, sym->ctype), typesz);
   int arysz = sym->size;
 
-  cgdataseg();
-  fprintf(Outfile, "\t.globl\t%s\n", sym->name);
-  fprintf(Outfile, "%s:\n", sym->name);
   assert(typesz > 0);
   assert(arysz > 0);
+
+  cgdataseg();
+  if (sym->ctype && arysz == 1) {
+    fprintf(Outfile, "\t.comm %s,%d,%d\n", sym->name, typesz, typesz);
+    return;
+  }
+  fprintf(Outfile, "\t.globl\t%s\n", sym->name);
+  fprintf(Outfile, "%s:\n", sym->name);
+
 
   for (int i = 0; i < arysz; i++) {
     switch (typesz) {
@@ -591,7 +598,7 @@ int cgstorderef(int r1, int r2, int type) {
       fprintf(Outfile, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
       break;
     case P_INT:
-      fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+      fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
       break;
     case P_LONG:
       fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);

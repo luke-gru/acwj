@@ -136,8 +136,8 @@ void freeloclsyms(void);
 void clear_symtable(void);
 
 // decl.c
-struct symtable *var_declaration(int type, struct symtable *ctype, int class);
-struct ASTnode *function_declaration(int type, struct symtable *ctype);
+struct symtable *function_declaration(char *name, int type, struct symtable *ctype, int class);
+int declaration_list(struct symtable **ctype, int class, int et1, int et2);
 void global_declarations(void);
 int parse_full_type(int t, struct symtable **ctype, int *class);
 int parse_base_type(int t, struct symtable **ctype, int *class);
