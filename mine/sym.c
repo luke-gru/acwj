@@ -58,11 +58,14 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype,
   node->class = class;
   node->nelems = nelems;
 
-  // For pointers and integer types, set the size
-  // of the symbol. structs and union declarations
-  // manually set this up themselves.
-  if (ptrtype(type) || inttype(type))
+  if (stype == S_VARIABLE || stype == S_ARRAY) {
+    ASSERT(nelems > 0);
     node->size = nelems * typesize(type, ctype);
+  } else {
+    // Could be a struct or union type, where size will get calculated elsewhere.
+    // Otherwise, could be a function symbol, no size
+    node->size = 0;
+  }
 
   node->posn = posn;
   node->next = NULL;

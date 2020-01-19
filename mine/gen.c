@@ -171,7 +171,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   rightreg = -1;
 
   if (O_parseOnly)
-    assert(0); // shouldn't even be called if O_parseOnly == 1
+    return (NOREG);
 
   assert(n);
 

@@ -397,16 +397,27 @@ int cgstorlocal(int r, struct symtable *sym) {
 
 // Generate a global symbol
 void cgglobsym(struct symtable *sym) {
+  int initvalue;
+  int size;
+  int type;
+
   ASSERT(sym->class == C_GLOBAL);
   if (sym->stype == S_FUNCTION) return;
 
-  int type = sym->type;
-  int typesz = typesize(sym->type, sym->ctype);
-  cgdebug("Generating global symbol %s (type=%s) with size %d", sym->name, typename(sym->type, sym->ctype), typesz);
-  int arysz = sym->nelems;
+  // Get the size of the variable (or its elements if an array)
+  // and the type of the variable
+  if (sym->stype == S_ARRAY) {
+    size = typesize(value_at(sym->type), sym->ctype); // size of each element
+    type = value_at(sym->type); // element type
+  } else {
+    size = sym->size;
+    type = sym->type;
+  }
 
-  ASSERT(typesz > 0);
-  ASSERT(arysz > 0);
+  cgdebug("Generating global symbol %s (type=%s) with size %d", sym->name, typename(sym->type, sym->ctype), sym->size);
+
+  ASSERT(size > 0);
+  ASSERT(sym->nelems > 0);
 
   cgdataseg();
   /*if (sym->ctype && arysz == 1) {*/
@@ -416,20 +427,28 @@ void cgglobsym(struct symtable *sym) {
   fprintf(Outfile, "\t.globl\t%s\n", sym->name);
   fprintf(Outfile, "%s:\n", sym->name);
 
-
-  for (int i = 0; i < arysz; i++) {
-    switch (typesz) {
+  for (int i = 0; i < sym->nelems; i++) {
+    initvalue = 0;
+    if (sym->initlist) {
+      initvalue = sym->initlist[i];
+    }
+    switch (size) {
       case CHARSZ:
-        fprintf(Outfile, "\t.byte\t0\n");
+        fprintf(Outfile, "\t.byte\t%d\n", initvalue);
         break;
       case INTSZ:
-        fprintf(Outfile, "\t.long\t0\n");
+        fprintf(Outfile, "\t.long\t%d\n", initvalue);
         break;
       case LONGSZ:
-        fprintf(Outfile, "\t.quad\t0\n");
+        // Generate the pointer to a string literal
+        if (sym->initlist != NULL && type == pointer_to(P_CHAR)) {
+          fprintf(Outfile, "\t.quad\tL%d\n", initvalue); // label to string literal
+        } else {
+          fprintf(Outfile, "\t.quad\t%d\n", initvalue);
+        }
         break;
       default:
-        for (int j = 0; j < typesz; j++) {
+        for (int j = 0; j < size; j++) {
           fprintf(Outfile, "\t.byte\t0\n");
         }
     }

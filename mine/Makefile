@@ -5,32 +5,39 @@ install_includes:
 	mkdir -p $(INCDIR)
 	rsync -a system/include/. $(INCDIR)
 
-scanner: scanner_main.c scan.c misc.c install_includes
+bin/scanner: scanner_main.c scan.c misc.c install_includes
 	cc -o bin/scanner -DINCDIR=\"$(INCDIR)\" -g -rdynamic scanner_main.c scan.c misc.c
 
-parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c install_includes
+bin/parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c install_includes
 	cc -o bin/parser -DINCDIR=\"$(INCDIR)\" -g -rdynamic expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
 
-compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c install_includes
+bin/compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c install_includes
 	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -g -rdynamic expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
+
+.PHONY: scanner
+scanner: bin/scanner
+.PHONY: parser
+parser: bin/parser
+.PHONY: compiler
+compiler: bin/compiler
 
 clean:
 	rm -f *.o bin/* a.out out.s test/compiler/*.s test/compiler/*.o
 
-test_scanner: scanner
+test_scanner: bin/scanner
 	./bin/scanner test/scanner/input01 && \
 	 ./bin/scanner test/scanner/input02 && \
 	 ./bin/scanner test/scanner/input03 && \
 	 ./bin/scanner test/scanner/input04 && \
 	 ./bin/scanner test/scanner/input05;
 
-test_parser: parser
+test_parser: bin/parser
 	./bin/parser test/parser/input01 && \
 		./bin/parser test/parser/input02 && \
 		./bin/parser -T test/parser/dump_tree && \
 		./bin/parser test/parser/array_decl;
 
-test_compiler: compiler
+test_compiler: bin/compiler
 	./bin/compiler -S test/compiler/comparisons.c && \
 	 ./bin/compiler -S test/compiler/for_loop.c && \
 	 ./bin/compiler -S test/compiler/if.c && \
@@ -62,10 +69,11 @@ test_compiler: compiler
 	 ./bin/compiler -S test/compiler/break_continue.c && \
 	 ./bin/compiler -S test/compiler/switch.c && \
 	 ./bin/compiler -S test/compiler/dangling_else.c && \
-	 ./bin/compiler -S test/compiler/multi_decl.c;
+	 ./bin/compiler -S test/compiler/multi_decl.c && \
+	 ./bin/compiler -S test/compiler/var_init.c;
 	rm test/compiler/*.s
 
-test_exec: compiler
+test_exec: bin/compiler
 	./runfile test/compiler/comparisons.c && \
 			./runfile test/compiler/for_loop.c && \
 			./runfile test/compiler/if.c && \
@@ -96,14 +104,15 @@ test_exec: compiler
 			./runfile test/compiler/break_continue.c && \
 			./runfile test/compiler/switch.c && \
 			./runfile test/compiler/dangling_else.c && \
-			./runfile test/compiler/multi_decl.c;
+			./runfile test/compiler/multi_decl.c && \
+			./runfile test/compiler/var_init.c;
 	rm a.out
 
-test_regression: compiler
+test_regression: bin/compiler
 	./test/compiler/runtests
 
 test: test_scanner test_parser test_compiler test_exec test_regression
 
-install: compiler install_includes
+install: bin/compiler install_includes
 	cp ./bin/compiler $(BINDIR)
 	chmox +x $(BINDIR)/compiler
