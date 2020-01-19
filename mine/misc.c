@@ -170,3 +170,7 @@ char *str_concat(char *str1, char *str2) {
   }
   return new_str;
 }
+
+void myassert(int expr, int line, const char *filename) {
+  if (!expr) fatalv("assertion failed at %s:%d", filename, line);
+}

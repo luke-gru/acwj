@@ -28,7 +28,7 @@ char *typename(int ptype, struct symtable *ctype) {
 }
 
 int inttype(int ptype) {
-  return ((ptype & P_PTR_BITS) == 0);
+  return ((ptype & P_PTR_BITS) == 0) && (ptype >= P_CHAR && ptype <= P_LONG);
 }
 
 int ptrtype(int ptype) {

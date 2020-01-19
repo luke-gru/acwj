@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -519,7 +518,7 @@ struct ASTnode *prefix(void) {
       tree = mkuastunary(A_PREDEC, tree->type, tree, NULL, 0);
       break;
     default:
-      assert(Token.token != T_SEMI);
+      ASSERT(Token.token != T_SEMI);
       tree = primary();
       break;
   }

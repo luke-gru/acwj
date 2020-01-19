@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -191,7 +190,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_CONTINUE:
       fprintf(stdout, "A_CONTINUE\n"); return;
     default:
-      assert(n->op < A_LAST);
+      ASSERT(n->op < A_LAST);
       fatald("Unknown dumpAST AST node operator", n->op);
   }
 }

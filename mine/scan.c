@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -28,7 +27,7 @@ char *toknames[] = {
 };
 
 char *tokenname(int tok) {
-  assert(tok >= T_EOF && tok < T_LAST);
+  ASSERT(tok >= T_EOF && tok < T_LAST);
   return toknames[tok];
 }
 
@@ -93,7 +92,7 @@ static int next(void) {
 
 // Put back an unwanted character
 static void putback(int c) {
-  assert(!Putback);
+  ASSERT(!Putback);
   Putback = c;
   Col--;
 }

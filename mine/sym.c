@@ -43,7 +43,7 @@ static struct symtable *findsyminlist(char *s, struct symtable *list, int class)
 // + posn: Position information for local symbols
 // Return a pointer to the new node
 struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype, int class,
-			int size, int posn) {
+			int nelems, int posn) {
 
   // Get a new node
   struct symtable *node = (struct symtable *) malloc(sizeof(struct symtable));
@@ -56,58 +56,62 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype,
   node->ctype = ctype;
   node->stype = stype;
   node->class = class;
-  node->size = size;
+  node->nelems = nelems;
+
+  // For pointers and integer types, set the size
+  // of the symbol. structs and union declarations
+  // manually set this up themselves.
+  if (ptrtype(type) || inttype(type))
+    node->size = nelems * typesize(type, ctype);
+
   node->posn = posn;
   node->next = NULL;
   node->member = NULL;
+  node->initlist = NULL;
 
-  // Generate any global space
-  if (class == C_GLOBAL) {
-    genglobsym(node);
-  }
   return (node);
 }
 
 // Add a global symbol to the symbol table.
 // Return the slot number in the symbol table.
 // Also, generates asm code for the symbol.
-struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int class, int size) {
-  struct symtable *sym = newsym(name, ptype, ctype, stype, class, size, 0);
+struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int class, int nelems) {
+  struct symtable *sym = newsym(name, ptype, ctype, stype, class, nelems, 0);
   appendsym(&Globalshead, &Globalstail, sym);
   return (sym);
 }
 
 // Add a symbol to the parameter symbol list
-struct symtable *addparam(char *name, int ptype, struct symtable *ctype, int stype, int size) {
-  struct symtable *sym = newsym(name, ptype, ctype, stype, C_PARAM, size, 0);
+struct symtable *addparam(char *name, int ptype, struct symtable *ctype, int stype, int nelems) {
+  struct symtable *sym = newsym(name, ptype, ctype, stype, C_PARAM, nelems, 0);
   appendsym(&Paramshead, &Paramstail, sym);
   return (sym);
 }
 
 // Add a symbol to the local symbol list
-struct symtable *addlocl(char *name, int ptype, struct symtable *ctype, int stype, int size) {
-  struct symtable *sym = newsym(name, ptype, ctype, stype, C_LOCAL, size, 0);
+struct symtable *addlocl(char *name, int ptype, struct symtable *ctype, int stype, int nelems) {
+  struct symtable *sym = newsym(name, ptype, ctype, stype, C_LOCAL, nelems, 0);
   appendsym(&Localshead, &Localstail, sym);
   return (sym);
 }
 
 // Add a symbol to the struct types list
-struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int size) {
-  struct symtable *sym = newsym(name, ptype, ctype, stype, C_STRUCT, size, 0);
+struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int nelems) {
+  struct symtable *sym = newsym(name, ptype, ctype, stype, C_STRUCT, nelems, 0);
   appendsym(&Structshead, &Structstail, sym);
   return (sym);
 }
 
 // Add a symbol to the union types list
-struct symtable *addunion(char *name, int ptype, struct symtable *ctype, int stype, int size) {
-  struct symtable *sym = newsym(name, ptype, ctype, stype, C_UNION, size, 0);
+struct symtable *addunion(char *name, int ptype, struct symtable *ctype, int stype, int nelems) {
+  struct symtable *sym = newsym(name, ptype, ctype, stype, C_UNION, nelems, 0);
   appendsym(&Unionshead, &Unionstail, sym);
   return (sym);
 }
 
 // Add a struct member to the temp members list
-struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int stype, int size) {
-  struct symtable *sym = newsym(name, ptype, ctype, stype, C_MEMBER, size, 0);
+struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int stype, int nelems) {
+  struct symtable *sym = newsym(name, ptype, ctype, stype, C_MEMBER, nelems, 0);
   appendsym(&Membershead, &Memberstail, sym);
   return (sym);
 }
@@ -116,7 +120,7 @@ struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int st
 // Class is C_ENUMTYPE or C_ENUMVAL.
 // Use posn to store the int value for C_ENUMVAL.
 struct symtable *addenum(char *name, int class, int value) {
-  struct symtable *sym = newsym(name, P_INT, NULL, 0, class, 0, value);
+  struct symtable *sym = newsym(name, P_INT, NULL, 0, class, 1, value);
   appendsym(&Enumshead, &Enumstail, sym);
   return (sym);
 }

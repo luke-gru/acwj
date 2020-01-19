@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 
 // Structure and enum definitions
 // Copyright (c) 2019 Warren Toomey, GPL3
@@ -121,17 +122,16 @@ enum {
 struct symtable {
   char *name;                   // Name of a symbol
   int type;                     // Primitive type
-  struct symtable *ctype;       // If needed, pointer to the composite type
   int stype;                    // Structural type (function, variable)
   int class;                    // Storage class for the symbol (global, local)
+  struct symtable *ctype;       // If needed, pointer to the composite type
+  int size;                     // Total size in bytes of this symbol
+  int nelems;                   // For functions, # of params, for arrays # of elements
   union {
-      int endlabel;             // for S_FUNCTION, the label to right where it's about to return to caller
-      int size;                 // for S_ARRAY, number of elements.
+    int endlabel;               // for S_FUNCTION, the label to right where it's about to return to caller
+    int posn;                   // For locals, the negative offset from the stack base pointer
   };
-  union {
-    int nelems;			// For functions, # of params
-    int posn;			// For locals, the negative offset from the stack base pointer
-  };
+  int *initlist;                // List of initial values
   struct symtable *next;        // next symbol in the list
   struct symtable *member;      // First param for a function, first member for struct, union or enum
 };

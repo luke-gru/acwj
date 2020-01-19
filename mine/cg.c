@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -139,7 +138,7 @@ void cgpostamble() {
 }
 
 void cgfuncpreamble(struct symtable *sym) {
-  assert(sym->stype == S_FUNCTION);
+  ASSERT(sym->stype == S_FUNCTION);
   struct symtable *parm, *locvar;
   int cnt;
 
@@ -305,7 +304,7 @@ int cgloadglob(struct symtable *sym, int op) {
 int cgloadlocal(struct symtable *sym, int op) {
   // Get a new register
   int r = alloc_register();
-  assert(sym->class == C_LOCAL || sym->class == C_PARAM);
+  ASSERT(sym->class == C_LOCAL || sym->class == C_PARAM);
 
   int size = cgprimsize(sym->type);
 
@@ -398,22 +397,22 @@ int cgstorlocal(int r, struct symtable *sym) {
 
 // Generate a global symbol
 void cgglobsym(struct symtable *sym) {
-  assert(sym->class == C_GLOBAL);
+  ASSERT(sym->class == C_GLOBAL);
   if (sym->stype == S_FUNCTION) return;
 
   int type = sym->type;
   int typesz = typesize(sym->type, sym->ctype);
   cgdebug("Generating global symbol %s (type=%s) with size %d", sym->name, typename(sym->type, sym->ctype), typesz);
-  int arysz = sym->size;
+  int arysz = sym->nelems;
 
-  assert(typesz > 0);
-  assert(arysz > 0);
+  ASSERT(typesz > 0);
+  ASSERT(arysz > 0);
 
   cgdataseg();
-  if (sym->ctype && arysz == 1) {
-    fprintf(Outfile, "\t.comm %s,%d,%d\n", sym->name, typesz, typesz);
-    return;
-  }
+  /*if (sym->ctype && arysz == 1) {*/
+    /*fprintf(Outfile, "\t.comm %s,%d,%d\n", sym->name, typesz, typesz);*/
+    /*return;*/
+  /*}*/
   fprintf(Outfile, "\t.globl\t%s\n", sym->name);
   fprintf(Outfile, "%s:\n", sym->name);
 
@@ -558,7 +557,7 @@ void cgreturn(int reg, struct symtable *sym) {
 int cgaddress(struct symtable *sym) {
   int r = alloc_register();
 
-  assert(sym->class != C_PARAM);
+  ASSERT(sym->class != C_PARAM);
 
   if (sym->class == C_LOCAL) {
     fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->posn, reglist[r]);
@@ -702,12 +701,12 @@ int cgboolean(int r, int op, int label) {
 // NOTE: should not be called for parameters that are more than the sixth
 // parameter to a function.
 int cggetlocaloffset(struct symtable *sym) {
-  assert(sym->class == C_LOCAL || sym->class == C_PARAM);
+  ASSERT(sym->class == C_LOCAL || sym->class == C_PARAM);
   int type = sym->type;
   int stype = sym->stype;
   if (stype == S_ARRAY) {
     int arysize = sym->size;
-    assert(arysize > 0);
+    ASSERT(arysize > 0);
     // here, `type` is the pointer to the actual element type
     int fullsize = cgprimsize(value_at(type))*arysize;
     localOffset += (fullsize > 4) ? fullsize : 4;
@@ -718,7 +717,7 @@ int cggetlocaloffset(struct symtable *sym) {
     localOffset += (cgprimsize(type) > 4) ? cgprimsize(type) : 4;
     return (-localOffset);
   } else {
-    assert(0);
+    ASSERT(0);
   }
 }
 

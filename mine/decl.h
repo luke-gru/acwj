@@ -1,6 +1,8 @@
 #ifndef my_cc_decl_h
 #define my_cc_decl_h
 
+#define ASSERT(expr) myassert(!!(expr), __LINE__, __FILE__)
+
 // Function prototypes for all compiler files
 // Copyright (c) 2019 Warren Toomey, GPL3
 
@@ -112,16 +114,17 @@ void fatalc(char *s, int c);
 void debugnoisy(const char *modulename, const char *fmt, ...);
 char *str_concat(char *str1, char *str2);
 void setup_signal_handlers(void);
+void myassert(int expr, int line, const char *filename);
 
 // sym.c
 struct symtable *findglob(char *s);
 struct symtable *findlocl(char *s);
-struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int class, int size);
-struct symtable *addlocl(char *name, int ptype, struct symtable *ctype, int stype, int size);
-struct symtable *addparam(char *name, int ptype, struct symtable *ctype, int stype, int size);
-struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int size);
-struct symtable *addunion(char *name, int ptype, struct symtable *ctype, int stype, int size);
-struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int stype, int size);
+struct symtable *addglob(char *name, int ptype, struct symtable *ctype, int stype, int class, int nelems);
+struct symtable *addlocl(char *name, int ptype, struct symtable *ctype, int stype, int nelems);
+struct symtable *addparam(char *name, int ptype, struct symtable *ctype, int stype, int nelems);
+struct symtable *addstruct(char *name, int ptype, struct symtable *ctype, int stype, int nelems);
+struct symtable *addunion(char *name, int ptype, struct symtable *ctype, int stype, int nelems);
+struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int stype, int nelems);
 struct symtable *addenum(char *name, int class, int value);
 struct symtable *addtypedef(char *name, int type, struct symtable *ctype,
 			   int stype, int size);

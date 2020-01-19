@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -306,7 +305,7 @@ struct ASTnode *compound_statement(int inswitch) {
     }
     if (inswitch && (Token.token == T_CASE || Token.token == T_DEFAULT)) return (left);
   }
-  assert(0);
+  ASSERT(0);
 }
 
 // Parse a return statement and return its AST
@@ -314,7 +313,7 @@ struct ASTnode *return_statement(void) {
   struct ASTnode *tree = NULL;
   int returntype, functype;
 
-  assert(CurFunctionSym != NULL); // TODO: error out, must be in function
+  ASSERT(CurFunctionSym != NULL); // TODO: error out, must be in function
   // Can't return a value if function returns P_VOID
   if (CurFunctionSym->type == P_VOID)
     fatal("Can't return from a void function");
