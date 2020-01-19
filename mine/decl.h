@@ -145,6 +145,7 @@ void global_declarations(void);
 int parse_full_type(int t, struct symtable **ctype, int *class);
 int parse_base_type(int t, struct symtable **ctype, int *class);
 int parse_pointer_array_type(int ptype);
+int parse_cast_type(struct symtable **ctype);
 // Given a typedef name, return the type it represents
 int type_of_typedef_fail(char *name, struct symtable **ctype);
 int type_of_typedef_nofail(char *name, struct symtable **ctype);

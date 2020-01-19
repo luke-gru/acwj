@@ -344,6 +344,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     // to 0 or 1 based on it's zeroeness or non-zeroeness
     return (cgboolean(leftreg, parentASTop, endlabel));
   }
+  case A_CAST:
+    return (leftreg); // assignment lvalue type takes care of proper assembly operation
   default:
     assert(n->op < A_LAST);
     fatald("Unknown AST operator in genAST", n->op);

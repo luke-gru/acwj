@@ -337,6 +337,19 @@ struct symtable *array_declaration(char *varname, int type,
   return (sym);
 }
 
+// Parse a type which appears inside a cast. '(' has already been parsed,
+// this parses up to the ')'
+int parse_cast_type(struct symtable **ctype) {
+  int type, class;
+  type = parse_full_type(Token.token, ctype, &class);
+
+  // Do some error checking. I'm sure more can be done
+  if (type == P_STRUCT || type == P_UNION || type == P_VOID) {
+    fatal("Cannot cast to a struct, union or void type");
+  }
+  return (type);
+}
+
 // Given a type, check that the latest token is a literal
 // of that type. If an integer literal, return this value.
 // If a string literal, return the label number of the string.

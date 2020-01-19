@@ -248,8 +248,46 @@ struct ASTnode *member_access(int withpointer) {
 struct ASTnode *primary(void) {
   struct ASTnode *n;
   int id;
+  int casttype = 0;
+  struct symtable *ctype = NULL;
 
   switch (Token.token) {
+  case T_LPAREN:
+    // Beginning of a parenthesised expression, skip the '('
+    scan(&Token);
+    switch (Token.token) {
+      case T_IDENT:
+        // We have to see if the identifier matches a typedef.
+        // If not, treat it as an expression.
+        if (type_of_typedef_nofail(Text, &ctype) == -1) {
+          n = binexpr(0);
+          break;
+        }
+      case T_VOID:
+      case T_CHAR:
+      case T_INT:
+      case T_LONG:
+      case T_STRUCT:
+      case T_UNION:
+      case T_ENUM:
+        // Get the type inside the parentheses
+        casttype = parse_cast_type(&ctype);
+        // Skip the closing ')' and then parse the following expression
+        rparen();
+        // fallthru
+      default:
+        n = binexpr(0); // Scan in the expression
+    }
+    if (casttype == 0) {
+      rparen();
+    } else {
+      if (casttype == n->type) {
+        // TODO: warn useless cast
+      }
+      // Otherwise, make a unary AST node for the cast
+      n = mkuastunary(A_CAST, casttype, n, NULL, 0);
+    }
+    return (n);
   case T_INTLIT:
     // For an INTLIT token, make a leaf AST node for it.
     // Make it a P_CHAR if it's within the P_CHAR range
@@ -261,11 +299,6 @@ struct ASTnode *primary(void) {
     break;
   case T_IDENT:
     return (postfix());
-  case T_LPAREN:
-    scan(&Token);
-    n = binexpr(0);
-    rparen();
-    return (n);
   case T_STRLIT:
     id = genglobstr(Text);
     n = mkastleaf(A_STRLIT, pointer_to(P_CHAR), NULL, id);
