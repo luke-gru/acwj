@@ -35,6 +35,12 @@ int ptrtype(int ptype) {
   return ((ptype & P_PTR_BITS) != 0);
 }
 
+// Given an AST tree and a type which we want it to become,
+// possibly modify the tree by widening or scaling so that
+// it is compatible with this type. Return the original tree
+// if no changes occurred, a modified tree, or NULL if the
+// tree is not compatible with the given type.
+// If this will be part of a binary operation, the AST op is not zero.
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
   int ltype;
   int lsize, rsize;
@@ -58,10 +64,15 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
     if (rsize > lsize) return (mkuastunary(A_WIDEN, rtype, tree, NULL, 0));
   }
 
-  // For pointers on the left
-  if (ptrtype(ltype)) {
-    // OK is same type on right and not doing a binary op
-    if (op == 0 && ltype == rtype) return (tree);
+  if (ptrtype(ltype) && ptrtype(rtype)) {
+    // We can compare them
+    if (op >= A_EQ && op <= A_GE)
+      return (tree);
+
+    // A comparison of the same type for a non-binary operation is OK,
+    // or when the left tree is of  `void *` type.
+    if (op == 0 && (ltype == rtype || ltype == pointer_to(P_VOID)))
+      return (tree);
   }
 
   // We can scale only on A_ADD or A_SUBTRACT operation

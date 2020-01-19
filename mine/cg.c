@@ -441,7 +441,7 @@ void cgglobsym(struct symtable *sym) {
         break;
       case LONGSZ:
         // Generate the pointer to a string literal
-        if (sym->initlist != NULL && type == pointer_to(P_CHAR)) {
+        if (sym->initlist != NULL && type == pointer_to(P_CHAR) && initvalue != 0) {
           fprintf(Outfile, "\t.quad\tL%d\n", initvalue); // label to string literal
         } else {
           fprintf(Outfile, "\t.quad\t%d\n", initvalue);

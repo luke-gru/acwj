@@ -354,11 +354,15 @@ int parse_cast_type(struct symtable **ctype) {
 // of that type. If an integer literal, return this value.
 // If a string literal, return the label number of the string.
 // Do not scan the next token.
+// If `type` is `P_NONE`, a cast has been made.
 int parse_literal(int type) {
 
   // We have a string literal. Store in memory and return the label
-  if ((type == pointer_to(P_CHAR)) && (Token.token == T_STRLIT))
-    return (genglobstr(Text));
+  if (Token.token == T_STRLIT) {
+    if (type == pointer_to(P_CHAR) || type == P_NONE) {
+      return (genglobstr(Text));
+    }
+  }
 
   if (Token.token == T_INTLIT) {
     switch(type) {
@@ -366,6 +370,7 @@ int parse_literal(int type) {
         if (Token.intvalue < 0 || Token.intvalue > 255)
           fatal("Integer literal value too big for char type");
       case P_INT:
+      case P_NONE: // cast
       case P_LONG:
         break;
       default:
@@ -380,8 +385,9 @@ int parse_literal(int type) {
 struct symtable *scalar_declaration(char *varname, int type,
     struct symtable *ctype, int class, struct ASTnode **assign_expr) {
 
-  struct symtable *sym;
+  struct symtable *sym, *cast_ctype = NULL;
   struct ASTnode *varnode, *exprnode;
+  int casttype;
 
   // Add this as a known scalar
   switch (class) {
@@ -422,6 +428,17 @@ struct symtable *scalar_declaration(char *varname, int type,
 
     // Globals
     if (class == C_GLOBAL) {
+      // If there is a cast
+      if (Token.token == T_LPAREN) {
+        lparen();
+        casttype = parse_cast_type(&cast_ctype);
+        rparen();
+        if (casttype == type || (casttype == pointer_to(P_VOID) && ptrtype(type))) {
+          type = P_NONE; // relax restrictions for (void*)
+        } else {
+          fatal("Type mismatch in cast");
+        }
+      }
       // Create one initial value for the variable and
       // parse this value
       sym->initlist= (int *)malloc(sizeof(int));
