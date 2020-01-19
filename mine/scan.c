@@ -25,12 +25,13 @@ char *toknames[] = {
   "T_SWITCH", "T_CASE", "T_DEFAULT", "T_TYPEDEF", "T_RETURN", "T_EXTERN",
   NULL
 };
+// must line up with tokens enum to compile
+CASSERT(sizeof(toknames)/sizeof(char*) == (T_LAST+1));
 
 char *tokenname(int tok) {
   ASSERT(tok >= T_EOF && tok < T_LAST);
   return toknames[tok];
 }
-
 
 // Lexical scanning
 // Copyright (c) 2019 Warren Toomey, GPL3

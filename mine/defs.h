@@ -13,6 +13,13 @@
 #define TEXTLEN		512	// Length of symbols in input
 #define NSYMBOLS        1024	// Number of symbol table entries
 
+// compile-time assertions
+#define CASSERT(predicate) _impl_CASSERT_LINE(predicate,__LINE__,__FILE_)
+
+#define _impl_PASTE(a,b) a##b
+#define _impl_CASSERT_LINE(predicate, line, file) \
+    typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
+
 // Tokens
 enum {
   T_EOF=0,
@@ -38,7 +45,6 @@ enum {
   T_SWITCH, T_CASE, T_DEFAULT, T_TYPEDEF, T_RETURN, T_EXTERN,
   T_LAST // sentinel
 };
-
 
 extern char *toknames[];
 

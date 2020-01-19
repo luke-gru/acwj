@@ -231,7 +231,7 @@ struct ASTnode *return_statement(void);
 // and return its AST
 struct ASTnode *single_statement(void) {
   struct symtable *ctype;
-  struct ASTnode *stmt;
+  struct ASTnode *stmt = NULL;
 
   switch (Token.token) {
     case T_LBRACE:
@@ -257,9 +257,9 @@ struct ASTnode *single_statement(void) {
     case T_UNION:
     case T_ENUM:
     case T_TYPEDEF:
-      declaration_list(&ctype, C_LOCAL, T_SEMI, T_EOF);
+      declaration_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt);
       semi();
-      return (NULL);
+      return (stmt); // can be NULL
     case T_IF:
       return (if_statement());
     case T_WHILE:

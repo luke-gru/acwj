@@ -261,7 +261,6 @@ struct ASTnode *primary(void) {
     break;
   case T_IDENT:
     return (postfix());
-    break;
   case T_LPAREN:
     scan(&Token);
     n = binexpr(0);
@@ -346,8 +345,7 @@ struct ASTnode *binexpr(int ptp) {
   // more than that of the previous token precedence
   while ((op_precedence(tokentype) > ptp) ||
          (rightassoc(tokentype) && op_precedence(tokentype) == ptp)) {
-    // Fetch in the next integer literal
-    scan(&Token);
+    scan(&Token); // the precedence operator token
 
     // Recursively call binexpr() with the
     // precedence of our token to build a sub-tree
@@ -383,9 +381,10 @@ struct ASTnode *binexpr(int ptp) {
     left = mkastnode(ASTop, left->type, left, NULL, right, NULL, 0);
 
     // Update the details of the current token.
-    // If we hit a semicolon or ')', return just the left node
+    // If we hit a terminating token, return just the left node
     tokentype = Token.token;
-    if (tokentype == T_SEMI || tokentype == T_RPAREN) {
+    if (tokentype == T_SEMI || tokentype == T_RPAREN ||
+        tokentype == T_RBRACKET || tokentype == T_COMMA) {
       left->rvalue = 1;
       return (left);
     }
@@ -393,6 +392,7 @@ struct ASTnode *binexpr(int ptp) {
 
   // Return the tree we have when the precedence
   // is the same or lower
+  left->rvalue = 1;
   return (left);
 }
 

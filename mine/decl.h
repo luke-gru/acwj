@@ -140,7 +140,7 @@ void clear_symtable(void);
 
 // decl.c
 struct symtable *function_declaration(char *name, int type, struct symtable *ctype, int class);
-int declaration_list(struct symtable **ctype, int class, int et1, int et2);
+int declaration_list(struct symtable **ctype, int class, int et1, int et2, struct ASTnode **assign_stmts);
 void global_declarations(void);
 int parse_full_type(int t, struct symtable **ctype, int *class);
 int parse_base_type(int t, struct symtable **ctype, int *class);

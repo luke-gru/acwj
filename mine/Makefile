@@ -14,11 +14,8 @@ bin/parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c dec
 bin/compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c install_includes
 	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -g -rdynamic expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
 
-.PHONY: scanner
 scanner: bin/scanner
-.PHONY: parser
 parser: bin/parser
-.PHONY: compiler
 compiler: bin/compiler
 
 clean:
@@ -70,7 +67,8 @@ test_compiler: bin/compiler
 	 ./bin/compiler -S test/compiler/switch.c && \
 	 ./bin/compiler -S test/compiler/dangling_else.c && \
 	 ./bin/compiler -S test/compiler/multi_decl.c && \
-	 ./bin/compiler -S test/compiler/var_init.c;
+	 ./bin/compiler -S test/compiler/var_init.c && \
+	 ./bin/compiler -S test/compiler/var_init_local.c;
 	rm test/compiler/*.s
 
 test_exec: bin/compiler
@@ -105,7 +103,8 @@ test_exec: bin/compiler
 			./runfile test/compiler/switch.c && \
 			./runfile test/compiler/dangling_else.c && \
 			./runfile test/compiler/multi_decl.c && \
-			./runfile test/compiler/var_init.c;
+			./runfile test/compiler/var_init.c && \
+			./runfile test/compiler/var_init_local.c;
 	rm a.out
 
 test_regression: bin/compiler
