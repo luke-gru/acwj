@@ -59,11 +59,19 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype,
   node->nelems = nelems;
 
   if (stype == S_VARIABLE || stype == S_ARRAY) {
-    ASSERT(nelems > 0);
-    node->size = nelems * typesize(type, ctype);
+    if (class == C_EXTERN) {
+      node->size = 0;
+    } else {
+      ASSERT(nelems > 0);
+      node->size = nelems * typesize(type, ctype);
+      if (node->size == 0) {
+        ASSERT(0);
+      }
+      ASSERT(node->size > 0);
+    }
   } else {
     // Could be a struct or union type, where size will get calculated elsewhere.
-    // Otherwise, could be a function symbol, no size
+    // Otherwise, could be a function symbol, no size, or extern variable
     node->size = 0;
   }
 
@@ -229,4 +237,23 @@ void clear_symtable(void) {
   Membershead = Memberstail = NULL;
   Enumshead = Enumstail = NULL;
   Typeshead = Typestail = NULL;
+}
+
+void dump_sym(struct symtable *sym, FILE *f) {
+  fprintf(f, "sym %s:\n", sym->name ? sym->name : "(anon)");
+  fprintf(f, "\ttype %s (%d):\n", typename(sym->type, sym->ctype), sym->type);
+  fprintf(f, "\tclass %s (%d):\n", classname(sym->class), sym->class);
+  fprintf(f, "\tstype %s (%d):\n", stypename(sym->stype), sym->stype);
+  fprintf(f, "\tnelems %d:\n", sym->nelems);
+  fprintf(f, "\tsize %d:\n", sym->size);
+  fprintf(f, "\tposn %d:\n", sym->posn);
+  fprintf(f, "\tnext? %s:\n", sym->next ? "t" : "f");
+}
+
+void dump_sym_list(struct symtable *list, FILE *f) {
+  struct symtable *cur = list;
+  while (cur) {
+    dump_sym(cur, f);
+    cur = cur->next;
+  }
 }

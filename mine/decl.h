@@ -115,6 +115,8 @@ void debugnoisy(const char *modulename, const char *fmt, ...);
 char *str_concat(char *str1, char *str2);
 void setup_signal_handlers(void);
 void myassert(int expr, int line, const char *filename);
+const char *stypename(int stype);
+const char *classname(int class);
 
 // sym.c
 struct symtable *findglob(char *s);
@@ -137,6 +139,8 @@ struct symtable *findenumval(char *name);
 struct symtable *findtypedef(char *name);
 void freeloclsyms(void);
 void clear_symtable(void);
+void dump_sym(struct symtable *sym, FILE *f);
+void dump_sym_list(struct symtable *sym, FILE *f);
 
 // decl.c
 struct symtable *function_declaration(char *name, int type, struct symtable *ctype, int class);

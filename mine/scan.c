@@ -320,6 +320,9 @@ gettok:
         t->token = T_DEC;
       } else if (c == '>') {
         t->token = T_ARROW;
+      } else if (isdigit(c)) {
+        t->intvalue = -(scanint(c));
+        t->token = T_INTLIT;
       } else {
         putback(c);
         t->token = T_MINUS;

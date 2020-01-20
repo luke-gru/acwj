@@ -292,7 +292,8 @@ int cgloadglob(struct symtable *sym, int op) {
         fprintf(Outfile, "\tdecq\t%s(\%%rip)\n", sym->name);
       break;
     default:
-      fatald("Bad type in cgloadglob:", sym->type);
+      fatalv("Bad type in cgloadglob: %s (%d)",
+          typename(sym->type, sym->ctype), sym->type);
   }
   return (r);
 }
@@ -347,7 +348,8 @@ int cgloadlocal(struct symtable *sym, int op) {
         fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->posn);
       break;
     default:
-      fatald("Bad type in cgloadlocal:", sym->type);
+      fatalv("Bad type in cgloadlocal: %s (%d)",
+          typename(sym->type, sym->ctype), sym->type);
   }
   return (r);
 }
@@ -367,7 +369,7 @@ int cgstorglob(int r, struct symtable *sym) {
       fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], sym->name);
       break;
     default:
-      fatald("Bad type in cgstorglob:", type);
+      fatalv("Bad type in cgstorglob: %s (%d)", typename(type, sym->ctype), type);
   }
   return (r);
 }
@@ -390,7 +392,8 @@ int cgstorlocal(int r, struct symtable *sym) {
           sym->posn);
       break;
     default:
-      fatald("Bad type in cgstorlocal:", sym->type);
+      fatalv("Bad type in cgstorlocal: %s (%d)",
+          typename(sym->type, sym->ctype), sym->type);
   }
   return (r);
 }
@@ -566,7 +569,8 @@ void cgreturn(int reg, struct symtable *sym) {
       fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
       break;
     default:
-      fatald("Bad function type in cgreturn:", sym->type);
+      fatalv("Bad function type in cgreturn: %s (%d)",
+          typename(sym->type, sym->ctype), sym->type);
   }
   cgjump(sym->endlabel);
 }
@@ -604,25 +608,26 @@ int cgderef(int r, int type) {
       fprintf(Outfile, "\tmovq\t(%s), %s\n", reglist[r], reglist[r]);
       break;
     default:
-      fatald("Bad type in cgderef", type);
+      fatalv("Bad type in cgderef: %s (%d)", typename(type, NULL), type);
   }
   return (r);
 }
 
 // Store through a dereferenced pointer
 int cgstorderef(int r1, int r2, int type) {
-  switch (type) {
-    case P_CHAR:
+  int size = cgprimsize(type);
+  switch (size) {
+    case CHARSZ:
       fprintf(Outfile, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
       break;
-    case P_INT:
+    case INTSZ:
       fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
       break;
-    case P_LONG:
+    case PTRSZ:
       fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
       break;
     default:
-      fatald("Can't cgstoderef on type:", type);
+      fatalv("Can't cgstoderef on type: %s (%d)", typename(type, NULL), type);
   }
   return (r1);
 }

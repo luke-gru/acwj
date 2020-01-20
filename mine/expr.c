@@ -187,6 +187,7 @@ struct ASTnode *member_access(int withpointer) {
   struct symtable *typeptr;
   struct symtable *m;
 
+
   // Check that the identifer has been declared as a struct (or a union, later),
   // or a struct/union pointer
   if ((compvar = findsymbol(Text)) == NULL)
@@ -210,28 +211,39 @@ struct ASTnode *member_access(int withpointer) {
   // Get the details of the composite type
   typeptr = compvar->ctype;
 
-  // Skip the '.' or '->' token and get the member's name
-  scan(&Token);
-  ident();
+  while (1) {
 
-  // Find the matching member's name in the type
-  // Die if we can't find it
-  for (m = typeptr->member; m != NULL; m = m->next)
-    if (!strcmp(m->name, Text))
+    // Skip the '.' or '->' token and get the member's name
+    scan(&Token);
+    ident();
+
+    // Find the matching member's name in the type
+    // Die if we can't find it
+    for (m = typeptr->member; m != NULL; m = m->next)
+      if (!strcmp(m->name, Text))
+        break;
+
+    if (m == NULL) {
+      fatalv("No member %s found in %s %s: ", Text,
+          compvar->type == P_STRUCT ? "struct" : "union", typeptr->name);
+    }
+
+    // Build an A_INTLIT node with the offset
+    right = mkastleaf(A_INTLIT, P_LONG, NULL, m->posn);
+
+    // Add the member's offset to the base of the struct and
+    // dereference it. Still an lvalue at this point
+    left = mkastnode(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
+    left = mkuastunary(A_DEREF, m->type, left, NULL, 0);
+
+    if (Token.token == T_ARROW || Token.token == T_DOT) {
+      fatal("Have yet to implement chained member access");
+      continue;
+    } else {
       break;
-
-  if (m == NULL) {
-    fatalv("No member %s found in %s %s: ", Text,
-        compvar->type == P_STRUCT ? "struct" : "union", typeptr->name);
+    }
   }
 
-  // Build an A_INTLIT node with the offset
-  right = mkastleaf(A_INTLIT, P_LONG, NULL, m->posn);
-
-  // Add the member's offset to the base of the struct and
-  // dereference it. Still an lvalue at this point
-  left = mkastnode(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
-  left = mkuastunary(A_DEREF, m->type, left, NULL, 0);
   return (left);
 }
 

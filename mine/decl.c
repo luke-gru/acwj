@@ -10,8 +10,15 @@ void enum_declaration(void);
 int typedef_declaration(struct symtable **ctype);
 int parse_literal(int type);
 
-static int ParsingStructDefn = 0;
-static int ParsingUnionDefn = 0;
+#define MAX_COMPOSITE_NESTING 100
+static int ParseCompositeLevel = 0;
+static int ParseCompositeLevels[MAX_COMPOSITE_NESTING];
+
+#define SET_PARSING_COMPOSITE(ptype) ParseCompositeLevels[ParseCompositeLevel++] = ptype
+#define UNSET_PARSING_COMPOSITE() ASSERT(ParseCompositeLevel > 0), ParseCompositeLevel--
+
+#define IS_PARSING_STRUCT (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel-1] == P_STRUCT)
+#define IS_PARSING_UNION  (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel-1] == P_UNION)
 
 static int type_of_typedef(char *name, struct symtable **ctype, int fail) {
   struct symtable *t;
@@ -327,9 +334,12 @@ struct symtable *array_declaration(char *varname, int type,
   }
 #undef TABLE_INCREMENT
 
-  ASSERT(nelems > 0);
-  sym->nelems = nelems;
-  sym->size = sym->nelems * typesize(type, ctype);
+  if (nelems > 0) { // extern declarations have nelems = 0
+    sym->nelems = nelems;
+    sym->size = sym->nelems * typesize(type, ctype);
+  } else {
+    ASSERT(sym->class == C_EXTERN);
+  }
 
   if (class == C_GLOBAL) {
     genglobsym(sym);
@@ -404,13 +414,13 @@ struct symtable *scalar_declaration(char *varname, int type,
       sym = addparam(varname, type, ctype, S_VARIABLE, 1);
       break;
     case C_MEMBER:
-      if (ParsingStructDefn) {
+      if (IS_PARSING_STRUCT) {
         debugnoisy("parse", "member %s for struct %s has type %s",
             varname, Structstail->name, typename(type, ctype));
       } else {
-        ASSERT(ParsingUnionDefn);
         debugnoisy("parse", "member %s for union %s has type %s",
             varname, Unionstail->name, typename(type, ctype));
+        ASSERT(IS_PARSING_UNION);
       }
       sym = addmember(varname, type, ctype, S_VARIABLE, 1);
       break;
@@ -480,8 +490,9 @@ struct symtable *composite_declaration(int comptype) {
   int offset;
   int t;
   int membcount = 0;
+  int fwddecl = 0;
 
-  switch(comptype) {
+  switch (comptype) {
     case P_STRUCT:
       // Skip the struct keyword
       match(T_STRUCT, "struct");
@@ -505,21 +516,32 @@ struct symtable *composite_declaration(int comptype) {
   // If the next token isn't an LBRACE, this is the usage of an existing struct/union type.
   // Return the pointer to the type.
   if (Token.token != T_LBRACE) {
-    if (ctype == NULL) {
-      fatalv("unknown %s type: %s", comptype == P_STRUCT ? "struct" : "union", Text);
+    if (Token.token == T_SEMI) {
+      fwddecl = 1;
     }
-    return (ctype);
+    if (!fwddecl && ctype == NULL) {
+      fatalv("unknown %s type: %s", comptype == P_STRUCT ? "struct" : "union", Text);
+    } else if (!fwddecl) {
+      return (ctype); // return existing struct for declaration like `struct foo f;` (size=0 for now)
+    }
   }
 
-  // Build the struct node and skip the left brace
-  if (comptype == P_STRUCT) {
-    ParsingStructDefn = 1;
-    ctype = addstruct(compname, P_STRUCT, NULL, 0, 0);
-  } else {
-    ParsingUnionDefn = 1;
-    ctype = addunion(compname, P_UNION, NULL, 0, 0);
+  if (ctype == NULL) { // new composite type
+    // Build the struct node and skip the left brace
+    if (comptype == P_STRUCT) {
+      ctype = addstruct(compname, P_STRUCT, NULL, 0, 0);
+    } else {
+      ctype = addunion(compname, P_UNION, NULL, 0, 0);
+    }
+  }
+
+  if (fwddecl) {
+    ASSERT(ctype);
+    return ctype;
   }
   lbrace();
+
+  SET_PARSING_COMPOSITE(comptype);
 
   // Scan in the list of members
   while (1) {
@@ -543,7 +565,7 @@ struct symtable *composite_declaration(int comptype) {
   ctype->nelems = membcount;
   ASSERT(ctype->member); // TODO: error out if thera are no members for struct
   Membershead = Memberstail = NULL;
-  ParsingUnionDefn = ParsingStructDefn = 0;
+  UNSET_PARSING_COMPOSITE();
 
   // Set the offset of the initial member
   // and find the first free byte after it

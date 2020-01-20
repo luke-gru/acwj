@@ -141,6 +141,7 @@ void fatalv(const char *fmt, ...) {
 #ifdef NDEBUG
   exit(1);
 #else
+  fprintf(stdout, "[DEBUG] printing internal stack trace:\n");
   print_stacktrace(0);
   exit(1);
 #endif
@@ -173,4 +174,35 @@ char *str_concat(char *str1, char *str2) {
 
 void myassert(int expr, int line, const char *filename) {
   if (!expr) fatalv("assertion failed at %s:%d", filename, line);
+}
+
+#define CASE_PRINT(label) case label: return #label
+#define CASE_DEFAULT_ERROR(name, val) default: \
+  fatalv("Invalid " name ": %d", val)
+
+const char *classname(int class) {
+  switch (class) {
+    CASE_PRINT(C_GLOBAL);
+    CASE_PRINT(C_LOCAL);
+    CASE_PRINT(C_PARAM);
+    CASE_PRINT(C_EXTERN);
+    CASE_PRINT(C_STRUCT);
+    CASE_PRINT(C_UNION);
+    CASE_PRINT(C_ENUMTYPE);
+    CASE_PRINT(C_ENUMVAL);
+    CASE_PRINT(C_TYPEDEF);
+    CASE_PRINT(C_MEMBER);
+    CASE_DEFAULT_ERROR("class", class);
+  }
+}
+
+const char *stypename(int stype) {
+  switch (stype) {
+    CASE_PRINT(S_NONE);
+    CASE_PRINT(S_VARIABLE);
+    CASE_PRINT(S_FUNCTION);
+    CASE_PRINT(S_PROTO);
+    CASE_PRINT(S_ARRAY);
+    CASE_DEFAULT_ERROR("stype", stype);
+  }
 }

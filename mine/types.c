@@ -18,9 +18,15 @@ char *typename(int ptype, struct symtable *ctype) {
   case P_VOID:
     return strdup("void");
   case P_STRUCT:
-    return str_concat("struct ", ctype->name);
+    if (ctype && ctype->name)
+      return str_concat("struct ", ctype->name);
+    else
+      return str_concat("struct ", "?");
   case P_UNION:
-    return str_concat("union ", ctype->name);
+    if (ctype && ctype->name)
+      return str_concat("union ", ctype->name);
+    else
+      return str_concat("union ", "?");
   default:
     fatald("Invalid typename", ptype);
   }

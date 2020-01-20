@@ -56,7 +56,7 @@ struct token {
 
 // AST node types (maps 1:1 with some tokens)
 enum {
-  A_ASSIGN=T_ASSIGN, A_LOGOR, A_LOGAND,
+  A_ASSIGN=1, A_LOGOR, A_LOGAND,
   A_BITOR, A_BITXOR, A_BITAND,
   A_EQ, A_NE,
   A_LT, A_GT, A_LE, A_GE,
@@ -92,8 +92,10 @@ enum {
 
 // Structural types
 enum {
-    S_VARIABLE=1, S_FUNCTION, S_PROTO, S_ARRAY
+    S_NONE=0, S_VARIABLE, S_FUNCTION, S_PROTO, S_ARRAY
 };
+
+struct symtable; // fwd decl
 
 // Abstract Syntax Tree structure
 struct ASTnode {

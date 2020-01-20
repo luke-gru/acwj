@@ -377,7 +377,7 @@ void genglobsym(struct symtable *sym) {
 
 // NOTE: works for pointers to all primitive types as well
 int genprimsize(int ptype) {
-  cgprimsize(ptype); // fine if parseOnly, doesn't actually generate code
+  return cgprimsize(ptype); // fine if parseOnly, doesn't actually generate code
 }
 
 int genglobstr(char *strvalue) {
