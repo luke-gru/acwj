@@ -211,11 +211,11 @@ struct ASTnode *member_access(int withpointer) {
   typeptr = compvar->ctype;
 
   int initposn = 0;
-  int hasanonunion = 0;
+  int hasanonunion;
   struct symtable *mu;
 
   while (1) {
-
+    hasanonunion = 0;
     // Skip the '.' or '->' token and get the member's name
     scan(&Token);
     ident();
@@ -248,9 +248,20 @@ struct ASTnode *member_access(int withpointer) {
     }
 
 found_memb:
+
     if (m == NULL) {
       fatalv("No member %s found in %s %s: ", Text,
           compvar->type == P_STRUCT ? "struct" : "union", typeptr->name);
+    }
+
+    if (Token.token == T_DOT) {
+      if (m->ctype->type != P_STRUCT && m->ctype->type != P_UNION) {
+        scan(&Token); ident();
+        fatalv("Attempt to access member %s of non-composite", Text);
+      }
+      typeptr = m->ctype;
+      initposn += m->posn;
+      continue;
     }
 
     // Build an A_INTLIT node with the offset
@@ -261,9 +272,8 @@ found_memb:
     left = mkastnode(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
     left = mkuastunary(A_DEREF, m->type, left, NULL, 0);
 
-    if (Token.token == T_ARROW || Token.token == T_DOT) {
-      fatal("Have yet to implement chained member access");
-      continue;
+    if (Token.token == T_ARROW) {
+      fatal("Have yet to implement chained member access with ->");
     } else {
       break;
     }
