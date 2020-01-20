@@ -187,7 +187,6 @@ struct ASTnode *member_access(int withpointer) {
   struct symtable *typeptr;
   struct symtable *m;
 
-
   // Check that the identifer has been declared as a struct (or a union, later),
   // or a struct/union pointer
   if ((compvar = findsymbol(Text)) == NULL)
@@ -211,6 +210,10 @@ struct ASTnode *member_access(int withpointer) {
   // Get the details of the composite type
   typeptr = compvar->ctype;
 
+  int initposn = 0;
+  int hasanonunion = 0;
+  struct symtable *mu;
+
   while (1) {
 
     // Skip the '.' or '->' token and get the member's name
@@ -219,17 +222,39 @@ struct ASTnode *member_access(int withpointer) {
 
     // Find the matching member's name in the type
     // Die if we can't find it
-    for (m = typeptr->member; m != NULL; m = m->next)
-      if (!strcmp(m->name, Text))
+    for (m = typeptr->member; m != NULL; m = m->next) {
+      if (m->name && !strcmp(m->name, Text)) {
         break;
+      } else if (typeptr->type == P_STRUCT && !m->name && m->ctype && m->ctype->type == P_UNION) {
+        hasanonunion = 1;
+      }
+    }
 
+    // anonymous union member search
+    if (m == NULL && hasanonunion) {
+      for (m = typeptr->member; m != NULL; m = m->next) {
+        if (m->ctype && m->ctype->type == P_UNION && !m->name) {
+          ASSERT(m->ctype->member);
+          for (mu = m->ctype->member; mu != NULL; mu = mu->next) {
+            if (!strcmp(mu->name, Text)) {
+              debugnoisy("parse", "Found anonymous union member %s, adding offset %d\n", mu->name, initposn);
+              m = mu;
+              goto found_memb;
+            }
+          }
+        }
+        initposn += m->size;
+      }
+    }
+
+found_memb:
     if (m == NULL) {
       fatalv("No member %s found in %s %s: ", Text,
           compvar->type == P_STRUCT ? "struct" : "union", typeptr->name);
     }
 
     // Build an A_INTLIT node with the offset
-    right = mkastleaf(A_INTLIT, P_LONG, NULL, m->posn);
+    right = mkastleaf(A_INTLIT, P_LONG, NULL, initposn + m->posn);
 
     // Add the member's offset to the base of the struct and
     // dereference it. Still an lvalue at this point

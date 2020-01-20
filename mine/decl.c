@@ -20,6 +20,8 @@ static int ParseCompositeLevels[MAX_COMPOSITE_NESTING];
 #define IS_PARSING_STRUCT (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel-1] == P_STRUCT)
 #define IS_PARSING_UNION  (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel-1] == P_UNION)
 
+#define TYPE_DEFN (-1)
+
 static int type_of_typedef(char *name, struct symtable **ctype, int fail) {
   struct symtable *t;
   ASSERT(Token.token == T_IDENT);
@@ -84,21 +86,21 @@ int parse_base_type(int t, struct symtable **ctype, int *class) {
     case T_STRUCT:
       type = P_STRUCT;
       *ctype = composite_declaration(P_STRUCT);
-      if (Token.token == T_SEMI) type = -1;
+      if (Token.token == T_SEMI) type = TYPE_DEFN;
       return type;
     case T_UNION:
       type = P_UNION;
       *ctype = composite_declaration(P_UNION);
-      if (Token.token == T_SEMI) type = -1;
+      if (Token.token == T_SEMI) type = TYPE_DEFN;
       return type;
     case T_ENUM:
       type = P_INT;
       enum_declaration();
-      if (Token.token == T_SEMI) type = -1;
+      if (Token.token == T_SEMI) type = TYPE_DEFN;
       return type;
     case T_TYPEDEF:
       type = typedef_declaration(ctype);
-      if (Token.token == T_SEMI) type = -1;
+      if (Token.token == T_SEMI) type = TYPE_DEFN;
       return type;
     case T_IDENT: // might be typedef
       type = type_of_typedef_fail(Text, ctype);
@@ -143,7 +145,7 @@ static int param_declaration_list(struct symtable *oldfuncsym,
   // the loop right after T_LPAREN.
   while (Token.token != T_RPAREN) {
     type = declaration_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, NULL);
-    if (type == -1) {
+    if (type == TYPE_DEFN) {
       fatal("Bad type in parameter list");
     }
     // We have an existing prototype.
@@ -428,7 +430,9 @@ struct symtable *scalar_declaration(char *varname, int type,
       ASSERT(0);
   }
 
-  ASSERT(sym->size > 0);
+  if (class != C_EXTERN) {
+    ASSERT(sym->size > 0);
+  }
 
   if (Token.token == T_ASSIGN) {
     // Only possible for a global or local
@@ -491,15 +495,20 @@ struct symtable *composite_declaration(int comptype) {
   int t;
   int membcount = 0;
   int fwddecl = 0;
+  const char *comptypename;
+  struct symtable *oldmembtail;
+  struct symtable *oldmembhead;
 
   switch (comptype) {
     case P_STRUCT:
       // Skip the struct keyword
       match(T_STRUCT, "struct");
+      comptypename = "struct";
       break;
     case P_UNION:
       // Skip the union keyword
       match(T_UNION, "union");
+      comptypename = "union";
       break;
     default:
       ASSERT(0);
@@ -520,17 +529,21 @@ struct symtable *composite_declaration(int comptype) {
       fwddecl = 1;
     }
     if (!fwddecl && ctype == NULL) {
-      fatalv("unknown %s type: %s", comptype == P_STRUCT ? "struct" : "union", Text);
+      fatalv("unknown %s type: %s", comptypename, Text);
     } else if (!fwddecl) {
       return (ctype); // return existing struct for declaration like `struct foo f;` (size=0 for now)
     }
   }
 
   if (ctype == NULL) { // new composite type
+    debugnoisy("parse", "%s new %s: %s",
+        fwddecl ? "declaring (fwd)" : "defining",
+        comptypename, compname);
     // Build the struct node and skip the left brace
     if (comptype == P_STRUCT) {
       ctype = addstruct(compname, P_STRUCT, NULL, 0, 0);
     } else {
+      ASSERT(comptype == P_UNION);
       ctype = addunion(compname, P_UNION, NULL, 0, 0);
     }
   }
@@ -543,12 +556,17 @@ struct symtable *composite_declaration(int comptype) {
 
   SET_PARSING_COMPOSITE(comptype);
 
+  oldmembhead = Membershead;
+  oldmembtail = Memberstail;
+  Membershead = NULL;
+  Memberstail = NULL;
   // Scan in the list of members
   while (1) {
+    m = NULL;
     // Get the next member. m is used as a dummy
     t = declaration_list(&m, C_MEMBER, T_SEMI, T_RBRACE, NULL);
-    if (t== -1) {
-      fatal("Bad type in member list");
+    if (t == -1) {
+      fatalv("Bad type in member list for %s %s", comptypename, compname);
     }
     membcount++;
     if (Token.token == T_SEMI)
@@ -559,12 +577,15 @@ struct symtable *composite_declaration(int comptype) {
 
   rbrace();
   if (Membershead==NULL)
-    fatals("No members in struct", ctype->name);
+    fatalv("No members in %s", comptypename, ctype->name);
 
-  ctype->member = Membershead;
+  if (!ctype->member) {
+    ctype->member = Membershead;
+  }
   ctype->nelems = membcount;
-  ASSERT(ctype->member); // TODO: error out if thera are no members for struct
-  Membershead = Memberstail = NULL;
+  ASSERT(ctype->member); // TODO: error out if there are no members for struct
+  Membershead = oldmembhead;
+  Memberstail = oldmembtail;
   UNSET_PARSING_COMPOSITE();
 
   // Set the offset of the initial member
@@ -581,9 +602,14 @@ struct symtable *composite_declaration(int comptype) {
   for (m = m->next; m != NULL; m = m->next) {
     // Set the offset for this member
     if (comptype == P_STRUCT) {
-      m->posn = genalign(m->type, offset, 1);
-      // Get the offset of the next free byte after this member
-      offset += typesize(m->type, m->ctype);
+      if (m->ctype && !ptrtype(m->type)) { // member is itself a composite (nested composite)
+        m->posn = genalign(P_LONG, offset, 1); // NOTE: P_LONG here just means align it to nearest 4-byte boundary
+        offset += m->ctype->size;
+      } else {
+        m->posn = genalign(m->type, offset, 1);
+        // Get the offset of the next free byte after this member
+        offset += typesize(m->type, m->ctype);
+      }
     } else {
       m->posn = 0;
       int typesz = typesize(m->type, m->ctype);
@@ -593,6 +619,8 @@ struct symtable *composite_declaration(int comptype) {
 
   // Set the overall size of the struct/union
   ctype->size = offset;
+
+  /*dump_sym(ctype, stdout);*/
 
   return (ctype);
 }
@@ -742,7 +770,7 @@ struct symtable *symbol_declaration(int type, struct symtable *ctype,
 }
 
 // Parse a list of symbols where there is an initial type.
-// Return the type of the symbols. et1 and et2 are end tokens.
+// Return the full type of the last symbol. et1 and et2 are end tokens.
 int declaration_list(struct symtable **ctype, int class, int et1, int et2,
     struct ASTnode **assign_exprs) {
   int inittype, type;
@@ -751,10 +779,17 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
   if (assign_exprs)
     *assign_exprs = NULL;
 
-  // Get the initial type. If -1, it was
-  // a composite type definition, return this
-  if ((inittype = parse_base_type(Token.token, ctype, &class)) == -1)
-    return (-1);
+  // Get the initial type. If TYPE_DEFN, it was
+  // a type definition, return this.
+  if ((inittype = parse_base_type(Token.token, ctype, &class)) == TYPE_DEFN)
+    if (inittype == TYPE_DEFN && IS_PARSING_STRUCT && (*ctype) && (*ctype)->type == P_UNION) {
+      debugnoisy("parse", "found anon union in struct %s, adding it as member", Structstail->name);
+      ASSERT((*ctype)->member);
+      addmember(NULL, P_UNION, *ctype, S_VARIABLE, 1);
+      return P_UNION; // anonymous union inside struct
+    } else {
+      return (TYPE_DEFN);
+    }
 
   // Now parse the list of symbols
   while (1) {

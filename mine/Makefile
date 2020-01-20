@@ -70,7 +70,8 @@ test_compiler: bin/compiler
 	 ./bin/compiler -S test/compiler/var_init.c && \
 	 ./bin/compiler -S test/compiler/var_init_local.c && \
 	 ./bin/compiler -S test/compiler/cast.c && \
-	 ./bin/compiler -S test/compiler/cast2.c;
+	 ./bin/compiler -S test/compiler/cast2.c && \
+	 ./bin/compiler -S test/compiler/union_anon.c;
 	rm test/compiler/*.s
 
 test_exec: bin/compiler
@@ -108,7 +109,8 @@ test_exec: bin/compiler
 			./runfile test/compiler/var_init.c && \
 			./runfile test/compiler/var_init_local.c && \
 			./runfile test/compiler/cast.c && \
-			./runfile test/compiler/cast2.c;
+			./runfile test/compiler/cast2.c && \
+			./runfile test/compiler/union_anon.c;
 	rm a.out
 
 test_regression: bin/compiler

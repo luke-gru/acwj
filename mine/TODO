@@ -7,6 +7,8 @@ Functional
 * Put string literals in read-only memory
 * Get array variables to decay to a pointer to their first element
 * Get extern functions working
+* Get Composite member access working (composite_nesting.c test file)
+* Try to compile compiler itself
 
 Optimizations
 -------------

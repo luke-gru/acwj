@@ -239,15 +239,39 @@ void clear_symtable(void) {
   Typeshead = Typestail = NULL;
 }
 
+#define TABS "\t\t\t\t\t"
+void dump_sym_lvl(struct symtable *sym, FILE *f, int lvl) {
+  struct symtable *m;
+  fprintf(f, "%.*ssym %s:\n", lvl, TABS, sym->name ? sym->name : "(anon)");
+  lvl++;
+  if (sym->class == C_STRUCT) {
+    fprintf(f, "%.*stype: STRUCT TYPE (%d)\n", lvl, TABS, sym->type);
+  } else if (sym->class == C_UNION) {
+    fprintf(f, "%.*stype: UNION TYPE (%d)\n", lvl, TABS, sym->type);
+  } else if (sym->stype == S_FUNCTION || sym->stype == S_PROTO) {
+    // function returning this type
+    fprintf(f, "%.*stype: FUNCTION -> %s (%d)\n", lvl, TABS, typename(sym->type, sym->ctype), sym->type);
+  } else {
+    // variable
+    fprintf(f, "%.*stype: %s (%d)\n", lvl, TABS, typename(sym->type, sym->ctype), sym->type);
+  }
+  fprintf(f, "%.*sclass: %s (%d)\n", lvl, TABS, classname(sym->class), sym->class);
+  fprintf(f, "%.*sstype: %s (%d)\n", lvl, TABS, stypename(sym->stype), sym->stype);
+  fprintf(f, "%.*snelems: %d\n", lvl, TABS, sym->nelems);
+  fprintf(f, "%.*ssize: %d\n", lvl, TABS, sym->size);
+  fprintf(f, "%.*sposn: %d\n", lvl, TABS, sym->posn);
+  fprintf(f, "%.*snext? %s\n", lvl, TABS, sym->next ? "t" : "f");
+  // a symbol for a composite type or function, print its members
+  if (sym->member) {
+    fprintf(f, "%.*smembers: (%d)\n", lvl, TABS, sym->nelems);
+    for (m = sym->member; m; m = m->next) {
+      dump_sym_lvl(m, f, lvl+1);
+    }
+  }
+}
+
 void dump_sym(struct symtable *sym, FILE *f) {
-  fprintf(f, "sym %s:\n", sym->name ? sym->name : "(anon)");
-  fprintf(f, "\ttype %s (%d):\n", typename(sym->type, sym->ctype), sym->type);
-  fprintf(f, "\tclass %s (%d):\n", classname(sym->class), sym->class);
-  fprintf(f, "\tstype %s (%d):\n", stypename(sym->stype), sym->stype);
-  fprintf(f, "\tnelems %d:\n", sym->nelems);
-  fprintf(f, "\tsize %d:\n", sym->size);
-  fprintf(f, "\tposn %d:\n", sym->posn);
-  fprintf(f, "\tnext? %s:\n", sym->next ? "t" : "f");
+  dump_sym_lvl(sym, f, 0);
 }
 
 void dump_sym_list(struct symtable *list, FILE *f) {
