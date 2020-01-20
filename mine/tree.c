@@ -56,6 +56,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
   int Lfalse, Lstart, Lend;
   struct ASTnode *casen;
 
+  // early return cases
   switch (n->op) {
     case A_IF:
       Lfalse = gendumplabel();
@@ -91,50 +92,50 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_DEFAULT:
       for (int i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "A_DEFAULT\n"); return;
+    case A_GLUE:
+      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      fprintf(stdout, "GLUE\n");
+      // General AST node handling
+      if (n->left) dumpAST(n->left, NOLABEL, level+2);
+      if (n->right) dumpAST(n->right, NOLABEL, level+2);
+      return;
+    default:
+      break;
   }
 
-  // Reset level to -2 for A_GLUE (flatten nested hierarchy)
-  if (n->op==A_GLUE) level= -2;
-
-  // General AST node handling
-  if (n->left) dumpAST(n->left, NOLABEL, level+2);
-  if (n->right) dumpAST(n->right, NOLABEL, level+2);
-
-
   for (int i=0; i < level; i++) fprintf(stdout, " ");
+
   switch (n->op) {
-    case A_GLUE:
-      fprintf(stdout, "GLUE\n\n"); return;
     case A_FUNCTION:
-      fprintf(stdout, "A_FUNCTION %s\n", n->sym->name); return;
+      fprintf(stdout, "A_FUNCTION %s\n", n->sym->name); break;
     case A_ADD:
-      fprintf(stdout, "A_ADD\n"); return;
+      fprintf(stdout, "A_ADD\n"); break;
     case A_SUBTRACT:
-      fprintf(stdout, "A_SUBTRACT\n"); return;
+      fprintf(stdout, "A_SUBTRACT\n"); break;
     case A_MULTIPLY:
-      fprintf(stdout, "A_MULTIPLY\n"); return;
+      fprintf(stdout, "A_MULTIPLY\n"); break;
     case A_DIVIDE:
-      fprintf(stdout, "A_DIVIDE\n"); return;
+      fprintf(stdout, "A_DIVIDE\n"); break;
     case A_EQ:
-      fprintf(stdout, "A_EQ\n"); return;
+      fprintf(stdout, "A_EQ\n"); break;
     case A_NE:
-      fprintf(stdout, "A_NE\n"); return;
+      fprintf(stdout, "A_NE\n"); break;
     case A_LT:
-      fprintf(stdout, "A_LE\n"); return;
+      fprintf(stdout, "A_LE\n"); break;
     case A_GT:
-      fprintf(stdout, "A_GT\n"); return;
+      fprintf(stdout, "A_GT\n"); break;
     case A_LE:
-      fprintf(stdout, "A_LE\n"); return;
+      fprintf(stdout, "A_LE\n"); break;
     case A_GE:
-      fprintf(stdout, "A_GE\n"); return;
+      fprintf(stdout, "A_GE\n"); break;
     case A_LSHIFT:
-      fprintf(stdout, "A_LSHIFT\n"); return;
+      fprintf(stdout, "A_LSHIFT\n"); break;
     case A_RSHIFT:
-      fprintf(stdout, "A_RSHIFT\n"); return;
+      fprintf(stdout, "A_RSHIFT\n"); break;
     case A_INTLIT:
-      fprintf(stdout, "A_INTLIT %d\n", n->intvalue); return;
+      fprintf(stdout, "A_INTLIT %d\n", n->intvalue); break;
     case A_STRLIT:
-      fprintf(stdout, "A_STRLIT (asm label %d)\n", n->intvalue); return;
+      fprintf(stdout, "A_STRLIT (asm label %d)\n", n->intvalue); break;
     case A_IDENT:
       if (n->rvalue)
         fprintf(stdout, "A_IDENT rval %s\n", n->sym->name);
@@ -142,55 +143,58 @@ void dumpAST(struct ASTnode *n, int label, int level) {
         fprintf(stdout, "A_IDENT %s\n", n->sym->name);
       return;
     case A_ASSIGN:
-      fprintf(stdout, "A_ASSIGN\n"); return;
+      fprintf(stdout, "A_ASSIGN\n"); break;
     case A_LOGOR:
-      fprintf(stdout, "A_LOGOR\n"); return;
+      fprintf(stdout, "A_LOGOR\n"); break;
     case A_LOGAND:
-      fprintf(stdout, "A_LOGOR\n"); return;
+      fprintf(stdout, "A_LOGOR\n"); break;
     case A_BITOR:
-      fprintf(stdout, "A_BITOR\n"); return;
+      fprintf(stdout, "A_BITOR\n"); break;
     case A_BITXOR:
-      fprintf(stdout, "A_BITXOR\n"); return;
+      fprintf(stdout, "A_BITXOR\n"); break;
     case A_BITAND:
-      fprintf(stdout, "A_BITAND\n"); return;
+      fprintf(stdout, "A_BITAND\n"); break;
     case A_WIDEN:
-      fprintf(stdout, "A_WIDEN\n"); return;
+      fprintf(stdout, "A_WIDEN\n"); break;
     case A_RETURN:
-      fprintf(stdout, "A_RETURN\n"); return;
+      fprintf(stdout, "A_RETURN\n"); break;
     case A_FUNCALL:
-      fprintf(stdout, "A_FUNCALL %s\n", n->sym->name); return;
+      fprintf(stdout, "A_FUNCALL %s\n", n->sym->name); break;
     case A_ADDR:
-      fprintf(stdout, "A_ADDR %s\n", n->sym->name); return;
+      fprintf(stdout, "A_ADDR %s\n", n->sym->name); break;
     case A_DEREF:
       if (n->rvalue)
         fprintf(stdout, "A_DEREF rval\n");
       else
         fprintf(stdout, "A_DEREF\n");
-      return;
+      break;
     case A_SCALE:
-      fprintf(stdout, "A_SCALE %d\n", n->size); return;
+      fprintf(stdout, "A_SCALE %d\n", n->size); break;
     case A_PREINC:
-      fprintf(stdout, "A_PREINC\n"); return;
+      fprintf(stdout, "A_PREINC\n"); break;
     case A_PREDEC:
-      fprintf(stdout, "A_PREDEC\n"); return;
+      fprintf(stdout, "A_PREDEC\n"); break;
     case A_POSTINC:
-      fprintf(stdout, "A_POSTINC %s\n", n->sym->name); return;
+      fprintf(stdout, "A_POSTINC %s\n", n->sym->name); break;
     case A_POSTDEC:
-      fprintf(stdout, "A_POSTDEC %s\n", n->sym->name); return;
+      fprintf(stdout, "A_POSTDEC %s\n", n->sym->name); break;
     case A_NEGATE:
-      fprintf(stdout, "A_NEGATE\n"); return;
+      fprintf(stdout, "A_NEGATE\n"); break;
     case A_INVERT:
-      fprintf(stdout, "A_INVERT\n"); return;
+      fprintf(stdout, "A_INVERT\n"); break;
     case A_LOGNOT:
-      fprintf(stdout, "A_LOGNOT\n"); return;
+      fprintf(stdout, "A_LOGNOT\n"); break;
     case A_TOBOOL:
-      fprintf(stdout, "A_TOBOOL\n"); return;
+      fprintf(stdout, "A_TOBOOL\n"); break;
     case A_BREAK:
-      fprintf(stdout, "A_BREAK\n"); return;
+      fprintf(stdout, "A_BREAK\n"); break;
     case A_CONTINUE:
-      fprintf(stdout, "A_CONTINUE\n"); return;
+      fprintf(stdout, "A_CONTINUE\n"); break;
     default:
       ASSERT(n->op < A_LAST);
       fatald("Unknown dumpAST AST node operator", n->op);
   }
+
+  if (n->left) dumpAST(n->left, NOLABEL, level+2);
+  if (n->right) dumpAST(n->right, NOLABEL, level+2);
 }

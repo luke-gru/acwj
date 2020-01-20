@@ -75,3 +75,49 @@ returning the `leftreg` value. This value is returned because assignment is
 considered an expression in the language (`a = b = 1000`).
 6) Registers are freed (`leftreg`)
 ...
+
+Chained Member access
+---------------------
+
+ex:
+
+struct Bar {
+    int val;
+};
+struct Foo {
+    int val;
+    struct Bar bar;
+}
+
+Foo foo;
+
+int main() {
+    printf("%d\n", foo.val);
+}
+
+Tree for `foo.val`:
+
+A_FUNCTION main
+  GLUE
+    A_FUNCALL printf
+      GLUE
+        GLUE
+          A_STRLIT (asm label -1)
+        ============
+        A_DEREF rval
+          A_ADD
+            A_ADDR foo
+            A_INTLIT 0
+        ============
+    A_RETURN
+      A_WIDEN
+        A_INTLIT 0
+
+Tree for `foo.bar.val`:
+
+        ============
+        A_DEREF rval
+          A_ADD
+            A_ADDR foo
+            A_INTLIT 4
+        ============
