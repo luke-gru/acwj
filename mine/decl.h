@@ -163,4 +163,7 @@ int inttype(int ptype);
 int ptrtype(int ptype);
 int typesize(int type, struct symtable *ctype);
 
+// opt.c
+struct ASTnode *optimise(struct ASTnode *tree);
+
 #endif

@@ -244,6 +244,8 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
   }
   tree = mkuastunary(A_FUNCTION, type, tree, oldfuncsym, 0);
 
+  tree = optimise(tree);
+
   // Generate the assembly code for it
   if (O_dumpAST) {
     dumpAST(tree, NOLABEL, 0);
