@@ -30,7 +30,7 @@ char *toknames[] = {
   "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_BREAK", "T_CONTINUE",
   "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_UNION", "T_ENUM",
   "T_SWITCH", "T_CASE", "T_DEFAULT", "T_TYPEDEF", "T_RETURN", "T_EXTERN",
-  "T_SIZEOF",
+  "T_SIZEOF", "T_STATIC",
   NULL
 };
 // must line up with tokens enum to compile
@@ -281,6 +281,8 @@ static int keyword(char *s) {
         return (T_SWITCH);
       if (!strcmp(s, "sizeof"))
         return (T_SIZEOF);
+      if (!strcmp(s, "static"))
+        return (T_STATIC);
       break;
     case 'u':
       if (!strcmp(s, "union"))

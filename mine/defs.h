@@ -51,7 +51,7 @@ enum {
   T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_BREAK, T_CONTINUE,
   T_VOID, T_CHAR, T_LONG, T_STRUCT, T_UNION, T_ENUM,
   T_SWITCH, T_CASE, T_DEFAULT, T_TYPEDEF, T_RETURN, T_EXTERN,
-  T_SIZEOF,
+  T_SIZEOF, T_STATIC,
   T_LAST // sentinel
 };
 
@@ -130,6 +130,7 @@ enum {
     C_LOCAL,            // Locally visible symbol
     C_PARAM,            // Locally visible function parameter
     C_EXTERN,           // External globally visible symbol
+    C_STATIC,           // Static functions and globals are local to a compilation unit (file)
     C_STRUCT,           // Struct type
     C_UNION,            // Union type
     C_ENUMTYPE,         // Enum type

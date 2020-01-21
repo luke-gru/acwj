@@ -150,13 +150,16 @@ void cgfuncpreamble(struct symtable *sym) {
   localOffset = 0;
   cgdebug("Generating func preamble for %s", name);
 
+  if (sym->class == C_GLOBAL) {
+    fprintf(Outfile, "\t.globl\t%s\n", name);
+  }
+
   fprintf(Outfile,
-          "\t.globl\t%s\n"
           "\t.type\t%s, @function\n"
           "%s:\n"
           "\tpushq\t%%rbp\n"
           "\tmovq\t%%rsp, %%rbp\n",
-          name, name, name);
+          name, name);
 
   // Copy any in-register parameters to the stack, up to six of them
   // The remaining parameters are already on the stack
@@ -404,7 +407,7 @@ void cgglobsym(struct symtable *sym) {
   int size;
   int type;
 
-  ASSERT(sym->class == C_GLOBAL);
+  ASSERT(sym->class == C_GLOBAL || sym->class == C_STATIC);
   if (sym->stype == S_FUNCTION) return;
 
   // Get the size of the variable (or its elements if an array)
@@ -417,7 +420,9 @@ void cgglobsym(struct symtable *sym) {
     type = sym->type;
   }
 
-  cgdebug("Generating global symbol %s (type=%s) with size %d", sym->name, typename(sym->type, sym->ctype), sym->size);
+  cgdebug("Generating %s symbol %s (type=%s) with size %d",
+      sym->class == C_STATIC ? "static" : "global",
+      sym->name, typename(sym->type, sym->ctype), sym->size);
 
   ASSERT(size > 0);
   ASSERT(sym->nelems > 0);
@@ -427,7 +432,9 @@ void cgglobsym(struct symtable *sym) {
     /*fprintf(Outfile, "\t.comm %s,%d,%d\n", sym->name, typesz, typesz);*/
     /*return;*/
   /*}*/
-  fprintf(Outfile, "\t.globl\t%s\n", sym->name);
+  if (sym->class == C_GLOBAL) {
+    fprintf(Outfile, "\t.globl\t%s\n", sym->name);
+  }
   fprintf(Outfile, "%s:\n", sym->name);
 
   for (int i = 0; i < sym->nelems; i++) {

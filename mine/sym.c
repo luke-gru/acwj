@@ -220,11 +220,46 @@ struct symtable *findtypedef(char *s) {
   return (findsyminlist(s, Typeshead, 0));
 }
 
+int isglobalsym(struct symtable *sym) {
+  return sym->class == C_GLOBAL || sym->class == C_STATIC || sym->class == C_EXTERN;
+}
+
+int issizedsym(struct symtable *sym) {
+  return sym->size > 0 && sym->class != C_EXTERN;
+}
+
 // Clear all the entries in the local symbol table
 void freeloclsyms(void) {
   Localshead = Localstail = NULL;
   Paramshead = Paramstail = NULL;
   CurFunctionSym = NULL;
+}
+
+void freestaticsyms(void) {
+  // g points at current node, prev at the previous one
+  struct symtable *g, *prev= NULL;
+
+  // Walk the global table looking for static entries
+  for (g= Globalshead; g != NULL; g= g->next) {
+    if (g->class == C_STATIC) {
+
+      // If there's a previous node, rearrange the prev pointer
+      // to skip over the current node. If not, g is the head,
+      // so do the same to Globhead
+      if (prev != NULL) prev->next= g->next;
+      else Globalshead->next= g->next;
+
+      // If g is the tail, point Globtail at the previous node
+      // (if there is one), or Globhead
+      if (g == Globalstail) {
+        if (prev != NULL) Globalstail= prev;
+        else Globalstail= Globalshead;
+      }
+    }
+  }
+
+  // Point prev at g before we move up to the next node
+  prev= g;
 }
 
 // Reset the contents of the symbol table

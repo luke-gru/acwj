@@ -61,7 +61,17 @@ int parse_base_type(int t, struct symtable **ctype, int *class) {
   while (extern_static) {
     switch (Token.token) {
       case T_EXTERN:
+        if (*class == C_STATIC)
+          fatal("Illegal to have extern and static at the same time");
         *class = C_EXTERN;
+        scan(&Token);
+        break;
+      case T_STATIC:
+        if (*class == C_LOCAL)
+          fatal("Compiler doesn't support static local declarations");
+        if (*class == C_EXTERN)
+          fatal("Illegal to have extern and static at the same time");
+        *class = C_STATIC;
         scan(&Token);
         break;
       default:
@@ -283,6 +293,7 @@ struct symtable *array_declaration(char *varname, int type,
   // We treat the array as a pointer to its elements' type
   switch (class) {
     case C_EXTERN:
+    case C_STATIC:
     case C_GLOBAL:
       sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class,
           Token.intvalue);
@@ -300,7 +311,7 @@ struct symtable *array_declaration(char *varname, int type,
   match(T_RBRACKET, "]");
 
   if (Token.token == T_ASSIGN) {
-    if (class != C_GLOBAL)
+    if (class != C_GLOBAL && class != C_STATIC)
       fatals("Variable can not be initialised", varname);
     scan(&Token);
 
@@ -349,7 +360,7 @@ struct symtable *array_declaration(char *varname, int type,
     ASSERT(sym->class == C_EXTERN);
   }
 
-  if (class == C_GLOBAL) {
+  if (isglobalsym(sym)) {
     genglobsym(sym);
   }
   return (sym);
@@ -419,6 +430,7 @@ struct symtable *scalar_declaration(char *varname, int type,
   switch (class) {
     case C_EXTERN:
     case C_GLOBAL:
+    case C_STATIC:
       sym = addglob(varname, type, ctype, S_VARIABLE, class, 1);
       break;
     case C_LOCAL:
@@ -450,12 +462,12 @@ struct symtable *scalar_declaration(char *varname, int type,
 
   if (Token.token == T_ASSIGN) {
     // Only possible for a global or local
-    if (class != C_GLOBAL && class != C_LOCAL)
+    if (class != C_GLOBAL && class != C_LOCAL && class != C_STATIC)
       fatals("Variable can not be initialised", varname);
     scan(&Token); // '='
 
     // Globals
-    if (class == C_GLOBAL) {
+    if (class == C_GLOBAL || class == C_STATIC) {
       // Create one initial value for the variable and
       // parse this value
       sym->initlist= (int *)malloc(sizeof(int));
@@ -481,7 +493,7 @@ struct symtable *scalar_declaration(char *varname, int type,
     }
   }
 
-  if (class == C_GLOBAL) {
+  if (isglobalsym(sym)) {
     genglobsym(sym);
   }
 
@@ -743,6 +755,7 @@ struct symtable *symbol_declaration(int type, struct symtable *ctype,
   // See if this array or scalar variable has already been declared
   switch (class) {
     case C_EXTERN:
+    case C_STATIC:
     case C_GLOBAL:
       if (findglob(varname) != NULL)
         fatals("Duplicate global variable declaration", varname);
@@ -824,7 +837,7 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 
     // We parsed a function, there is no list so leave
     if (sym->stype == S_FUNCTION || sym->stype == S_PROTO) {
-      if (class != C_GLOBAL)
+      if (!isglobalsym(sym))
         fatal("Function definition not at global level");
       return (type);
     }

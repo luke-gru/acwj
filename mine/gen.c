@@ -249,7 +249,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     // Load our value if we are an rvalue
     // or we are being dereferenced
     if (n->rvalue || parentASTop == A_DEREF) {
-      if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN) {
+      if (isglobalsym(n->sym)) {
         return (cgloadglob(n->sym, n->op));
       } else {
         return (cgloadlocal(n->sym, n->op));
@@ -282,7 +282,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     }
     switch (n->right->op) {
       case A_IDENT: // ex: a = 12
-        if (n->right->sym->class == C_GLOBAL || n->right->sym->class == C_EXTERN) {
+        if (isglobalsym(n->right->sym)) {
           return (cgstorglob(leftreg, n->right->sym));
         } else {
           return (cgstorlocal(leftreg, n->right->sym));
@@ -331,25 +331,25 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   case A_RSHIFT:
     return (cgshr(leftreg, rightreg));
   case A_POSTINC: // doesn't have children
-    if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN) {
+    if (isglobalsym(n->sym)) {
       return (cgloadglob(n->sym, n->op));
     } else {
       return (cgloadlocal(n->sym, n->op));
     }
   case A_POSTDEC: // doesn't have children
-    if (n->sym->class == C_GLOBAL || n->sym->class == C_EXTERN) {
+    if (isglobalsym(n->sym)) {
       return (cgloadglob(n->sym, n->op));
     } else {
       return (cgloadlocal(n->sym, n->op));
     }
   case A_PREINC: // has 1 child
-    if (n->left->sym->class == C_GLOBAL || n->left->sym->class == C_EXTERN) {
+    if (isglobalsym(n->left->sym)) {
       return (cgloadglob(n->left->sym, n->op));
     } else {
       return (cgloadlocal(n->left->sym, n->op));
     }
   case A_PREDEC: // has 1 child
-    if (n->left->sym->class == C_GLOBAL || n->left->sym->class == C_EXTERN) {
+    if (isglobalsym(n->left->sym)) {
       return (cgloadglob(n->left->sym, n->op));
     } else {
       return (cgloadlocal(n->left->sym, n->op));
