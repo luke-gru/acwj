@@ -9,6 +9,10 @@ Functional
 * Get extern functions working
 * Get Composite member access working with mixed -> and .
 * Try to compile compiler itself
+* Get variable length argument lists working (`...`). First,
+limit these extra arguments to be max-wordsize, I could push
+them to stack before the call, and retrieve them via the regular
+va_list, va_start macros.
 
 Optimizations
 -------------

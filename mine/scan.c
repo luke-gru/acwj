@@ -172,17 +172,34 @@ static int skip_until(int until_char) {
 // value from the input file. Store
 // the value as a string in Text.
 static int scanint(int c) {
-  int k, val = 0;
+  long k, val = 0, radix = 10;
+
+  if (c == '0') {
+    if ((c = next()) == 'x') {
+      radix = 16;
+      c = next();
+    } else {
+      radix = 8;
+    }
+  }
 
   // Convert each character into an int value
-  while ((k = chrpos("0123456789", c)) >= 0) {
-    val = val * 10 + k;
+  while ((k = chrpos("0123456789abcdef", tolower(c))) >= 0) {
+    if (k >= radix) {
+      fatalc("Invalid digit in integer literal", c);
+    }
+    val = val * radix + k;
     c = next();
+  }
+
+#define MY_MAX_INT (0x7FFFFFFF)
+  if (val > MY_MAX_INT) {
+    fatalv("Value %ld is out of range of integer literal", val);
   }
 
   // We hit a non-integer character, put it back.
   putback(c);
-  return (val);
+  return ((int)val);
 }
 
 // Scan an identifier from the input file and
@@ -281,8 +298,30 @@ static int keyword(char *s) {
   return (0);
 }
 
+// Read in a hexadecimal constant from the input
+static int hexchar(void) {
+  int c, h, n = 0, f = 0;
+
+  // Loop getting characters
+  while (isxdigit(c = next())) {
+    // Convert from char to int value
+    h = chrpos("0123456789abcdef", tolower(c));
+    // Add to running hex value
+    n = n * 16 + h;
+    f = 1;
+  }
+  // We hit a non-hex character, put it back
+  putback(c);
+  // Flag tells us we never saw any hex characters
+  if (!f)
+    fatal("missing digits after '\\x'");
+  if (n > 255)
+    fatal("value out of range after '\\x'");
+  return n;
+}
+
 int scan_ch(void) {
-  int c;
+  int i, c, c2;
 
   // Get the next input character and interpret
   // metacharacters that start with a backslash
@@ -299,6 +338,23 @@ int scan_ch(void) {
       case '\\': return '\\';
       case '"':  return '"' ;
       case '\'': return '\'';
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+        for (i = c2 = 0; isdigit(c) && c < '8'; c = next()) {
+          if (++i > 3)
+            break;
+          c2 = c2 * 8 + (c - '0');
+        }
+        putback(c);             // Put back the first non-octal char
+        return (c2);
+      case 'x':
+        return hexchar();
       default:
         fatalc("unknown escape sequence", c);
     }

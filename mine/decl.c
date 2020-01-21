@@ -21,6 +21,7 @@ static int ParseCompositeLevels[MAX_COMPOSITE_NESTING];
 #define IS_PARSING_UNION  (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel-1] == P_UNION)
 
 #define TYPE_DEFN (-1)
+#define VOID_PARAMS (-2)
 
 static int type_of_typedef(char *name, struct symtable **ctype, int fail) {
   struct symtable *t;
@@ -147,6 +148,9 @@ static int param_declaration_list(struct symtable *oldfuncsym,
     type = declaration_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, NULL);
     if (type == TYPE_DEFN) {
       fatal("Bad type in parameter list");
+    }
+    if (type == VOID_PARAMS) {
+      break;
     }
     // We have an existing prototype.
     // Check that this type matches the prototype.
@@ -798,6 +802,10 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
     if (class == C_PARAM && CurFunctionSym && CurFunctionSym->stype == S_PROTO) {
       ident();
       return type;
+    }
+
+    if (class == C_PARAM && type == P_VOID && Token.token == T_RPAREN) {
+      return VOID_PARAMS;
     }
 
     // Parse this symbol

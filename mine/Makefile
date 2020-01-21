@@ -6,7 +6,7 @@ install_includes:
 	rsync -a system/include/. $(INCDIR)
 
 bin/scanner: scanner_main.c scan.c misc.c opt.c install_includes
-	cc -o bin/scanner -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic scanner_main.c scan.c misc.c opt.c
+	cc -o bin/scanner -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic scanner_main.c scan.c misc.c
 
 bin/parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c install_includes
 	cc -o bin/parser -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c
