@@ -754,6 +754,8 @@ int cggetlocaloffset(struct symtable *sym) {
 int cgalign(int type, int offset, int direction) {
   int alignment;
 
+  if (ptrtype(type)) type = P_LONG;
+
   // We don't need to do this on x86-64, but let's
   // align chars on any offset and align ints/pointers
   // on a 4-byte alignment
@@ -762,7 +764,7 @@ int cgalign(int type, int offset, int direction) {
     case P_INT:
     case P_LONG: break;
     default:
-      fatald("Bad type in calc_aligned_offset:", type);
+      fatalv("Bad type in cgalign: %s (%d)", typename(type, NULL), type);
   }
 
   // Here we have an int or a long. Align it on a 4-byte offset

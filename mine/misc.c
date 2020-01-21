@@ -35,10 +35,15 @@ static void print_filename(FILE *f) {
   }
 }
 
+static void print_curline(FILE *f) {
+  fprintf(f, "on line:\n%s", CurLine);
+}
+
 static void print_stacktrace(int sig) {
   if (sig) {
     print_filename(stdout);
     fprintf(stdout, "\n");
+    print_curline(stdout);
   }
 
   void* callstack[128];
@@ -138,6 +143,7 @@ void fatalv(const char *fmt, ...) {
   }
   if (Outfile) fclose(Outfile);         // assembly FILE
   if (Outfilename) unlink(Outfilename); // assembly file
+  print_curline(stderr);
 #ifdef NDEBUG
   exit(1);
 #else

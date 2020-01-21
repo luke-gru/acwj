@@ -3,6 +3,11 @@
 #include "decl.h"
 
 static struct token *Rejtoken = NULL;
+extern char *CurLine;
+static int CurLinePos = 0;
+static size_t CurLineSize = 0;
+static size_t CurLineLen = 0;
+static int IsEOF = 0;
 
 char *toknames[] = {
   "T_EOF",
@@ -45,6 +50,40 @@ static int chrpos(char *s, int c) {
   return (p ? p - s : -1);
 }
 
+static int readchar(void) {
+  int res = 0;
+  if (IsEOF) {
+    /*fprintf(stderr, "found EOF\n");*/
+    return EOF;
+  }
+  /*fprintf(stderr, "CurLinePos: %d, CurLineSize: %ld\n", CurLinePos, CurLineSize);*/
+  if (CurLinePos == CurLineLen) {
+    /*fprintf(stderr, "getting new line\n");*/
+    CurLinePos = 0;
+    res = getline(&CurLine, &CurLineSize, Infile);
+    if (res == -1) {
+      IsEOF = 1;
+      /*fprintf(stderr, "found EOF\n");*/
+      return EOF;
+    }
+    CurLineLen = res;
+  }
+  if (!CurLine) {
+    /*fprintf(stderr, "getting initial line\n");*/
+    res = getline(&CurLine, &CurLineSize, Infile);
+    if (res == -1) {
+      IsEOF = 1;
+      /*fprintf(stderr, "found EOF\n");*/
+      return EOF;
+    }
+    CurLineLen = res;
+    /*fprintf(stderr, "got line: '%s', len: %ld\n", CurLine, CurLineLen);*/
+  }
+  int c = CurLine[CurLinePos++];
+  /*fprintf(stderr, "readchar: %c (%d)\n", c, c);*/
+  return c;
+}
+
 // Get the next character from the input file.
 static int next(void) {
   int c;
@@ -57,7 +96,7 @@ static int next(void) {
     return (c);
   }
 
-  c = fgetc(Infile);		// Read from input file
+  c = readchar();
 
   while (c == '#') {                    // We've hit a pre-processor statement
     scan(&Token);                       // Get the line number into l
@@ -77,10 +116,10 @@ static int next(void) {
     }
 
     // Skip to the end of the line
-    while ((c = fgetc(Infile)) != '\n') {
+    while ((c = readchar()) != '\n') {
     }
     Col = 0;
-    c = fgetc(Infile);                  // and get the next character
+    c = readchar();                  // and get the next character
   }
 
   Col++;
@@ -471,7 +510,7 @@ gettok:
         break;
       }
       // The character isn't part of any recognised token, error
-      fatalc("Unrecognised character", c);
+      fatalv("Unrecognised character '%c' (%d)", c, (int)c);
   }
 
   // We found a token

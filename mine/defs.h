@@ -96,6 +96,7 @@ enum {
 };
 
 struct symtable; // fwd decl
+struct ASTnode; // fwd decl
 
 // Abstract Syntax Tree structure
 struct ASTnode {
