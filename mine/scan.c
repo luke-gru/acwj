@@ -30,6 +30,7 @@ char *toknames[] = {
   "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_BREAK", "T_CONTINUE",
   "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_UNION", "T_ENUM",
   "T_SWITCH", "T_CASE", "T_DEFAULT", "T_TYPEDEF", "T_RETURN", "T_EXTERN",
+  "T_SIZEOF",
   NULL
 };
 // must line up with tokens enum to compile
@@ -55,34 +56,26 @@ static int chrpos(char *s, int c) {
 static int readchar(void) {
   int res = 0;
   if (IsEOF) {
-    /*fprintf(stderr, "found EOF\n");*/
     return EOF;
   }
-  /*fprintf(stderr, "CurLinePos: %d, CurLineSize: %ld\n", CurLinePos, CurLineSize);*/
-  if (CurLinePos == CurLineLen) {
-    /*fprintf(stderr, "getting new line\n");*/
+  if (CurLinePos == CurLineLen) { // new line
     CurLinePos = 0;
     res = getline(&CurLine, &CurLineSize, Infile);
     if (res == -1) {
       IsEOF = 1;
-      /*fprintf(stderr, "found EOF\n");*/
       return EOF;
     }
     CurLineLen = res;
   }
-  if (!CurLine) {
-    /*fprintf(stderr, "getting initial line\n");*/
+  if (!CurLine) { // first line
     res = getline(&CurLine, &CurLineSize, Infile);
     if (res == -1) {
       IsEOF = 1;
-      /*fprintf(stderr, "found EOF\n");*/
       return EOF;
     }
     CurLineLen = res;
-    /*fprintf(stderr, "got line: '%s', len: %ld\n", CurLine, CurLineLen);*/
   }
   int c = CurLine[CurLinePos++];
-  /*fprintf(stderr, "readchar: %c (%d)\n", c, c);*/
   return c;
 }
 
@@ -286,6 +279,8 @@ static int keyword(char *s) {
         return (T_STRUCT);
       if (!strcmp(s, "switch"))
         return (T_SWITCH);
+      if (!strcmp(s, "sizeof"))
+        return (T_SIZEOF);
       break;
     case 'u':
       if (!strcmp(s, "union"))

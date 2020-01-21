@@ -290,6 +290,7 @@ found_memb:
           | CONSTANT
           | STRING_LITERAL
           | '(' expression ')'
+          | sizeof '(' type_decl ')'
           ;
 */
 // Parse a primary factor and return an
@@ -299,8 +300,18 @@ struct ASTnode *primary(void) {
   int id;
   int casttype = 0;
   struct symtable *ctype = NULL;
+  int type, size, class;
 
   switch (Token.token) {
+  case T_SIZEOF:
+    scan(&Token);
+    if (Token.token != T_LPAREN)
+      fatal("Left parenthesis expected after sizeof");
+    scan(&Token);
+    type = parse_full_type(Token.token, &ctype, &class);
+    size = typesize(type, ctype);
+    rparen();
+    return (mkastleaf(A_INTLIT, P_INT, NULL, size));
   case T_LPAREN:
     // Beginning of a parenthesised expression, skip the '('
     scan(&Token);

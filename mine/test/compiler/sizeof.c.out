@@ -1,0 +1,5 @@
+int size: 4
+struct List size: 16
+typedef List size: 16
+struct List* size: 8
+typedef List* size: 8
