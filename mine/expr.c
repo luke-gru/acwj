@@ -421,7 +421,8 @@ struct ASTnode *binexpr(int ptp) {
 
   // If we hit a ';', ':', ')', ']' or ',' return just the left node
   tokentype = Token.token;
-  if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET || tokentype == T_COMMA || tokentype == T_COLON) {
+  if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET ||
+      tokentype == T_COMMA || tokentype == T_COLON || tokentype == T_RBRACE) {
     left->rvalue = 1;
     return (left);
   }
@@ -469,7 +470,7 @@ struct ASTnode *binexpr(int ptp) {
     // If we hit a terminating token, return just the left node
     tokentype = Token.token;
     if (tokentype == T_SEMI || tokentype == T_RPAREN ||
-        tokentype == T_RBRACKET || tokentype == T_COMMA) {
+        tokentype == T_RBRACKET || tokentype == T_COMMA || tokentype == T_RBRACE) {
       left->rvalue = 1;
       return (left);
     }

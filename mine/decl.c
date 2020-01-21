@@ -263,15 +263,16 @@ struct symtable *array_declaration(char *varname, int type,
   int *initlist = NULL;
   int i, j;
   int maxelems;
+  int gotelems = 0;
   // Skip past the '['
   match(T_LBRACKET, "[");
 
-  if (Token.token == T_INTLIT) {
-    if (Token.intvalue <= 0) {
-      fatald("Array size is illegal", Token.intvalue);
-    }
-    nelems = Token.intvalue;
-    scan(&Token);
+  if (Token.token != T_RBRACKET) {
+    gotelems = 1;
+    nelems = parse_literal(P_INT);
+  }
+  if (gotelems && nelems <= 0) {
+    fatald("Array size is illegal", nelems);
   }
 
   // Add this as a known array
@@ -312,7 +313,6 @@ struct symtable *array_declaration(char *varname, int type,
       if (nelems != -1 && i == maxelems)
         fatal("Too many values given in initialisation list");
       initlist[i++] = parse_literal(type);
-      scan(&Token);
 
       // Increase the list size if the original size was
       // not set and we have hit the end of the current list
@@ -364,36 +364,44 @@ int parse_cast_type(struct symtable **ctype) {
   return (type);
 }
 
-// Given a type, check that the latest token is a literal
-// of that type. If an integer literal, return this value.
+// Given a type, parse an expression of literals and ensure
+// that the type of this expression matches the given type.
+// Parse any type cast that precedes the expression.
+// If an integer literal, return this value.
 // If a string literal, return the label number of the string.
-// Do not scan the next token.
-// If `type` is `P_NONE`, a cast has been made.
 int parse_literal(int type) {
+  struct ASTnode *tree;
 
-  // We have a string literal. Store in memory and return the label
-  if (Token.token == T_STRLIT) {
-    if (type == pointer_to(P_CHAR) || type == P_NONE) {
-      return (genglobstr(Text));
-    }
+  tree = optimise(binexpr(0));
+
+  // If there's a cast, get the child and
+  // mark it as having the type from the cast
+  if (tree->op == A_CAST) {
+    tree->left->type= tree->type;
+    tree= tree->left;
   }
 
-  if (Token.token == T_INTLIT) {
-    switch(type) {
-      case P_CHAR:
-        if (Token.intvalue < 0 || Token.intvalue > 255)
-          fatal("Integer literal value too big for char type");
-      case P_INT:
-      case P_NONE: // cast
-      case P_LONG:
-        break;
-      default:
-        fatal("Type mismatch: integer literal vs. variable");
-    }
-  } else {
-    fatal("Expecting an integer literal value");
+  // The tree must now have an integer or string literal
+  if (tree->op != A_INTLIT && tree->op != A_STRLIT)
+    fatal("Cannot initialise globals with a general expression");
+
+  // If the type is char * and
+  if (type == pointer_to(P_CHAR)) {
+    // We have a string literal, return the label number
+    if (tree->op == A_STRLIT)
+      return (tree->intvalue);
+    // We have a zero int literal, so that's a NULL
+    if (tree->op == A_INTLIT && tree->intvalue==0)
+      return (0);
   }
-  return (Token.intvalue);
+
+  // We only get here with an integer literal. The input type
+  // is an integer type and is wide enough to hold the literal value
+  if (inttype(type) && typesize(type, NULL) >= typesize(tree->type, NULL))
+    return (tree->intvalue);
+
+  fatal("Type mismatch: literal vs. variable");
+  return(0);    // Keep -Wall happy
 }
 
 struct symtable *scalar_declaration(char *varname, int type,
@@ -440,26 +448,14 @@ struct symtable *scalar_declaration(char *varname, int type,
     // Only possible for a global or local
     if (class != C_GLOBAL && class != C_LOCAL)
       fatals("Variable can not be initialised", varname);
-    scan(&Token);
+    scan(&Token); // '='
 
     // Globals
     if (class == C_GLOBAL) {
-      // If there is a cast
-      if (Token.token == T_LPAREN) {
-        lparen();
-        casttype = parse_cast_type(&cast_ctype);
-        rparen();
-        if (casttype == type || (casttype == pointer_to(P_VOID) && ptrtype(type))) {
-          type = P_NONE; // relax restrictions for (void*)
-        } else {
-          fatal("Type mismatch in cast");
-        }
-      }
       // Create one initial value for the variable and
       // parse this value
       sym->initlist= (int *)malloc(sizeof(int));
       sym->initlist[0]= parse_literal(type);
-      scan(&Token); // the integer or string token
     }                           // No else code yet, soon
     if (class == C_LOCAL) {
       // Make an A_IDENT AST node with the variable

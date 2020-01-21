@@ -72,7 +72,8 @@ test_compiler: bin/compiler
 	 ./bin/compiler -S test/compiler/cast.c && \
 	 ./bin/compiler -S test/compiler/cast2.c && \
 	 ./bin/compiler -S test/compiler/union_anon.c && \
-	 ./bin/compiler -S test/compiler/composite_nesting.c;
+	 ./bin/compiler -S test/compiler/composite_nesting.c && \
+	 ./bin/compiler -S test/compiler/global_var_init.c;
 	rm test/compiler/*.s
 
 test_exec: bin/compiler
@@ -112,7 +113,8 @@ test_exec: bin/compiler
 			./runfile test/compiler/cast.c && \
 			./runfile test/compiler/cast2.c && \
 			./runfile test/compiler/union_anon.c && \
-			./runfile test/compiler/composite_nesting.c;
+			./runfile test/compiler/composite_nesting.c && \
+			./runfile test/compiler/global_var_init.c;
 	rm a.out
 
 test_regression: bin/compiler
