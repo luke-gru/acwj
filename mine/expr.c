@@ -373,7 +373,9 @@ static int binastop(int tokentype) {
 // Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
-  0, 10, 20, 30,                // T_EOF, T_ASSIGN, T_LOGOR, T_LOGAND
+  0, 10,                        // T_EOF, T_ASSIGN
+  10, 10, 10, 10,               // T_AS_PLUS, T_AS_MINUS, T_AS_STAR, T_AS_SLASH
+  20, 30,                       // T_LOGOR, T_LOGAND
   40, 50, 60,                   // T_OR, T_XOR, T_AMPER
   70, 70,                       // T_EQ, T_NE
   80, 80, 80, 80,               // T_LT, T_GT, T_LE, T_GE
@@ -396,7 +398,8 @@ static int op_precedence(int tokentype) {
 }
 
 static int rightassoc(int tokentype) {
-  if (tokentype == T_ASSIGN) // `a = b = c;`, `=` is right associative
+  // `a = b = c;`, `=` is right associative, same for '+=', '-=', '*=', '/='
+  if (tokentype >= T_ASSIGN && tokentype <= T_AS_SLASH)
     return(1);
   return(0);
 }

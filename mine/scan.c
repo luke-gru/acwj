@@ -12,7 +12,9 @@ static int IsEOF = 0;
 char *toknames[] = {
   "T_EOF",
 
-  "T_ASSIGN", "T_LOGOR", "T_LOGAND",
+  "T_ASSIGN",
+  "T_AS_PLUS", "T_AS_MINUS", "T_AS_STAR", "T_AS_SLASH",
+  "T_LOGOR", "T_LOGAND",
   "T_BITOR", "T_BITXOR", "T_AMPER",
   "T_EQ", "T_NE",
   "T_LT", "T_GT", "T_LE", "T_GE",
@@ -349,6 +351,8 @@ gettok:
     case '+':
       if ((c = next()) == '+') {
         t->token = T_INC;
+      } else if (c == '=') {
+        t->token = T_AS_PLUS;
       } else {
         putback(c);
         t->token = T_PLUS;
@@ -359,6 +363,8 @@ gettok:
         t->token = T_DEC;
       } else if (c == '>') {
         t->token = T_ARROW;
+      } else if (c == '=') {
+        t->token = T_AS_MINUS;
       } else if (isdigit(c)) {
         t->intvalue = -(scanint(c));
         t->token = T_INTLIT;
@@ -368,7 +374,12 @@ gettok:
       }
       break;
     case '*':
-      t->token = T_STAR;
+      if ((c = next()) == '=') {
+        t->token = T_AS_STAR;
+      } else {
+        putback(c);
+        t->token = T_STAR;
+      }
       break;
     case '/':
       if ((c = next()) == '/') {
@@ -385,6 +396,9 @@ gettok:
           }
         }
         return EOF;
+      } else if (c == '=') {
+        t->token = T_AS_SLASH;
+        break;
       } else {
         putback(c);
       }

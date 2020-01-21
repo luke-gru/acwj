@@ -258,6 +258,28 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       return (NOREG); // lvalue, let the ASSIGN node do the 'store' work
     }
   case A_ASSIGN:
+  case A_AS_ADD:
+  case A_AS_SUBTRACT:
+  case A_AS_MULTIPLY:
+  case A_AS_DIVIDE:
+    switch (n->op) {
+      case A_AS_ADD:
+        leftreg = cgadd(leftreg, rightreg);
+        n->right = n->left;
+        break;
+      case A_AS_SUBTRACT:
+        leftreg = cgsub(leftreg, rightreg);
+        n->right = n->left;
+        break;
+      case A_AS_MULTIPLY:
+        leftreg = cgmul(leftreg, rightreg);
+        n->right = n->left;
+        break;
+      case A_AS_DIVIDE:
+        leftreg = cgdiv(leftreg, rightreg);
+        n->right = n->left;
+        break;
+    }
     switch (n->right->op) {
       case A_IDENT: // ex: a = 12
         if (n->right->sym->class == C_GLOBAL || n->right->sym->class == C_EXTERN) {
@@ -267,7 +289,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
         }
       case A_DEREF: // ex: *a = 12
         return (cgstorderef(leftreg, rightreg, n->right->type));
-      default: fatald("Can't A_ASSIGN in genAST(), op", n->op);
+      default:
+        fatald("Can't A_ASSIGN in genAST(), op", n->op);
     }
   case A_RETURN:
     cgreturn(leftreg, CurFunctionSym);

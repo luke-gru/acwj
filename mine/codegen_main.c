@@ -57,6 +57,7 @@ static void usage(char *prog) {
       "Usage: %s [-vcDST] [-o outfile] infile [infile2 ...]\n"
        "       -v give verbose output of the compilation stages\n"
        "       -c generate object files but don't link them\n"
+       "       -D print debug info to stderr\n"
        "       -S generate assembly files but don't link them\n"
        "       -T dump the AST trees for each input file\n"
        "       -o outfile, produce the outfile executable file\n",

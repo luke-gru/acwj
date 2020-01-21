@@ -31,7 +31,9 @@ enum {
   T_EOF=0,
   // beginning of operators (precedence table)
   // binary operators
-  T_ASSIGN, T_LOGOR, T_LOGAND, // low prec operators come first
+  T_ASSIGN,
+  T_AS_PLUS, T_AS_MINUS, T_AS_STAR, T_AS_SLASH,
+  T_LOGOR, T_LOGAND, // low prec operators come first
   T_BITOR, T_BITXOR, T_AMPER,
   T_EQ, T_NE,
   T_LT, T_GT, T_LE, T_GE,
@@ -62,7 +64,9 @@ struct token {
 
 // AST node types (maps 1:1 with some tokens)
 enum {
-  A_ASSIGN=1, A_LOGOR, A_LOGAND,
+  A_ASSIGN=1,
+  A_AS_ADD, A_AS_SUBTRACT, A_AS_MULTIPLY, A_AS_DIVIDE,
+  A_LOGOR, A_LOGAND,
   A_BITOR, A_BITXOR, A_BITAND,
   A_EQ, A_NE,
   A_LT, A_GT, A_LE, A_GE,

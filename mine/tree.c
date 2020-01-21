@@ -144,6 +144,14 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       return;
     case A_ASSIGN:
       fprintf(stdout, "A_ASSIGN\n"); break;
+    case A_AS_ADD:
+      fprintf(stdout, "A_AS_ADD\n"); break;
+    case A_AS_SUBTRACT:
+      fprintf(stdout, "A_AS_SUBTRACT\n"); break;
+    case A_AS_MULTIPLY:
+      fprintf(stdout, "A_AS_MULTIPLY\n"); break;
+    case A_AS_DIVIDE:
+      fprintf(stdout, "A_AS_DIVIDE\n"); break;
     case A_LOGOR:
       fprintf(stdout, "A_LOGOR\n"); break;
     case A_LOGAND:
