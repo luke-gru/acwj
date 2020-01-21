@@ -7,7 +7,7 @@ Functional
 * Put string literals in read-only memory
 * Get array variables to decay to a pointer to their first element
 * Get extern functions working
-* Get Composite member access working with -> (pointer deref syntax)
+* Get Composite member access working with mixed -> and .
 * Try to compile compiler itself
 
 Optimizations

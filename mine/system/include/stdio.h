@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 // This FILE definition will do for now
-typedef char * FILE;
+typedef char *FILE;
 
 FILE *fopen(char *pathname, char *mode);
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);

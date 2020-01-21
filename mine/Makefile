@@ -6,13 +6,13 @@ install_includes:
 	rsync -a system/include/. $(INCDIR)
 
 bin/scanner: scanner_main.c scan.c misc.c install_includes
-	cc -o bin/scanner -DINCDIR=\"$(INCDIR)\" -g -rdynamic scanner_main.c scan.c misc.c
+	cc -o bin/scanner -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic scanner_main.c scan.c misc.c
 
 bin/parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c install_includes
-	cc -o bin/parser -DINCDIR=\"$(INCDIR)\" -g -rdynamic expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
+	cc -o bin/parser -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c
 
 bin/compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c install_includes
-	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -g -rdynamic expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
+	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c
 
 scanner: bin/scanner
 parser: bin/parser

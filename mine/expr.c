@@ -224,7 +224,7 @@ struct ASTnode *member_access(int withpointer) {
     // Die if we can't find it
     for (m = typeptr->member; m != NULL; m = m->next) {
       if (m->name && !strcmp(m->name, Text)) {
-        break;
+        break; // found
       } else if (typeptr->type == P_STRUCT && !m->name && m->ctype && m->ctype->type == P_UNION) {
         hasanonunion = 1;
       }
@@ -273,7 +273,9 @@ found_memb:
     left = mkuastunary(A_DEREF, m->type, left, NULL, 0);
 
     if (Token.token == T_ARROW) {
-      fatal("Have yet to implement chained member access with ->");
+      typeptr = m->ctype;
+      initposn = 0;
+      continue;
     } else {
       break;
     }

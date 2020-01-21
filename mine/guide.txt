@@ -121,3 +121,28 @@ Tree for `foo.bar.val`:
             A_ADDR foo
             A_INTLIT 4
         ============
+
+Chained member access with ->
+=============================
+
+fooptr->bar = &bar;
+
+tree:
+      A_ASSIGN
+        A_ADDR bar
+        A_DEREF
+          A_ADD
+            A_IDENT rval fooptr
+            A_INTLIT 4
+
+fooptr->bar->val = &bar;
+
+      A_ASSIGN
+        A_ADDR bar
+        A_DEREF
+          A_ADD
+            A_DEREF
+              A_ADD
+                A_IDENT rval fooptr
+                A_INTLIT 4 (fooptr->bar offset)
+            A_INTLIT 4 (bar->val offset)

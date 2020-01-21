@@ -9,8 +9,10 @@
 char *objlist[MAXOBJ];        // List of object file names
 int objcnt = 0;               // Position to insert next name
 
+#if COMPILE_ASSERTS
 #ifndef INCDIR
 #error "INCDIR must be defined"
+#endif
 #endif
 #define CPPCMD "cpp -nostdinc -isystem "
 

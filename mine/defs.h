@@ -13,12 +13,18 @@
 #define TEXTLEN		512	// Length of symbols in input
 #define NSYMBOLS        1024	// Number of symbol table entries
 
+#if COMPILE_ASSERTS
 // compile-time assertions
 #define CASSERT(predicate) _impl_CASSERT_LINE(predicate,__LINE__,__FILE_)
 
 #define _impl_PASTE(a,b) a##b
 #define _impl_CASSERT_LINE(predicate, line, file) \
     typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
+#else
+
+#define CASSERT(predicate) (void)0
+
+#endif
 
 // Tokens
 enum {

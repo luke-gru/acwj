@@ -13,7 +13,7 @@ char     *Infilename;                   // Currently worked on C source code fil
 char     *Outfilename;                  // Currently worked on assembly filename
 struct   token Token;
 char     Text[TEXTLEN + 1];		// Last identifier scanned
-char     *CurLine;                      // Current non-space line being tokenized
+char     *CurLine;                      // Current line being tokenized
 
 struct symtable *CurFunctionSym;        // Symbol ptr of the current function being parsed and code-generated
 
