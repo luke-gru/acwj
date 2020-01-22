@@ -14,6 +14,7 @@ char *toknames[] = {
 
   "T_ASSIGN",
   "T_AS_PLUS", "T_AS_MINUS", "T_AS_STAR", "T_AS_SLASH",
+  "T_QUESTION",
   "T_LOGOR", "T_LOGAND",
   "T_BITOR", "T_BITXOR", "T_AMPER",
   "T_EQ", "T_NE",
@@ -564,6 +565,9 @@ gettok:
       break;
     case '.':
       t->token = T_DOT;
+      break;
+    case '?':
+      t->token = T_QUESTION;
       break;
     default:
       // If it's a digit, scan the

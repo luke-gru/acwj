@@ -13,6 +13,8 @@ Functional
 * Allow ++ and -- operators after member access, not just identifiers
 * Allow expression lists (expr1, expr2)
 * Get (void)0; to parse (useful for preprocessor)
+* Get `1-1` working as intended, right now `-` right before a digit is scanned
+as part of the INTLIT
 
 Optimizations
 -------------

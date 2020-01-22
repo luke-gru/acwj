@@ -70,6 +70,13 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       dumpAST(n->mid, NOLABEL, level+2);
       if (n->right) dumpAST(n->right, NOLABEL, level+2);
       return;
+    case A_TERNARY:
+      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      fprintf(stdout, "A_TERNARY\n");
+      dumpAST(n->left, NOLABEL, level+2);
+      dumpAST(n->mid, NOLABEL, level+2);
+      dumpAST(n->right, NOLABEL, level+2);
+      return;
     case A_WHILE:
       Lstart = gendumplabel();
       for (int i=0; i < level; i++) fprintf(stdout, " ");

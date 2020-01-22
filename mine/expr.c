@@ -382,11 +382,12 @@ static int binastop(int tokentype) {
   fatals("Syntax error in binastop(), token", tokenname(tokentype));
 }
 
-// Operator precedence for each token. Must
+// Operator precedence for each token (low first). Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
   0, 10,                        // T_EOF, T_ASSIGN
   10, 10, 10, 10,               // T_AS_PLUS, T_AS_MINUS, T_AS_STAR, T_AS_SLASH
+  15,                           // T_QUESTION,
   20, 30,                       // T_LOGOR, T_LOGAND
   40, 50, 60,                   // T_OR, T_XOR, T_AMPER
   70, 70,                       // T_EQ, T_NE
@@ -450,6 +451,16 @@ struct ASTnode *binexpr(int ptp) {
     right = binexpr(OpPrec[tokentype]);
 
     ASTop = binastop(tokentype);
+    switch (ASTop) {
+      case A_TERNARY:
+        // condition expr in `left`, truexpr in `right`
+        match(T_COLON, ":");
+        ltemp = binexpr(0);
+        // Build and return the AST for this statement. Use the middle
+        // expression's type as the return type. XXX We should also
+        // consider the third expression's type.
+        return (mkastnode(A_TERNARY, right->type, left, right, ltemp, NULL, 0));
+    }
     if (ASTop == A_ASSIGN) {
       right->rvalue = 1;
       right = modify_type(right, left->type, 0);
@@ -482,7 +493,8 @@ struct ASTnode *binexpr(int ptp) {
     // If we hit a terminating token, return just the left node
     tokentype = Token.token;
     if (tokentype == T_SEMI || tokentype == T_RPAREN ||
-        tokentype == T_RBRACKET || tokentype == T_COMMA || tokentype == T_RBRACE) {
+        tokentype == T_RBRACKET || tokentype == T_COMMA ||
+        tokentype == T_COLON || tokentype == T_RBRACE) {
       left->rvalue = 1;
       return (left);
     }

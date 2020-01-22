@@ -36,7 +36,7 @@ int  genAST(struct ASTnode *n, int reg,
         int loopstartlabel, int loopendlabel, int parentASTop);
 void genpreamble(void);
 void genpostamble(void);
-void genfreeregs(void);
+void genfreeregs(int keepreg);
 void genprintint(int reg);
 void genglobsym(struct symtable *sym);
 int  genprimsize(int ptype);
@@ -45,7 +45,8 @@ int  genalign(int type, int offset, int direction);
 int  genlabel(void);
 
 // cg.c
-void freeall_registers(void);
+void freeall_registers(int keepreg);
+int  alloc_register(void);
 void cgpreamble(void);
 void cgpostamble(void);
 void cgfuncpreamble(struct symtable *sym);
@@ -94,6 +95,7 @@ void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
     int *caselabels, int *casevals, int defaultlabel);
 int cg_builtin_vararg_addr_setup(void);
 void cgpush0(void);
+void cgmove(int src, int dst);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);

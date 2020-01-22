@@ -33,6 +33,7 @@ enum {
   // binary operators
   T_ASSIGN,
   T_AS_PLUS, T_AS_MINUS, T_AS_STAR, T_AS_SLASH,
+  T_QUESTION,
   T_LOGOR, T_LOGAND, // low prec operators come first
   T_BITOR, T_BITXOR, T_AMPER,
   T_EQ, T_NE,
@@ -67,6 +68,7 @@ struct token {
 enum {
   A_ASSIGN=1,
   A_AS_ADD, A_AS_SUBTRACT, A_AS_MULTIPLY, A_AS_DIVIDE,
+  A_TERNARY,
   A_LOGOR, A_LOGAND,
   A_BITOR, A_BITXOR, A_BITAND,
   A_EQ, A_NE,

@@ -71,15 +71,18 @@ void cgresetlocals(void) {
   localOffset = 0;
 }
 
-// Set all registers as available
-void freeall_registers(void)
-{
-  freereg[0]= freereg[1]= freereg[2]= freereg[3]= 1;
+// Set all registers as available.
+// But if reg is positive (including 0), don't free that one.
+void freeall_registers(int keepreg) {
+  int i;
+  for (i = 0; i < NUMFREEREGS; i++) {
+    if (i != keepreg) freereg[i] = 1;
+  }
 }
 
 // Allocate a free register. Return the number of
 // the register. Die if no available registers.
-static int alloc_register(void)
+int alloc_register(void)
 {
   for (int i=0; i<NUMFREEREGS; i++) {
     if (freereg[i]) {
@@ -105,7 +108,7 @@ static void free_register(int reg)
 // Print out the assembly preamble
 void cgpreamble()
 {
-  freeall_registers();
+  freeall_registers(-1);
 }
 
 // Print out the assembly postamble
@@ -510,7 +513,7 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
 
   fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
   fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
-  freeall_registers();
+  freeall_registers(-1);
   return (NOREG);
 }
 
@@ -777,7 +780,7 @@ int cglognot(int r) {
 // it's an IF or WHILE operation
 int cgboolean(int r, int op, int label) {
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
-  if (op == A_IF || op == A_WHILE) { // NOTE: 'for' constructs are turned into A_WHILEs
+  if (op == A_IF || op == A_WHILE || op == A_TERNARY) { // NOTE: 'for' constructs are turned into A_WHILEs
     fprintf(Outfile, "\tje\tL%d\n", label);
   } else {
     fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
@@ -887,4 +890,8 @@ void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
 
 void cgpush0() {
   fprintf(Outfile, "\tpushq $0 # padding\n");
+}
+
+void cgmove(int srcreg, int dstreg) {
+  fprintf(Outfile, "\tmovq %s, %s\n", reglist[srcreg], reglist[dstreg]);
 }

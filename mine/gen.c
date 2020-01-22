@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -30,11 +29,11 @@ int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   // by a zero jump to the false label.
   // We cheat by sending the Lfalse label as a register.
   genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
-  genfreeregs();
+  genfreeregs(-1);
 
   // Generate the true compound statement
   genAST(n->mid, NOREG, looptoplabel, loopendlabel, n->op);
-  genfreeregs();
+  genfreeregs(-1);
 
   // If there is an optional ELSE clause,
   // generate the jump to skip to the end
@@ -49,11 +48,43 @@ int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   // end label
   if (n->right) {
     genAST(n->right, NOREG, looptoplabel, loopendlabel, n->op);
-    genfreeregs();
+    genfreeregs(-1);
     cglabel(Lend);
   }
 
   return (NOREG);
+}
+
+// Generate code for a ternary expression
+int genTernary(struct ASTnode *n) {
+  int Lfalse, Lend;
+  int reg, expreg;
+  // Generate two labels: one for the
+  // false expression, and one for the
+  // end of the overall expression
+  Lfalse = genlabel();
+  Lend = genlabel();
+  genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
+  genfreeregs(-1);
+
+  // Get a register to hold the result of the two expressions
+  reg = alloc_register();
+  // Generate the true expression and the false label.
+  // Move the expression result into the known register.
+  expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgmove(expreg, reg);
+  // Don't free the register holding the result, though!
+  genfreeregs(reg);
+  cgjump(Lend);
+  cglabel(Lfalse);
+  // Generate the false expression and the end label.
+  // Move the expression result into the known register.
+  expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgmove(expreg, reg);
+  // Don't free the register holding the result, though!
+  genfreeregs(reg);
+  cglabel(Lend);
+  return (reg);
 }
 
 int genWhile(struct ASTnode *n) {
@@ -67,11 +98,11 @@ int genWhile(struct ASTnode *n) {
   // by a jump to the end label.
   // We cheat by sending the Lend label as a register.
   genAST(n->left, Lend, Lstart, Lend, n->op);
-  genfreeregs();
+  genfreeregs(-1);
 
   // compound statement
   genAST(n->right, NOLABEL, Lstart, Lend, n->op);
-  genfreeregs();
+  genfreeregs(-1);
 
   cgjump(Lstart);
   cglabel(Lend);
@@ -121,7 +152,7 @@ int gen_funcall(struct ASTnode *n) {
     reg = genAST(gluetree->right, NOREG, NOLABEL, NOLABEL, gluetree->op);
     // Copy this into the n'th function parameter: size is 1, 2, 3, ...
     cgcopyarg(n->sym, reg, gluetree->size);
-    genfreeregs();
+    genfreeregs(-1);
     gluetree = gluetree->left;
   }
 
@@ -152,7 +183,7 @@ int genSwitch(struct ASTnode *n) {
   // Output the code to calculate the switch condition
   reg = genAST(n->left, NOREG, NOLABEL, NOLABEL, 0);
   cgjump(Linternal_switch_dispatch);
-  genfreeregs();
+  genfreeregs(-1);
 
   // Walk the right-child linked list to
   // generate the code for each case
@@ -171,7 +202,7 @@ int genSwitch(struct ASTnode *n) {
 
     // Generate the case code. Pass in the end label for the breaks
     genAST(c->left, NOREG, NOLABEL, Lend, 0);
-    genfreeregs();
+    genfreeregs(-1);
   }
 
   // Ensure the last case jumps past the switch table
@@ -197,7 +228,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   if (O_parseOnly)
     return (NOREG);
 
-  assert(n);
+  ASSERT(n);
 
   // We now have specific AST node handling at the top
   switch (n->op) {
@@ -209,6 +240,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       return (NOREG);
     case A_IF:
       return (genIF(n, looptoplabel, loopendlabel));
+    case A_TERNARY:
+      return (genTernary(n));
     case A_WHILE:
       return (genWhile(n));
     case A_SWITCH:
@@ -225,10 +258,10 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       if (n->left) {
         leftreg = genAST(n->left, NOREG, looptoplabel, loopendlabel, n->op);
       }
-      genfreeregs();
+      genfreeregs(-1);
       if (n->right) {
         rightreg = genAST(n->right, NOREG, looptoplabel, loopendlabel, n->op);
-        genfreeregs();
+        genfreeregs(-1);
       }
       return (NOREG);
     case A_FUNCALL:
@@ -263,7 +296,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     // If the parent AST node is an A_IF, generate a compare
     // followed by a jump. Otherwise, compare registers and
     // set one to 1 or 0 based on the comparison.
-    if (parentASTop == A_IF || parentASTop == A_WHILE)
+    if (parentASTop == A_IF || parentASTop == A_WHILE || parentASTop == A_TERNARY)
       return (cgcompare_and_jump(n->op, leftreg, rightreg, reg));
     else
       return (cgcompare_and_set(n->op, leftreg, rightreg));
@@ -386,7 +419,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     return (cglognot(leftreg));
   case A_TOBOOL: {
     int endlabel = reg;
-    // If the parent AST node is an A_IF or A_WHILE, generate
+    // If the parent AST node is an A_IF or A_WHILE or A_TERNARY, generate
     // a compare followed by a jump. Otherwise, set the register
     // to 0 or 1 based on it's zeroeness or non-zeroeness
     return (cgboolean(leftreg, parentASTop, endlabel));
@@ -394,10 +427,10 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   case A_CAST:
     return (leftreg); // assignment lvalue type takes care of proper assembly operation
   default:
-    assert(n->op < A_LAST);
+    ASSERT(n->op < A_LAST);
     fatald("Unknown AST operator in genAST", n->op);
   }
-  assert(0);
+  ASSERT(0);
 }
 
 void genpreamble() {
@@ -408,9 +441,9 @@ void genpostamble() {
   if (O_parseOnly) return;
   cgpostamble();
 }
-void genfreeregs() {
+void genfreeregs(int keepreg) {
   if (O_parseOnly) return;
-  freeall_registers();
+  freeall_registers(keepreg);
 }
 void genprintint(int reg) {
   if (O_parseOnly) return;
@@ -428,8 +461,8 @@ int genprimsize(int ptype) {
 }
 
 int genglobstr(char *strvalue) {
-  if (O_parseOnly) return (NOREG);
   int l = genlabel();
+  if (O_parseOnly) return (l);
   cgglobstr(l, strvalue);
   return (l);
 }
