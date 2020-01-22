@@ -21,6 +21,8 @@
 #define cgdebug(fmt, ...) debugnoisy("cg", fmt, __VA_ARGS__)
 #endif
 
+static int AsmComments = 1;
+
 // List of available registers
 // and their names
 static int freereg[NUMFREEREGS];
@@ -533,16 +535,22 @@ int cgprimsize(int ptype) {
 }
 
 // argnum 1 is first argument to function
-void cgcopyarg(int r, int argnum) {
+void cgcopyarg(struct symtable *func, int r, int argnum) {
+  // varargs function
+  if (func->size < 0 && argnum > func->nelems) {
+    fprintf(Outfile, "\tpushq\t%s # varargs argument\n", reglist[r]); // last argument must be pushed first
+    free_register(r);
+    return;
+  }
   // If this is above the sixth argument, simply push the
   // register on the stack. We rely on being called with
   // successive arguments in the correct order for x86-64
   if (argnum > 6) {
-    fprintf(Outfile, "\tpushq\t%s\n", reglist[r]); // last argument must be pushed first
+    fprintf(Outfile, "\tpushq\t%s # spilled argument\n", reglist[r]); // last argument must be pushed first
   } else {
     // Otherwise, copy the value into one of the six registers
     // used to hold parameter values
-    fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
+    fprintf(Outfile, "\tmovq\t%s, %s # standard argument\n", reglist[r],
             reglist[FIRSTPARAMREG - argnum + 1]);
   }
 
@@ -554,10 +562,16 @@ void cgcopyarg(int r, int argnum) {
 int cgcall(struct symtable *sym, int numargs) {
   // Get a new register
   int outr = alloc_register();
+  int num_args_spilled = 0;
+  if (sym->size < 0 && numargs > sym->nelems) { // varargs
+    num_args_spilled = numargs-sym->nelems;
+  } else if (numargs > 6) {
+    num_args_spilled = numargs-6;
+  }
   fprintf(Outfile, "\tcall\t%s\n", sym->name);
-  if (numargs > 6) {
-    // restore spilled argument stack space
-    fprintf(Outfile, "\taddq\t$%d, %%rsp\n", 8*(numargs-6));
+  if (num_args_spilled > 0) {
+    // restore spilled argument stack space (assume each argument is a word in size)
+    fprintf(Outfile, "\taddq\t$%d, %%rsp # restore spilled argument stack space\n", 8*num_args_spilled);
   }
   fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
   return (outr);
@@ -582,7 +596,23 @@ void cgreturn(int reg, struct symtable *sym) {
   cgjump(sym->endlabel);
 }
 
-// Generate code to load the address of a global
+int cg_builtin_vararg_addr_setup(void) {
+  ASSERT(CurFunctionSym);
+  int required_args = CurFunctionSym->nelems;
+  int spilled_args = 0;
+  if (CurFunctionSym->size >= 0) { // not a vararg function
+    fatalv("%s is not a vararg function, can't use va_start", CurFunctionSym->name);
+  }
+  if (required_args > 6) {
+    spilled_args = 6 - required_args;
+  }
+  int base_ptr_offset = (spilled_args*8)+16; // first vararg parameter is pushed last
+  int r = alloc_register();
+  fprintf(Outfile, "\tleaq\t%d(%%rbp), %s # __builtin_vararg_addr_setup\n", base_ptr_offset, reglist[r]);
+  return r;
+}
+
+// Generate code to load the address of a global or local
 // identifier into a variable. Return a new register
 int cgaddress(struct symtable *sym) {
   int r = alloc_register();
@@ -606,13 +636,25 @@ int cgderef(int r, int type) {
   switch (size) {
     case 1:
       fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
+      if (AsmComments) {
+        fprintf(Outfile, " # %s = *%s", reglist[r], reglist[r]);
+      }
+      fprintf(Outfile, "\n");
       break;
     case 2:
       fprintf(Outfile, "\tmovslq\t(%s), %s\n", reglist[r], reglist[r]);
+      if (AsmComments) {
+        fprintf(Outfile, " # %s = *%s", reglist[r], reglist[r]);
+      }
+      fprintf(Outfile, "\n");
       break;
     case 4:
     case 8:
-      fprintf(Outfile, "\tmovq\t(%s), %s\n", reglist[r], reglist[r]);
+      fprintf(Outfile, "\tmovq\t(%s), %s", reglist[r], reglist[r]);
+      if (AsmComments) {
+        fprintf(Outfile, " # %s = *%s", reglist[r], reglist[r]);
+      }
+      fprintf(Outfile, "\n");
       break;
     default:
       fatalv("Bad type in cgderef: %s (%d)", typename(type, NULL), type);
@@ -660,7 +702,11 @@ void cgglobstr(int label, char *strval) {
 int cgloadglobstr(int label) {
   // Get a new register
   int r = alloc_register();
-  fprintf(Outfile, "\tleaq\tL%d(\%%rip), %s\n", label, reglist[r]);
+  fprintf(Outfile, "\tleaq\tL%d(\%%rip), %s", label, reglist[r]);
+  if (AsmComments) {
+    fprintf(Outfile, " # %s = (char*)&L%d", reglist[r], label);
+  }
+  fprintf(Outfile, "\n");
   return (r);
 }
 

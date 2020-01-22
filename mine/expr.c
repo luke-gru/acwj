@@ -189,13 +189,14 @@ struct ASTnode *member_access(int withpointer) {
 
   // Check that the identifer has been declared as a struct (or a union, later),
   // or a struct/union pointer
-  if ((compvar = findsymbol(Text)) == NULL)
-    fatals("Undeclared variable", Text);
+  if ((compvar = findsymbol(Text)) == NULL) {
+    fatalv("Undeclared variable: %s", Text);
+  }
   // TODO: allow multiple levels of indirection
   if (withpointer && compvar->type != pointer_to(P_STRUCT) && compvar->type != pointer_to(P_UNION))
-    fatals("Undeclared variable", Text);
+    fatalv("Undeclared variable: %s", Text);
   if (!withpointer && compvar->type != P_STRUCT && compvar->type != P_UNION)
-    fatals("Undeclared variable", Text);
+    fatals("Undeclared variable: %s", Text);
 
   // If a pointer to a struct, get the pointer's value.
   // Otherwise, make a leaf node that points at the base
@@ -539,7 +540,7 @@ struct ASTnode *prefix(void) {
 
       // Ensure that it's an identifier
       if (tree->op != A_IDENT)
-        fatal("& operator must be followed by an identifier");
+        fatalv("& operator must be followed by an identifier, has AST op: %d", tree->op);
 
       // Now change the operator to A_ADDR and the type to
       // a pointer to the original type
@@ -551,8 +552,8 @@ struct ASTnode *prefix(void) {
       tree = prefix();
       // For now, ensure it's either another deref or an
       // identifier
-      if (tree->op != A_IDENT && tree->op != A_DEREF)
-        fatal("* operator must be followed by an identifier or *");
+      /*if (tree->op != A_IDENT && tree->op != A_DEREF)*/
+        /*fatal("* operator must be followed by an identifier or *");*/
 
       // Prepend an A_DEREF operation to the tree
       tree = mkuastunary(A_DEREF, value_at(tree->type), tree, NULL, 0);

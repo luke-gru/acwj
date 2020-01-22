@@ -194,6 +194,8 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_LOGNOT\n"); break;
     case A_TOBOOL:
       fprintf(stdout, "A_TOBOOL\n"); break;
+    case A_CAST:
+      fprintf(stdout, "A_CAST %s\n", typename(n->type, NULL)); break;
     case A_BREAK:
       fprintf(stdout, "A_BREAK\n"); break;
     case A_CONTINUE:

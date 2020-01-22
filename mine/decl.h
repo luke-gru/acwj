@@ -67,7 +67,7 @@ void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);
 int cgprimsize(int ptype);
-void cgcopyarg(int r, int argnum);
+void cgcopyarg(struct symtable *func, int r, int argnum);
 void cgclearargnum(void);
 int cgcall(struct symtable *sym, int numargs);
 void cgreturn(int r, struct symtable *sym);
@@ -91,6 +91,7 @@ void cgresetlocals(void);
 int cgalign(int type, int offset, int direction);
 void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
     int *caselabels, int *casevals, int defaultlabel);
+int cg_builtin_vararg_addr_setup(void);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);
@@ -106,6 +107,7 @@ void rbrace(void);
 void lparen(void);
 void rparen(void);
 void comma(void);
+void dot(void);
 void fatal(char *s);
 void fatals(char *s1, char *s2);
 void fatalv(const char *fmt, ...);

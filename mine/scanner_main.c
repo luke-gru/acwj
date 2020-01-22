@@ -37,7 +37,7 @@ static void scanfile() {
     printf("Token %s", tokenname(T.token));
     if (T.token == T_INTLIT)
       printf(", value %d", T.intvalue);
-    if (T.token == T_IDENT)
+    if (T.token == T_IDENT || T.token == T_STRLIT)
       printf(", value '%s'", Text);
     printf(" (at %s: %d:%d)", Infilename, Line, column());
     printf("\n");

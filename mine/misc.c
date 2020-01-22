@@ -113,6 +113,9 @@ void rparen(void) {
 void comma(void) {
   match(T_COMMA, ",");
 }
+void dot(void) {
+  match(T_DOT, ".");
+}
 
 
 // Print out fatal messages

@@ -93,6 +93,12 @@ static int next(void) {
 
   c = readchar();
 
+  int preproc_comment = 0;
+
+  if (c == '#') {
+    preproc_comment = 1;
+    memcpy(OldText, Text, TEXTLEN+1);
+  }
   while (c == '#') {                    // We've hit a pre-processor statement
     scan(&Token);                       // Get the line number into l
     if (Token.token != T_INTLIT)
@@ -115,6 +121,9 @@ static int next(void) {
     }
     Col = 0;
     c = readchar();                  // and get the next character
+  }
+  if (preproc_comment) {
+    memcpy(Text, OldText, TEXTLEN+1);
   }
 
   Col++;

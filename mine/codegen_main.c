@@ -30,6 +30,9 @@ static void init_symtable() {
   addglob("printstring", P_VOID, NULL, S_FUNCTION, C_GLOBAL, 1);
   addparam("mystring", pointer_to(P_CHAR), NULL, S_VARIABLE, 1);
 
+  // compiler builtins
+  addglob("__builtin_vararg_addr_setup", P_INT, NULL, S_FUNCTION, C_GLOBAL, 1);
+
   freeloclsyms();
 }
 

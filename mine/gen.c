@@ -14,7 +14,7 @@ int genlabel(void) {
 
 // Generate the code for an IF statement
 // and an optional ELSE clause
-static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
+int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   int Lfalse, Lend;
 
   // Generate two labels: one for the
@@ -56,7 +56,7 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   return (NOREG);
 }
 
-static int genWhile(struct ASTnode *n) {
+int genWhile(struct ASTnode *n) {
   int Lstart, Lend;
 
   Lstart = genlabel();
@@ -78,14 +78,31 @@ static int genWhile(struct ASTnode *n) {
   return (NOREG);
 }
 
+int is_builtin_function(struct ASTnode *n) {
+  if (!strcmp(n->sym->name, "__builtin_vararg_addr_setup"))
+    return 1;
+  return 0;
+}
+
+int gen_builtin_function(struct ASTnode *n) {
+  if (!strcmp(n->sym->name, "__builtin_vararg_addr_setup")) {
+    return cg_builtin_vararg_addr_setup();
+  }
+  return (NOREG);
+}
+
 // Generate the code to copy the arguments of a
 // function call to its parameters, then call the
 // function itself. Return the register that holds
 // the function's return value.
-static int gen_funcall(struct ASTnode *n) {
+int gen_funcall(struct ASTnode *n) {
   struct ASTnode *gluetree = n->left;
   int reg;
   int numargs=0;
+
+  if (is_builtin_function(n)) {
+    return gen_builtin_function(n);
+  }
 
   // If there is a list of arguments, walk this list
   // from the last argument (right-hand child) to the
@@ -94,7 +111,7 @@ static int gen_funcall(struct ASTnode *n) {
     // Calculate the expression's value
     reg = genAST(gluetree->right, NOREG, NOLABEL, NOLABEL, gluetree->op);
     // Copy this into the n'th function parameter: size is 1, 2, 3, ...
-    cgcopyarg(reg, gluetree->size);
+    cgcopyarg(n->sym, reg, gluetree->size);
     // Keep the first (highest) number of arguments
     if (numargs==0) numargs= gluetree->size;
     genfreeregs();

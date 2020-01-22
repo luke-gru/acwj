@@ -22,6 +22,7 @@ static int ParseCompositeLevels[MAX_COMPOSITE_NESTING];
 
 #define TYPE_DEFN (-1)
 #define VOID_PARAMS (-2)
+#define VARARGS_PARAM (-3)
 
 static int type_of_typedef(char *name, struct symtable **ctype, int fail) {
   struct symtable *t;
@@ -140,10 +141,13 @@ int parse_full_type(int t, struct symtable **ctype, int *class) {
   return parse_pointer_array_type(type);
 }
 
+// Returns the number of parameters found. Is a negative number if has
+// varargs. For example -1 means 1 regular parameter and varargs after.
 static int param_declaration_list(struct symtable *oldfuncsym,
     struct symtable *newfuncsym) {
   int type;
   int paramcnt = 0;
+  int hasvarargs = 0;
   struct symtable *ctype = NULL;
   struct symtable *protoptr = NULL;
 
@@ -155,11 +159,19 @@ static int param_declaration_list(struct symtable *oldfuncsym,
   // Loop until the final right parentheses. Current token starts
   // the loop right after T_LPAREN.
   while (Token.token != T_RPAREN) {
+    // add one parameter to symbol table for function
     type = declaration_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, NULL);
     if (type == TYPE_DEFN) {
       fatal("Bad type in parameter list");
     }
     if (type == VOID_PARAMS) {
+      break;
+    }
+    if (type == VARARGS_PARAM) {
+      if (paramcnt == 0) {
+        fatal("Varargs (`...`) must come after at least one normal parameter");
+      }
+      hasvarargs = 1;
       break;
     }
     // We have an existing prototype.
@@ -188,14 +200,18 @@ static int param_declaration_list(struct symtable *oldfuncsym,
   if (oldfuncsym != NULL && (paramcnt != oldfuncsym->nelems)) {
     fatals("Parameter count mismatch for function", oldfuncsym->name);
   }
-  // Return the count of parameters
-  return (paramcnt);
+  if (hasvarargs) {
+    return (-paramcnt);
+  } else {
+    // Return the count of parameters
+    return (paramcnt);
+  }
 }
 
 struct symtable *function_declaration(char *name, int type, struct symtable *ctype, int class) {
   struct ASTnode *tree, *finalstmt;
   struct symtable *oldfuncsym, *newfuncsym = NULL;
-  int endlabel, paramcnt = 0;
+  int endlabel, paramcnt = 0, realparamcnt;
 
   // Clear out the parameter list
   Paramshead = Paramstail = NULL;
@@ -223,8 +239,14 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
   paramcnt = param_declaration_list(oldfuncsym, newfuncsym);
   rparen();
 
+  realparamcnt = paramcnt;
+  if (paramcnt < 0) {
+    realparamcnt = -paramcnt;
+  }
+
   if (newfuncsym) {
-    newfuncsym->nelems = paramcnt;
+    newfuncsym->nelems = realparamcnt;
+    newfuncsym->size = paramcnt; // NOTE: negative if varargs
     newfuncsym->member = Paramshead;
     oldfuncsym = newfuncsym;
   }
@@ -793,6 +815,13 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
   struct ASTnode *assign_expr = NULL;
   if (assign_exprs)
     *assign_exprs = NULL;
+
+  if (class == C_PARAM && Token.token == T_DOT) {
+    scan(&Token);
+    dot();
+    dot();
+    return VARARGS_PARAM;
+  }
 
   // Get the initial type. If TYPE_DEFN, it was
   // a type definition, return this.
