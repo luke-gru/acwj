@@ -99,9 +99,18 @@ int gen_funcall(struct ASTnode *n) {
   struct ASTnode *gluetree = n->left;
   int reg;
   int numargs=0;
+  int numspilled=0;
 
   if (is_builtin_function(n)) {
     return gen_builtin_function(n);
+  }
+
+  numargs = gluetree ? gluetree->size : 0;
+  numspilled = num_spilled_args(n->sym, numargs);
+
+  // stack pointer must be 16-byte aligned before calls to functions
+  if (numspilled > 0 && numspilled % 2 != 0) {
+    cgpush0(); // padding
   }
 
   // If there is a list of arguments, walk this list
@@ -112,8 +121,6 @@ int gen_funcall(struct ASTnode *n) {
     reg = genAST(gluetree->right, NOREG, NOLABEL, NOLABEL, gluetree->op);
     // Copy this into the n'th function parameter: size is 1, 2, 3, ...
     cgcopyarg(n->sym, reg, gluetree->size);
-    // Keep the first (highest) number of arguments
-    if (numargs==0) numargs= gluetree->size;
     genfreeregs();
     gluetree = gluetree->left;
   }

@@ -564,10 +564,14 @@ int cgcall(struct symtable *sym, int numargs) {
   int outr = alloc_register();
   int num_args_spilled = 0;
   if (sym->size < 0 && numargs > sym->nelems) { // varargs
-    num_args_spilled = numargs-sym->nelems;
+    num_args_spilled = numargs - sym->nelems;
   } else if (numargs > 6) {
     num_args_spilled = numargs-6;
   }
+  if (num_args_spilled > 0 && num_args_spilled % 2 != 0) {
+    num_args_spilled++; // %rsp requires 16-byte alignment before calls to SSE functions (like printf)
+  }
+  fprintf(Outfile, "\tmovq $0, %%rax # 0 out rax for vector registers (varargs)\n");
   fprintf(Outfile, "\tcall\t%s\n", sym->name);
   if (num_args_spilled > 0) {
     // restore spilled argument stack space (assume each argument is a word in size)
@@ -649,6 +653,12 @@ int cgderef(int r, int type) {
       fprintf(Outfile, "\n");
       break;
     case 4:
+      fprintf(Outfile, "\tmovl\t(%s), %s", reglist[r], dreglist[r]);
+      if (AsmComments) {
+        fprintf(Outfile, " # %s = *%s", dreglist[r], dreglist[r]);
+      }
+      fprintf(Outfile, "\n");
+      break;
     case 8:
       fprintf(Outfile, "\tmovq\t(%s), %s", reglist[r], reglist[r]);
       if (AsmComments) {
@@ -805,26 +815,26 @@ int cggetlocaloffset(struct symtable *sym) {
 // for this scalar type. This could be the original
 // offset, or it could be above/below the original
 int cgalign(int type, int offset, int direction) {
-  int alignment;
-
-  if (ptrtype(type)) type = P_LONG;
-
-  // We don't need to do this on x86-64, but let's
-  // align chars on any offset and align ints/pointers
-  // on a 4-byte alignment
-  switch(type) {
-    case P_CHAR: return (offset);
-    case P_INT:
-    case P_LONG: break;
-    default:
-      fatalv("Bad type in cgalign: %s (%d)", typename(type, NULL), type);
-  }
+  int alignment = cgalignment(type);
+  if (alignment == 1) return offset;
 
   // Here we have an int or a long. Align it on a 4-byte offset
   // I put the generic code here so it can be reused elsewhere.
-  alignment= 4;
   offset = (offset + direction * (alignment-1)) & ~(alignment-1);
   return (offset);
+}
+
+int cgalignment(int type) {
+  if (ptrtype(type)) return 4;
+  switch (type) {
+    case P_CHAR:
+      return 1;
+    case P_INT:
+    case P_LONG:
+      return 4;
+    default:
+      fatalv("Bad type in cgalignment: %s (%d)", typename(type, NULL), type);
+  }
 }
 
 // Generate a switch jump table and the code to
@@ -872,4 +882,8 @@ void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
   fprintf(Outfile, "\tleaq\tL%d(%%rip), %%rdx\n", label);
   // jump to case dispatch
   fprintf(Outfile, "\tjmp\t__internal_switch\n");
+}
+
+void cgpush0() {
+  fprintf(Outfile, "\tpushq $0 # padding\n");
 }

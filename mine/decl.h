@@ -89,9 +89,11 @@ int cgboolean(int r1, int ASTop, int label);
 int cggetlocaloffset(struct symtable *sym);
 void cgresetlocals(void);
 int cgalign(int type, int offset, int direction);
+int cgalignment(int type);
 void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
     int *caselabels, int *casevals, int defaultlabel);
 int cg_builtin_vararg_addr_setup(void);
+void cgpush0(void);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);
@@ -119,6 +121,7 @@ void setup_signal_handlers(void);
 void myassert(int expr, int line, const char *filename);
 const char *stypename(int stype);
 const char *classname(int class);
+int num_spilled_args(struct symtable *sym, int argnum);
 
 // sym.c
 struct symtable *findglob(char *s);

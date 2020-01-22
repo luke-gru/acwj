@@ -9,7 +9,7 @@ void printints(int numints, ...) {
   va_start(ap, numints);
   for (i = numints; i > 0; i--) {
     val = va_arg(ap, int);
-    printint(val);
+    printf("%d\n", val);
   }
   va_end(ap);
 }

@@ -215,3 +215,14 @@ const char *stypename(int stype) {
     CASE_DEFAULT_ERROR("stype", stype);
   }
 }
+
+int num_spilled_args(struct symtable *func, int argnum) {
+  if (func->size < 0) { // vararg function
+    return argnum - func->nelems; // args given - required args
+  }
+  if (argnum > 6) {
+    return argnum-6;
+  } else {
+    return 0;
+  }
+}
