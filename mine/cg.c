@@ -409,8 +409,9 @@ void cgglobsym(struct symtable *sym) {
   int size;
   int type;
 
+  if (sym->stype == S_FUNCTION || sym->class == C_EXTERN) return;
+
   ASSERT(sym->class == C_GLOBAL || sym->class == C_STATIC);
-  if (sym->stype == S_FUNCTION) return;
 
   // Get the size of the variable (or its elements if an array)
   // and the type of the variable

@@ -46,8 +46,8 @@ static void init() {
   O_parseOnly = 0;
   O_debugNoisy = 0;
   O_verbose = 0;
-  O_assemble = 0;
-  O_dolink = 0;
+  O_assemble = 0; // assemble and keep object files
+  O_dolink = 0;   // assemble and link
   O_keepasm = 0;
 
   init_symtable();
@@ -192,6 +192,8 @@ void main(int argc, char *argv[]) {
 
   init();
 
+  O_dolink = 1; // by default, output a binary a.out
+
   int i;
   // Scan for command-line options
   for (i = 1; i<argc; i++) {
@@ -200,7 +202,7 @@ void main(int argc, char *argv[]) {
     for (int j=1; *argv[i] == '-' && argv[i][j]; j++) {
       switch (argv[i][j]) {
         case 'T':
-          O_dumpAST = 1; O_parseOnly = 1; break;
+          O_dumpAST = 1; O_parseOnly = 1; O_dolink = 0; break;
         case 'D':
           O_debugNoisy = 1; break;
         case 'v':
