@@ -1,6 +1,10 @@
 #ifndef my_cc_data_h
 #define my_cc_data_h
 
+// fwd
+struct symtable;
+struct ASTnode;
+
 // Global variables
 // Copyright (c) 2019 Warren Toomey, GPL3
 
@@ -35,5 +39,7 @@ int    O_verbose;          // Verbose output for compilation steps only
 int    O_assemble;         // Do we assemble the assembly files to produce object files
 int    O_dolink;           // Do we link the object files to produce a binary
 int    O_keepasm;          // Do we keep the generated assembly file(s)
+
+struct ASTnode *GenNode;   // Currently generated node
 
 #endif

@@ -229,6 +229,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     return (NOREG);
 
   ASSERT(n);
+  GenNode = n;
 
   // We now have specific AST node handling at the top
   switch (n->op) {

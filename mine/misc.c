@@ -45,11 +45,18 @@ static void print_current_token(FILE *f) {
   fprintf(f, "\n");
 }
 
+static void print_current_node(FILE *f) {
+  if (!GenNode) return; // error happened before code gen
+  fprintf(f, "at node with position %d:%d", GenNode->line, GenNode->col);
+  fprintf(f, "\n");
+}
+
 static void print_curline(FILE *f) {
   fprintf(f, "on line:\n%s", CurLine);
 #ifdef NDEBUG
 #else
   print_current_token(f);
+  print_current_node(f);
 #endif
 }
 

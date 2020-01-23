@@ -10,7 +10,7 @@
 #define LONGSZ 8
 #define PTRSZ 8
 
-#define ASSERT_REG(r) ASSERT(r >= 0 && r < NUMFREEREGS);
+#define ASSERT_REG(r) ASSERT(r >= 0 && r < (FIRSTPARAMREG+1));
 
 #define NUMFREEREGS 4
 #define FIRSTPARAMREG 9
@@ -84,8 +84,7 @@ void freeall_registers(int keepreg) {
 
 // Allocate a free register. Return the number of
 // the register. Die if no available registers.
-int alloc_register(void)
-{
+int alloc_register(void) {
   for (int i=0; i<NUMFREEREGS; i++) {
     if (freereg[i]) {
       freereg[i]= 0;
@@ -98,8 +97,7 @@ int alloc_register(void)
 
 // Return a register to the list of available registers.
 // Check to see if it's not already there.
-static void free_register(int reg)
-{
+static void free_register(int reg) {
   if (freereg[reg] != 0) {
     fprintf(stderr, "Error trying to free register %d\n", reg);
     exit(1);
@@ -108,8 +106,7 @@ static void free_register(int reg)
 }
 
 // Print out the assembly preamble
-void cgpreamble()
-{
+void cgpreamble() {
   freeall_registers(-1);
 }
 
@@ -231,6 +228,8 @@ int cgadd(int r1, int r2) {
 // Subtract the second register from the first and
 // return the number of the register with the result
 int cgsub(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
   free_register(r2);
   return(r1);
@@ -239,6 +238,8 @@ int cgsub(int r1, int r2) {
 // Multiply two registers together and return
 // the number of the register with the result
 int cgmul(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
   free_register(r1);
   return(r2);
@@ -247,6 +248,8 @@ int cgmul(int r1, int r2) {
 // Divide the first register by the second and
 // return the number of the register with the result
 int cgdiv(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\tmovq\t%s,%%rax\n", reglist[r1]);
   fprintf(Outfile, "\tcqo\n");
   fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);
@@ -257,6 +260,7 @@ int cgdiv(int r1, int r2) {
 
 // Call printint() with the given register
 void cgprintint(int r) {
+  ASSERT_REG(r);
   fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
   fprintf(Outfile, "\tcall\tprintint\n");
   free_register(r);
@@ -376,6 +380,7 @@ int cgloadlocal(struct symtable *sym, int op) {
 
 // Store a register's value into a variable
 int cgstorglob(int r, struct symtable *sym) {
+  ASSERT_REG(r);
   int type = sym->type;
   int size = cgprimsize(type);
   ASSERT(sym->stype != S_ARRAY);
@@ -397,6 +402,7 @@ int cgstorglob(int r, struct symtable *sym) {
 
 // Store a register's value into a local variable
 int cgstorlocal(int r, struct symtable *sym) {
+  ASSERT_REG(r);
   int size = cgprimsize(sym->type);
 
   switch (size) {
@@ -491,6 +497,8 @@ static char *cmplist[] =
 
 // Compare two registers.
 int cgcompare_and_set(int ASTop, int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   // Check the range of the AST operation
   if (ASTop < A_EQ || ASTop > A_GE) {
     fatal("Bad ASTop in cgcompare_and_set()");
@@ -519,6 +527,8 @@ static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 
 // Compare two registers and jump if false.
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
 
   // Check the range of the AST operation
   if (ASTop < A_EQ || ASTop > A_GE)
@@ -534,6 +544,7 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
 // to the new type, and return a register with
 // this new value
 int cgwiden(int r, int oldtype, int newtype) {
+  ASSERT_REG(r);
   // Nothing to do
   return (r);
 }
@@ -553,6 +564,7 @@ int cgprimsize(int ptype) {
 
 // argnum 1 is first argument to function
 void cgcopyarg(struct symtable *func, int r, int argnum) {
+  ASSERT_REG(r);
   // varargs function
   if (func->size < 0 && argnum > func->nelems) {
     fprintf(Outfile, "\tpushq\t%s # varargs argument\n", reglist[r]); // last argument must be pushed first
@@ -600,6 +612,7 @@ int cgcall(struct symtable *sym, int numargs) {
 
 // XXX: doesn't work for returning structs as values
 void cgreturn(int reg, struct symtable *func) {
+  ASSERT_REG(reg);
   // Generate code depending on the function's type
   int typesz = typesize(func->type, func->ctype);
   switch (typesz) {
@@ -653,6 +666,7 @@ int cgaddress(struct symtable *sym) {
 // Dereference a pointer to get the value it
 // pointing at into the same register
 int cgderef(int r, int type) {
+  ASSERT_REG(r);
   int newtype = value_at(type);
   int size = cgprimsize(newtype);
 
@@ -693,6 +707,8 @@ int cgderef(int r, int type) {
 
 // Store through a dereferenced pointer
 int cgstorderef(int r1, int r2, int type) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   int size = cgprimsize(type);
   switch (size) {
     case CHARSZ:
@@ -712,6 +728,7 @@ int cgstorderef(int r1, int r2, int type) {
 
 // Shift a register left by a constant
 int cgshlconst(int r, int val) {
+  ASSERT_REG(r);
   fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);
   return(r);
 }
@@ -740,18 +757,24 @@ int cgloadglobstr(int label) {
 }
 
 int cgbitand(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r1], reglist[r2]);
   free_register(r1);
   return (r2);
 }
 
 int cgbitor(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\torq\t%s, %s\n", reglist[r1], reglist[r2]);
   free_register(r1);
   return (r2);
 }
 
 int cgbitxor(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r1], reglist[r2]);
   free_register(r1);
   return (r2);
@@ -759,17 +782,21 @@ int cgbitxor(int r1, int r2) {
 
 // Negate a register's value
 int cgnegate(int r) {
+  ASSERT_REG(r);
   fprintf(Outfile, "\tnegq\t%s\n", reglist[r]);
   return (r);
 }
 
 // Invert a register's value (bitwise not, or `~`)
 int cginvert(int r) {
+  ASSERT_REG(r);
   fprintf(Outfile, "\tnotq\t%s\n", reglist[r]);
   return (r);
 }
 
 int cgshl(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
   fprintf(Outfile, "\tshlq\t%%cl, %s\n", reglist[r1]);
   free_register(r2);
@@ -777,6 +804,8 @@ int cgshl(int r1, int r2) {
 }
 
 int cgshr(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
   fprintf(Outfile, "\tshrq\t%%cl, %s\n", reglist[r1]);
   free_register(r2);
@@ -785,6 +814,7 @@ int cgshr(int r1, int r2) {
 
 // Logically negate a register's value
 int cglognot(int r) {
+  ASSERT_REG(r);
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
   fprintf(Outfile, "\tsete\t%s\n", breglist[r]);
   fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
@@ -794,6 +824,7 @@ int cglognot(int r) {
 // Convert an integer value to a boolean value. Jump if
 // it's an IF or WHILE operation
 int cgboolean(int r, int op, int label) {
+  ASSERT_REG(r);
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
   if (op == A_IF || op == A_WHILE || op == A_TERNARY) { // NOTE: 'for' constructs are turned into A_WHILEs
     fprintf(Outfile, "\tje\tL%d\n", label);
@@ -869,6 +900,7 @@ int cgalignment(int type) {
  */
 void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
     int *caselabels, int *casevals, int defaultlabel) {
+  ASSERT_REG(reg);
 
   Needs_case_eval_code = 1; // output this in postamble
 
@@ -908,5 +940,7 @@ void cgpush0() {
 }
 
 void cgmove(int srcreg, int dstreg) {
+  ASSERT_REG(srcreg);
+  ASSERT_REG(dstreg);
   fprintf(Outfile, "\tmovq %s, %s\n", reglist[srcreg], reglist[dstreg]);
 }

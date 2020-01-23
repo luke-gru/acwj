@@ -13,13 +13,16 @@ void reject_token(struct token *t);
 
 // tree.c
 struct ASTnode *mkastnode(int op, int type,
+        struct symtable *ctype,
         struct ASTnode *left,
         struct ASTnode *mid,
         struct ASTnode *right,
         struct symtable *sym,
         int intvalue);
-struct ASTnode *mkastleaf(int op, int type, struct symtable *sym, int intvalue);
-struct ASTnode *mkuastunary(int op, int type, struct ASTnode *left, struct symtable *sym, int intvalue);
+struct ASTnode *mkastleaf(int op, int type, struct symtable *ctype,
+        struct symtable *sym, int intvalue);
+struct ASTnode *mkastunary(int op, int type, struct symtable *ctype,
+        struct ASTnode *left, struct symtable *sym, int intvalue);
 void dumpAST(struct ASTnode *n, int label, int level);
 
 // expr.c
@@ -166,7 +169,8 @@ int type_of_typedef_fail(char *name, struct symtable **ctype);
 int type_of_typedef_nofail(char *name, struct symtable **ctype);
 
 // types.c
-struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
+    struct symtable *rctype, int op);
 int pointer_to(int ptype);
 int value_at(int ptype);
 char *typename(int ptype, struct symtable *ctype);

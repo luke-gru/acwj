@@ -47,7 +47,8 @@ int ptrtype(int ptype) {
 // if no changes occurred, a modified tree, or NULL if the
 // tree is not compatible with the given type.
 // If this will be part of a binary operation, the AST op is not zero.
-struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
+    struct symtable *rctype, int op) {
   int ltype;
   int lsize, rsize;
 
@@ -67,7 +68,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
     if (lsize > rsize) return (NULL);
 
     // Widen to the right
-    if (rsize > lsize) return (mkuastunary(A_WIDEN, rtype, tree, NULL, 0));
+    if (rsize > lsize) return (mkastunary(A_WIDEN, rtype, rctype, tree, NULL, 0));
   }
 
   if (ptrtype(ltype) && ptrtype(rtype)) {
@@ -91,7 +92,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
     if (inttype(ltype) && ptrtype(rtype)) {
       rsize = genprimsize(value_at(rtype));
       if (rsize > 1) {
-        return (mkuastunary(A_SCALE, rtype, tree, NULL, rsize));
+        return (mkastunary(A_SCALE, rtype, rctype, tree, NULL, rsize));
       } else {
         return (tree); // Size 1, no need to scale
       }
@@ -101,7 +102,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
   // so that char *ptr = 0 works
   if (op == A_ASSIGN && ptrtype(rtype) && inttype(ltype)) {
     if (tree->intvalue == 0) {
-      return (mkuastunary(A_WIDEN, P_LONG, tree, NULL, 0));
+      return (mkastunary(A_WIDEN, P_LONG, NULL, tree, NULL, 0));
     }
   }
 

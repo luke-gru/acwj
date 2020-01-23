@@ -115,15 +115,18 @@ struct ASTnode; // fwd decl
 struct ASTnode {
   int op;				// "Operation" to be performed on this tree
   int type;                             // primitive type
+  struct symtable *ctype;               // If struct/union, ptr to that type
   int rvalue;                           // bool, true if the node is an rvalue
   struct ASTnode *left;			// Left, mid, right child trees
   struct ASTnode *mid;                  // can be NULL
   struct ASTnode *right;                // can be NULL
-  struct symtable *sym;		// For many AST nodes, the pointer to
+  struct symtable *sym;		        // For many AST nodes, the pointer to its symbol
   union {
     int intvalue;		// For A_INTLIT, the integer value, for A_STRLIT the asm label
     int size;                   // For A_SCALE, the size to multiply by
   };
+  int line;
+  int col;
 };
 
 // Storage classes

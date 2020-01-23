@@ -32,7 +32,7 @@ struct ASTnode *fold2(struct ASTnode *n) {
       return (n);
   }
   // Return a leaf node with the new value
-  return (mkastleaf(A_INTLIT, n->type, NULL, val));
+  return (mkastleaf(A_INTLIT, n->type, n->ctype, NULL, val));
 }
 
 // Fold an AST tree with a unary operator
@@ -59,7 +59,7 @@ struct ASTnode *fold1(struct ASTnode *n) {
   }
 
   // Return a leaf node with the new value
-  return (mkastleaf(A_INTLIT, n->type, NULL, val));
+  return (mkastleaf(A_INTLIT, n->type, n->ctype, NULL, val));
 }
 
 // Attempt to do constant folding on

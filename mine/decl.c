@@ -283,7 +283,7 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
       fatal("No return for function with non-void type");
     }
   }
-  tree = mkuastunary(A_FUNCTION, type, tree, oldfuncsym, 0);
+  tree = mkastunary(A_FUNCTION, type, ctype, tree, oldfuncsym, 0);
 
   tree = optimise(tree);
 
@@ -499,24 +499,24 @@ struct symtable *scalar_declaration(char *varname, int type,
       // parse this value
       sym->initlist= (int *)malloc(sizeof(int));
       sym->initlist[0]= parse_literal(type);
-    }                           // No else code yet, soon
+    }
     if (class == C_LOCAL) {
       // Make an A_IDENT AST node with the variable
-      varnode = mkastleaf(A_IDENT, sym->type, sym, 0);
+      varnode = mkastleaf(A_IDENT, sym->type, sym->ctype, sym, 0);
 
       // Get the expression for the assignment, make into a rvalue
       exprnode = binexpr(0);
       exprnode->rvalue = 1;
 
       // Ensure the expression's type matches the variable
-      exprnode = modify_type(exprnode, varnode->type, 0);
+      exprnode = modify_type(exprnode, varnode->type, varnode->ctype, 0);
       if (exprnode == NULL)
         fatal("Incompatible expression in assignment");
 
       // Make an assignment AST tree
       ASSERT(assign_expr);
-      *assign_expr = mkastnode(A_ASSIGN, exprnode->type, exprnode,
-                                        NULL, varnode, NULL, 0);
+      *assign_expr = mkastnode(A_ASSIGN, exprnode->type, exprnode->ctype,
+          exprnode, NULL, varnode, NULL, 0);
     }
   }
 
@@ -867,7 +867,8 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
       if (*assign_exprs == NULL) {
         *assign_exprs = assign_expr;
       } else {
-        *assign_exprs = mkastnode(A_GLUE, P_NONE, *assign_exprs, NULL, assign_expr, NULL, 0);
+        *assign_exprs = mkastnode(A_GLUE, P_NONE, NULL, *assign_exprs,
+            NULL, assign_expr, NULL, 0);
       }
     }
 
