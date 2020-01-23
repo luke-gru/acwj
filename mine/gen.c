@@ -222,8 +222,8 @@ int genSwitch(struct ASTnode *n) {
 // Return the register id with the tree's final value
 int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int parentASTop) {
   int leftreg, rightreg;
-  leftreg = -1;
-  rightreg = -1;
+  leftreg = NOREG;
+  rightreg = NOREG;
 
   if (O_parseOnly)
     return (NOREG);
@@ -367,7 +367,15 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
         return (cgmul(leftreg, rightreg));
     }
   case A_ADDR:
-    return (cgaddress(n->sym));
+    if (n->sym) {
+      return (cgaddress(n->sym));
+    // FIXME: make sure n->sym always exists, change expr.c in member_access
+    } else {
+      ASSERT(n->left);
+      ASSERT(!n->right);
+      ASSERT(leftreg != NOREG);
+      return leftreg;
+    }
   case A_DEREF:
     // If we are an rvalue, dereference to get the value we point at
     // otherwise leave it for A_ASSIGN to store through the pointer

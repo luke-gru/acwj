@@ -653,6 +653,7 @@ int cg_builtin_vararg_addr_setup(void) {
 int cgaddress(struct symtable *sym) {
   int r = alloc_register();
 
+  ASSERT(sym);
   ASSERT(sym->class != C_PARAM);
 
   if (sym->class == C_LOCAL) {

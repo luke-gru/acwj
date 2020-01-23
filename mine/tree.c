@@ -178,9 +178,17 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_RETURN:
       fprintf(stdout, "A_RETURN\n"); break;
     case A_FUNCALL:
-      fprintf(stdout, "A_FUNCALL %s\n", n->sym->name); break;
+      if (n->sym) {
+        fprintf(stdout, "A_FUNCALL %s\n", n->sym->name); break;
+      } else {
+        fprintf(stdout, "A_FUNCALL\n"); break;
+      }
     case A_ADDR:
-      fprintf(stdout, "A_ADDR %s\n", n->sym->name); break;
+      if (n->sym) {
+        fprintf(stdout, "A_ADDR %s\n", n->sym->name); break;
+      } else {
+        fprintf(stdout, "A_ADDR\n"); break;
+      }
     case A_DEREF:
       if (n->rvalue)
         fprintf(stdout, "A_DEREF rval (%s)\n", typename(n->type, NULL));
