@@ -10,6 +10,8 @@
 #define LONGSZ 8
 #define PTRSZ 8
 
+#define ASSERT_REG(r) ASSERT(r >= 0 && r < NUMFREEREGS);
+
 #define NUMFREEREGS 4
 #define FIRSTPARAMREG 9
 #define MAXREGISTERPARAMS 6
@@ -219,6 +221,8 @@ int cgloadint(int value) {
 // Add two registers together and return
 // the number of the register with the result
 int cgadd(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
   fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r1], reglist[r2]);
   free_register(r1);
   return(r2);
@@ -264,6 +268,10 @@ int cgloadglob(struct symtable *sym, int op) {
 
   int size = cgprimsize(sym->type);
 
+  if (sym->type == S_ARRAY) {
+    ASSERT(size == PTRSZ); // must be pointer type
+  }
+
   // Print out the code to initialise it
   switch (size) {
     case CHARSZ:
@@ -293,7 +301,11 @@ int cgloadglob(struct symtable *sym, int op) {
         fprintf(Outfile, "\tincq\t%s(\%%rip)\n", sym->name);
       if (op == A_PREDEC)
         fprintf(Outfile, "\tdecq\t%s(\%%rip)\n", sym->name);
-      fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", sym->name, reglist[r]);
+      if (sym->stype == S_ARRAY) {
+        fprintf(Outfile, "\tleaq\t%s(\%%rip), %s\n", sym->name, reglist[r]);
+      } else {
+        fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", sym->name, reglist[r]);
+      }
       if (op == A_POSTINC)
         fprintf(Outfile, "\tincq\t%s(\%%rip)\n", sym->name);
       if (op == A_POSTDEC)
@@ -366,6 +378,7 @@ int cgloadlocal(struct symtable *sym, int op) {
 int cgstorglob(int r, struct symtable *sym) {
   int type = sym->type;
   int size = cgprimsize(type);
+  ASSERT(sym->stype != S_ARRAY);
   switch (size) {
     case CHARSZ:
       fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r], sym->name);

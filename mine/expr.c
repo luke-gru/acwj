@@ -144,14 +144,28 @@ struct ASTnode *postfix(void) {
 struct ASTnode *array_access(void) {
   struct ASTnode *left, *right;
   struct symtable *ary;
+  int ptr_type, elem_type;
 
-  // Check that the identifier has been defined as an array
-  // then make a leaf node for it that points at the base
-  if ((ary = findsymbol(Text)) == NULL || ary->stype != S_ARRAY) {
-    fatals("Undeclared array", Text);
+  // Check that the identifier has been defined as an array or pointer
+  // then make a leaf node for it that points at the base of the array,
+  // or to the pointer
+  if ((ary = findsymbol(Text)) == NULL) {
+    fatals("Undeclared variable", Text);
   }
 
-  left = mkastleaf(A_ADDR, ary->type, ary, 0);
+  if (ary->stype == S_ARRAY) {
+    ptr_type = ary->type;
+    elem_type = value_at(ptr_type);
+    left = mkastleaf(A_ADDR, ptr_type, ary, 0);
+  } else if (ptrtype(ary->type)) {
+    ASSERT(ary->stype == S_VARIABLE);
+    ptr_type = ary->type;
+    elem_type = value_at(ptr_type);
+    left = mkastleaf(A_IDENT, ptr_type, ary, 0); // LEAQ instead of MOV in cg.c
+    left->rvalue = 1;
+  } else {
+    ASSERT(0); // FIXME
+  }
 
   // Get the '['
   scan(&Token);
@@ -168,13 +182,13 @@ struct ASTnode *array_access(void) {
   }
 
   // Scale the index by the size of the element's type
-  right = modify_type(right, left->type, A_ADD);
+  right = modify_type(right, ptr_type, A_ADD);
 
   // Return an AST tree where the array's base has the offset
   // added to it, and dereference the element. Still an lvalue
   // at this point.
-  left = mkastnode(A_ADD, ary->type, left, NULL, right, NULL, 0);
-  left = mkuastunary(A_DEREF, value_at(left->type), left, NULL, 0);
+  left = mkastnode(A_ADD, ptr_type, left, NULL, right, NULL, 0);
+  left = mkuastunary(A_DEREF, elem_type, left, NULL, 0);
   return (left);
 }
 

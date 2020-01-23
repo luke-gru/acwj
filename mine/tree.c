@@ -145,9 +145,9 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_STRLIT (asm label %d)\n", n->intvalue); break;
     case A_IDENT:
       if (n->rvalue)
-        fprintf(stdout, "A_IDENT rval %s\n", n->sym->name);
+        fprintf(stdout, "A_IDENT rval %s (%s)\n", n->sym->name, typename(n->sym->type, n->sym->ctype));
       else
-        fprintf(stdout, "A_IDENT %s\n", n->sym->name);
+        fprintf(stdout, "A_IDENT %s (%s)\n", n->sym->name, typename(n->sym->type, n->sym->ctype));
       return;
     case A_ASSIGN:
       fprintf(stdout, "A_ASSIGN\n"); break;
@@ -179,9 +179,9 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_ADDR %s\n", n->sym->name); break;
     case A_DEREF:
       if (n->rvalue)
-        fprintf(stdout, "A_DEREF rval\n");
+        fprintf(stdout, "A_DEREF rval (%s)\n", typename(n->type, NULL));
       else
-        fprintf(stdout, "A_DEREF\n");
+        fprintf(stdout, "A_DEREF (%s)\n", typename(n->type, NULL));
       break;
     case A_SCALE:
       fprintf(stdout, "A_SCALE %d\n", n->size); break;
