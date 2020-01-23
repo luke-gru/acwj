@@ -15,4 +15,7 @@ int fclose(FILE *stream);
 int printf(char *format);
 int fprintf(FILE *stream, char *format);
 
+FILE *popen(const char *command, const char *type);
+int pclose(FILE *stream);
+
 #endif	// _STDIO_H_

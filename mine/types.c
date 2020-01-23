@@ -84,7 +84,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
   }
 
   // We can scale only on A_ADD or A_SUBTRACT operation
-  if (op == A_ADD || op == A_SUBTRACT) {
+  if (op == A_ADD || op == A_SUBTRACT || op == A_AS_ADD || op == A_AS_SUBTRACT) {
 
     // Left is int type, right is pointer type and the size
     // of the original type is >1: scale the left
@@ -101,7 +101,14 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
   // so that char *ptr = 0 works
   if (op == A_ASSIGN && ptrtype(rtype) && inttype(ltype)) {
     if (tree->intvalue == 0) {
-      return mkuastunary(A_WIDEN, P_LONG, tree, NULL, 0);
+      return (mkuastunary(A_WIDEN, P_LONG, tree, NULL, 0));
+    }
+  }
+
+  // allow `if (ptr == 0) {...}` and `return NULL`
+  if (op == A_EQ || op == A_NE || op == A_RETURN && (ptrtype(rtype) || ptrtype(ltype))) {
+    if (inttype(rtype) || inttype(ltype)) {
+      return (tree);
     }
   }
 

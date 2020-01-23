@@ -9,10 +9,8 @@
 char *objlist[MAXOBJ];        // List of object file names
 int objcnt = 0;               // Position to insert next name
 
-#if COMPILE_ASSERTS
 #ifndef INCDIR
-#error "INCDIR must be defined"
-#endif
+#define INCDIR "/tmp/include"
 #endif
 #define CPPCMD "cpp -nostdinc -isystem "
 
@@ -156,7 +154,7 @@ char *do_assemble(char *filename) {
 #define LDCMD "cc lib/mylib.c -o"
 // Given a list of object files and an output filename,
 // link all of the object filenames together.
-void do_link(char *outfilename, char *objlist[]) {
+void do_link(char *outfilename, char **objlist) {
   int cnt, size = TEXTLEN;
   char cmd[TEXTLEN], *cptr;
   int err;
@@ -182,7 +180,7 @@ void do_link(char *outfilename, char *objlist[]) {
 // Main program: check arguments and print a usage
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
   struct ASTnode *tree;
   char *asmfile, *objfile;
   char *binname = AOUT;

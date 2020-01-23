@@ -585,23 +585,25 @@ int cgcall(struct symtable *sym, int numargs) {
   return (outr);
 }
 
-void cgreturn(int reg, struct symtable *sym) {
+// XXX: doesn't work for returning structs as values
+void cgreturn(int reg, struct symtable *func) {
   // Generate code depending on the function's type
-  switch (sym->type) {
-    case P_CHAR:
+  int typesz = typesize(func->type, func->ctype);
+  switch (typesz) {
+    case CHARSZ:
       fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
       break;
-    case P_INT:
+    case INTSZ:
       fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
       break;
-    case P_LONG:
+    case LONGSZ:
       fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
       break;
     default:
-      fatalv("Bad function type in cgreturn: %s (%d)",
-          typename(sym->type, sym->ctype), sym->type);
+      fatalv("Bad function return type size in cgreturn for function: %s, type size: %d",
+          func->name, typesz);
   }
-  cgjump(sym->endlabel);
+  cgjump(func->endlabel);
 }
 
 int cg_builtin_vararg_addr_setup(void) {

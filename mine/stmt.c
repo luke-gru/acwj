@@ -326,7 +326,7 @@ struct ASTnode *return_statement(void) {
     // Parse the following expression
     tree = binexpr(0);
 
-    tree = modify_type(tree, CurFunctionSym->type, 0);
+    tree = modify_type(tree, CurFunctionSym->type, A_RETURN);
     if (tree == NULL)
       fatal("Incompatible types from return"); // TODO: better message
 
