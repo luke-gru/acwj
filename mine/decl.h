@@ -27,6 +27,7 @@ struct ASTnode *binexpr(int n);
 struct ASTnode *funcall(void);
 struct ASTnode *prefix(void);
 struct ASTnode *expression_list(int endtoken);
+int isbinastop(int op_or_token);
 
 // interp.c (deprecated)
 int interpretAST(struct ASTnode *n);

@@ -82,6 +82,11 @@ int parse_base_type(int t, struct symtable **ctype, int *class) {
   }
 
   t = Token.token;
+  while (t == T_CONST) { // ignore const for now
+    scan(&Token);
+    t = Token.token;
+  }
+
   switch (t) {
     case T_CHAR:
       type = P_CHAR;
@@ -745,6 +750,8 @@ int typedef_declaration(struct symtable **ctype) {
     fatals("redefinition of typedef", Text);
 
   // It doesn't exist so add it to the typedef list
+  debugnoisy("parse", "adding new typedef, %s -> %s",
+      Text, typename(type, *ctype));
   addtypedef(Text, type, *ctype, 0, 0);
   ident();
   ASSERT(Token.token == T_SEMI);

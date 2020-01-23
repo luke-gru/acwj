@@ -373,6 +373,11 @@ struct ASTnode *primary(void) {
   return (n);
 }
 
+int isbinastop(int op_or_token) {
+  if (op_or_token > T_EOF && op_or_token < T_INTLIT)
+    return (1);
+  return (0);
+}
 
 // Convert a binary operator token into an AST operation.
 // We rely on a 1:1 mapping from token to AST operation
@@ -381,6 +386,7 @@ static int binastop(int tokentype) {
     return(tokentype);
   fatals("Syntax error in binastop(), token", tokenname(tokentype));
 }
+
 
 // Operator precedence for each token (low first). Must
 // match up with the order of tokens in defs.h
@@ -463,9 +469,12 @@ struct ASTnode *binexpr(int ptp) {
     }
     if (ASTop == A_ASSIGN) {
       right->rvalue = 1;
-      right = modify_type(right, left->type, 0);
-      if (right == NULL)
-        fatal("Incompatible expression in assignment");
+      rtemp = modify_type(right, left->type, A_ASSIGN);
+      if (rtemp == NULL) {
+        fatalv("Incompatible expression in assignment. Expected type %s, got %s",
+            typename(left->type, NULL), typename(right->type, NULL));
+      }
+      right = rtemp;
 
       // Make an assignment AST tree. However, switch
       // left and right around, so that the right expression's

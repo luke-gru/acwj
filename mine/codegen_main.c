@@ -182,7 +182,7 @@ void do_link(char *outfilename, char *objlist[]) {
 // Main program: check arguments and print a usage
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
-void main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   struct ASTnode *tree;
   char *asmfile, *objfile;
   char *binname = AOUT;

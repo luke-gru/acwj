@@ -75,9 +75,11 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
     if (op >= A_EQ && op <= A_GE)
       return (tree);
 
+    if (op == A_ASSIGN && ltype == rtype) return tree;
+
     // A comparison of the same type for a non-binary operation is OK,
     // or when the left tree is of  `void *` type.
-    if (op == 0 && (ltype == rtype || ltype == pointer_to(P_VOID)))
+    if (!isbinastop(op) && (ltype == rtype || ltype == pointer_to(P_VOID)))
       return (tree);
   }
 
@@ -93,6 +95,13 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
       } else {
         return (tree); // Size 1, no need to scale
       }
+    }
+  }
+
+  // so that char *ptr = 0 works
+  if (op == A_ASSIGN && ptrtype(rtype) && inttype(ltype)) {
+    if (tree->intvalue == 0) {
+      return mkuastunary(A_WIDEN, P_LONG, tree, NULL, 0);
     }
   }
 

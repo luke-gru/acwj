@@ -1,10 +1,12 @@
 #ifndef _STDIO_H_
-# define _STDIO_H_
+#define _STDIO_H_
 
 #include <stddef.h>
 
 // This FILE definition will do for now
 typedef char *FILE;
+extern FILE *stderr;
+extern FILE *stdout;
 
 FILE *fopen(char *pathname, char *mode);
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);

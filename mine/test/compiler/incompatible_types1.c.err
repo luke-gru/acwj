@@ -1,3 +1,4 @@
 test/compiler/incompatible_types1.c:5:12 Incompatible types char**** and char*** in binary expression
 on line:
   o = x + p;
+at token: T_SEMI

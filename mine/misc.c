@@ -35,8 +35,22 @@ static void print_filename(FILE *f) {
   }
 }
 
+static void print_current_token(FILE *f) {
+  fprintf(f, "at token: %s", tokenname(Token.token));
+  if (Token.token == T_IDENT) {
+    fprintf(f, " with value: \"%s\"", Text);
+  } else if (Token.token == T_INTLIT) {
+    fprintf(f, " with value: %d", Token.intvalue);
+  }
+  fprintf(f, "\n");
+}
+
 static void print_curline(FILE *f) {
   fprintf(f, "on line:\n%s", CurLine);
+#ifdef NDEBUG
+#else
+  print_current_token(f);
+#endif
 }
 
 static void print_stacktrace(int sig) {
@@ -203,6 +217,7 @@ const char *classname(int class) {
     CASE_PRINT(C_MEMBER);
     CASE_DEFAULT_ERROR("class", class);
   }
+  return NULL;
 }
 
 const char *stypename(int stype) {
@@ -214,6 +229,7 @@ const char *stypename(int stype) {
     CASE_PRINT(S_ARRAY);
     CASE_DEFAULT_ERROR("stype", stype);
   }
+  return NULL;
 }
 
 int num_spilled_args(struct symtable *func, int argnum) {

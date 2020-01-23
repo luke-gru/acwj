@@ -8,6 +8,13 @@ static int CurLinePos = 0;
 static size_t CurLineSize = 0;
 static size_t CurLineLen = 0;
 static int IsEOF = 0;
+static int InPreprocLine = 0;
+
+#ifdef DEBUG_SCANNER
+#define scandebug(...) debugnoisy("scan", __VA_ARGS__)
+#else
+#define scandebug(...) (void)0
+#endif
 
 char *toknames[] = {
   "T_EOF",
@@ -31,7 +38,7 @@ char *toknames[] = {
   "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_BREAK", "T_CONTINUE",
   "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_UNION", "T_ENUM",
   "T_SWITCH", "T_CASE", "T_DEFAULT", "T_TYPEDEF", "T_RETURN", "T_EXTERN",
-  "T_SIZEOF", "T_STATIC",
+  "T_SIZEOF", "T_STATIC", "T_CONST",
   NULL
 };
 // must line up with tokens enum to compile
@@ -66,14 +73,17 @@ static int readchar(void) {
       IsEOF = 1;
       return EOF;
     }
+    /*scandebug("getline() got '%s'", CurLine);*/
     CurLineLen = res;
   }
   if (!CurLine) { // first line
+    CurLinePos = 0;
     res = getline(&CurLine, &CurLineSize, Infile);
     if (res == -1) {
       IsEOF = 1;
       return EOF;
     }
+    /*scandebug("getline() got '%s'", CurLine);*/
     CurLineLen = res;
   }
   int c = CurLine[CurLinePos++];
@@ -95,12 +105,15 @@ static int next(void) {
   c = readchar();
 
   int preproc_comment = 0;
+  int aminpreproc = InPreprocLine;
 
-  if (c == '#') {
+  if (!InPreprocLine && CurLinePos == 1 && c == '#') {
+    aminpreproc = InPreprocLine = 1;
     preproc_comment = 1;
     memcpy(OldText, Text, TEXTLEN+1);
   }
-  while (c == '#') {                    // We've hit a pre-processor statement
+  while (CurLinePos == 1 && c == '#') {                    // We've hit a pre-processor statement
+    scandebug("skipping preproc line %s", CurLine);
     scan(&Token);                       // Get the line number into l
     if (Token.token != T_INTLIT)
       fatals("Expecting pre-processor line number, got:", Text);
@@ -108,17 +121,18 @@ static int next(void) {
 
     scan(&Token);                       // Get the filename in Text
     if (Token.token != T_STRLIT)
-      fatals("Expecting pre-processor file name, got:", Text);
+      fatalv("Expecting pre-processor file name, got: %s", tokenname(Token.token));
 
     if (Text[0] != '<') {               // If this is a real filename
-      if (strcmp(Text, Infilename) != 0)     // and not the one we have now
+      if (strcmp(Text, Infilename) != 0) {     // and not the one we have now
         Infilename = strdup(Text);      // save it. Then update the line num
+      }
       Line = l;
-      Col = 0;
     }
 
     // Skip to the end of the line
     while ((c = readchar()) != '\n') {
+      scandebug("next skip EOL: %c", c);
     }
     Col = 0;
     c = readchar();                  // and get the next character
@@ -132,6 +146,10 @@ static int next(void) {
     Line++;			// Increment line count
     Col = 0;
   }
+  if (aminpreproc && Col == 0) {
+    InPreprocLine = 0;
+  }
+  scandebug("%snext(): %c (%d)", InPreprocLine ? "PRE " : "", c, c);
   return (c);
 }
 
@@ -255,6 +273,8 @@ static int keyword(char *s) {
         return (T_CONTINUE);
       if (!strcmp(s, "case"))
         return (T_CASE);
+      if (!strcmp(s, "const"))
+        return (T_CONST);
       break;
     case 'w':
       if (!strcmp(s, "while"))
@@ -298,8 +318,11 @@ static int keyword(char *s) {
       if (!strcmp(s, "union"))
         return (T_UNION);
     case 't':
-      if (!strcmp(s, "typedef"))
+      if (!strcmp(s, "typedef")) {
         return (T_TYPEDEF);
+      }
+    default:
+      break;
 
   }
   return (0);
@@ -372,11 +395,11 @@ int scan_ch(void) {
 // Scan in a string literal from the input file,
 // and store it in buf[]. Return the length of
 // the string.
-int scan_str(char *buf) {
+int scan_str(char *buf, int start) {
   int i, c;
 
   // Loop while we have enough buffer space
-  for (i=0; i<TEXTLEN-1; i++) {
+  for (i=start; i<TEXTLEN-1; i++) {
     // Get the next char and append to buf
     // Return when we hit the ending double quote
     if ((c = scan_ch()) == '"') {
@@ -386,7 +409,7 @@ int scan_str(char *buf) {
     buf[i] = c;
   }
   // Ran out of buf[] space
-  fatal("String literal too long");
+  fatalv("String literal too long, max length is %d bytes", TEXTLEN);
   return (0);
 }
 
@@ -560,8 +583,14 @@ gettok:
       }
       break;
     case '"':
-      scan_str(Text);
+      scan_str(Text, 0);
       t->token = T_STRLIT;
+      if (!InPreprocLine) {
+        while ((c = skip()) == '"') {
+          scan_str(Text, strlen(Text));
+        }
+        putback(c);
+      }
       break;
     case '.':
       t->token = T_DOT;
@@ -581,7 +610,7 @@ gettok:
         scanident(c, Text, TEXTLEN);
 
         // If it's a recognised keyword, return that token
-        if (tokentype = keyword(Text)) {
+        if ((tokentype = keyword(Text))) {
           t->token = tokentype;
           break;
         }
