@@ -242,6 +242,7 @@ struct ASTnode *continue_statement() {
 struct ASTnode *return_statement(void);
 struct ASTnode *goto_statement(void);
 struct ASTnode *label_statement(void);
+struct ASTnode *empty_statement(void);
 
 // Parse a single statement
 // and return its AST
@@ -252,6 +253,10 @@ struct ASTnode *single_statement(void) {
   switch (Token.token) {
     case T_LBRACE:
       lbrace();
+      if (Token.token == T_RBRACE) {
+        rbrace();
+        return (empty_statement());
+      }
       stmt = compound_statement(0);
       rbrace();
       return (stmt);
@@ -378,5 +383,11 @@ struct ASTnode *label_statement(void) {
   labelsym = add_or_find_label(Text);
   n = mkastunary(A_LABEL, P_NONE, NULL, NULL, labelsym, 0);
   scan(&Token); // the T_LABEL, ':' included (Text is filled with name)
+  return (n);
+}
+
+struct ASTnode *empty_statement(void) {
+  struct ASTnode *n;
+  n = mkastunary(A_EMPTY, P_NONE, NULL, NULL, NULL, 0);
   return (n);
 }

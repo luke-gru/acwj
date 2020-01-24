@@ -248,11 +248,12 @@ int gen_logor(struct ASTnode *n) {
 int gen_logand(struct ASTnode *n) {
   int Lend;
   int reg, res;
-  int r = alloc_register(); // result register
+  int r;
 
   Lend = genlabel();
 
   res = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+  r = alloc_register();
   cgboolean(res, 0, NOLABEL);
   cgmove(res, r);
   genfreeregs(r);
@@ -494,6 +495,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     return (NOREG);
   case A_LABEL:
     cggotolabel(n->sym);
+    return (NOREG);
+  case A_EMPTY:
     return (NOREG);
   default:
     ASSERT(n->op < A_LAST);

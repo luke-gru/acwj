@@ -3,12 +3,13 @@
 #include "decl.h"
 
 static struct token *Rejtoken = NULL;
-extern char *CurLine;
 static int CurLinePos = 0;
 static size_t CurLineSize = 0;
 static size_t CurLineLen = 0;
 static int IsEOF = 0;
 static int InPreprocLine = 0;
+static int AtBol = 1; // beginning of line
+static int FirstNonSpaceInLine = 0; // used to track AtBol
 
 #ifdef DEBUG_SCANNER
 #define scandebug(...) debugnoisy("scan", __VA_ARGS__)
@@ -18,7 +19,6 @@ static int InPreprocLine = 0;
 
 char *toknames[] = {
   "T_EOF",
-
   "T_ASSIGN",
   "T_AS_PLUS", "T_AS_MINUS", "T_AS_STAR", "T_AS_SLASH",
   "T_QUESTION",
@@ -42,11 +42,11 @@ char *toknames[] = {
   NULL
 };
 // must line up with tokens enum to compile
-CASSERT(sizeof(toknames)/sizeof(char*) == (T_LAST+1));
+CASSERT(sizeof(toknames)/sizeof(char*) == (T_LAST+1))
 
 char *tokenname(int tok) {
   ASSERT(tok >= T_EOF && tok < T_LAST);
-  return toknames[tok];
+  return (toknames[tok]);
 }
 
 // Lexical scanning
@@ -62,31 +62,43 @@ static int chrpos(char *s, int c) {
 }
 
 static int readchar(void) {
-  int res = 0;
+  ssize_t res = 0;
   if (IsEOF) {
-    return EOF;
+    return (EOF);
   }
   if (CurLinePos == CurLineLen) { // new line
     CurLinePos = 0;
+    AtBol = 1;
     res = getline(&CurLine, &CurLineSize, Infile);
     if (res == -1) {
       IsEOF = 1;
-      return EOF;
+      return (EOF);
     }
-    /*scandebug("getline() got '%s'", CurLine);*/
+    scandebug("getline() got '%s'", CurLine);
     CurLineLen = res;
   }
   if (!CurLine) { // first line
     CurLinePos = 0;
+    AtBol = 1;
     res = getline(&CurLine, &CurLineSize, Infile);
     if (res == -1) {
       IsEOF = 1;
-      return EOF;
+      return (EOF);
     }
-    /*scandebug("getline() got '%s'", CurLine);*/
+    scandebug("getline() got '%s'", CurLine);
     CurLineLen = res;
   }
   int c = CurLine[CurLinePos++];
+  if (CurLinePos == 1 || (AtBol && isspace(c))) {
+    AtBol = 1;
+    FirstNonSpaceInLine = 0;
+  } else if (AtBol && !FirstNonSpaceInLine) {
+    AtBol = 1;
+    FirstNonSpaceInLine = 1;
+  } else {
+    AtBol = 0;
+    FirstNonSpaceInLine = 0;
+  }
   return c;
 }
 
@@ -611,6 +623,7 @@ gettok:
         t->token = T_INTLIT;
         break;
       } else if (isalpha(c) || '_' == c) {
+        int atbol = AtBol;
         // Read in a keyword or identifier
         scanident(c, Text, TEXTLEN);
 
@@ -621,10 +634,11 @@ gettok:
         }
         // Not a recognised keyword, so it must be an identifier
         t->token = T_IDENT;
-        if ((c = next()) == ':') {
+        c = 0;
+        if (atbol && (c = next()) == ':') {
           t->token = T_LABEL;
         } else {
-          putback(c);
+          if (c) putback(c);
         }
         break;
       }

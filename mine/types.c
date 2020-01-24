@@ -82,6 +82,9 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
     if (op >= A_EQ && op <= A_GE)
       return (tree);
 
+    if (op == A_SUBTRACT) // ptr difference (p1-p2)
+      return (tree);
+
     if (op == A_ASSIGN && ltype == rtype) return tree;
 
     // A comparison of the same type for a non-binary operation is OK,

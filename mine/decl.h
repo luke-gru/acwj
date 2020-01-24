@@ -107,6 +107,7 @@ void cggotolabel(struct symtable *sym);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);
+struct ASTnode *empty_statement(void);
 
 // misc.c
 int column(void);
@@ -132,6 +133,7 @@ void myassert(int expr, int line, const char *filename);
 const char *stypename(int stype);
 const char *classname(int class);
 int num_spilled_args(struct symtable *sym, int argnum);
+char *opname(int op);
 
 // sym.c
 struct symtable *findglob(char *s);

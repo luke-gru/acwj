@@ -91,16 +91,14 @@ int alloc_register(void) {
       return(i);
     }
   }
-  fprintf(stderr, "Out of registers!\n");
-  exit(1);
+  fatalv("Out of registers!\n");
 }
 
 // Return a register to the list of available registers.
 // Check to see if it's not already there.
 static void free_register(int reg) {
   if (freereg[reg] != 0) {
-    fprintf(stderr, "Error trying to free register %d\n", reg);
-    exit(1);
+    fatalv("Error trying to free register %d\n", reg);
   }
   freereg[reg]= 1;
 }

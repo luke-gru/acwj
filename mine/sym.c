@@ -64,9 +64,6 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype,
     } else {
       ASSERT(nelems > 0);
       node->size = nelems * typesize(type, ctype);
-      if (node->size == 0) {
-        ASSERT(0);
-      }
       ASSERT(node->size > 0);
     }
   } else {

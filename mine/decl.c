@@ -267,7 +267,11 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
 
   cgresetlocals();
   lbrace();
-  tree = compound_statement(0);
+  if (Token.token == T_RBRACE) {
+    tree = empty_statement();
+  } else {
+    tree = compound_statement(0);
+  }
   rbrace();
   // If the function type isn't P_VOID, check that
   // the last AST operation in the compound statement
@@ -305,12 +309,14 @@ struct symtable *array_declaration(char *varname, int type,
   int i, j;
   int maxelems;
   int gotelems = 0;
+  int initial_elems_count = 1;
   // Skip past the '['
   match(T_LBRACKET, "[");
 
   if (Token.token != T_RBRACKET) {
     gotelems = 1;
     nelems = parse_literal(P_INT);
+    initial_elems_count = nelems;
   }
   if (gotelems && nelems <= 0) {
     fatald("Array size is illegal", nelems);
@@ -323,11 +329,11 @@ struct symtable *array_declaration(char *varname, int type,
     case C_STATIC:
     case C_GLOBAL:
       sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class,
-          Token.intvalue);
+          initial_elems_count);
       break;
     case C_LOCAL:
       sym = addlocl(varname, pointer_to(type), ctype, S_ARRAY,
-          Token.intvalue);
+          initial_elems_count);
       break;
     case C_PARAM:
     case C_MEMBER:
@@ -435,6 +441,10 @@ int parse_literal(int type) {
     // We have a zero int literal, so that's a NULL
     if (tree->op == A_INTLIT && tree->intvalue==0)
       return (0);
+  }
+
+  if (ptrtype(type) && tree->op == A_INTLIT && tree->intvalue == 0) {
+    return (0);
   }
 
   // We only get here with an integer literal. The input type

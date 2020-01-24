@@ -241,6 +241,33 @@ const char *stypename(int stype) {
   return NULL;
 }
 
+char *opnames[] = {
+  "A_ASSIGN",
+  "A_AS_ADD", "A_AS_SUBTRACT", "A_AS_MULTIPLY", "A_AS_DIVIDE",
+  "A_TERNARY",
+  "A_LOGOR", "A_LOGAND",
+  "A_BITOR", "A_BITXOR", "A_BITAND",
+  "A_EQ", "A_NE",
+  "A_LT", "A_GT", "A_LE", "A_GE",
+  "A_LSHIFT", "A_RSHIFT",
+  "A_ADD", "A_SUBTRACT", "A_MULTIPLY", "A_DIVIDE", // end of mapping
+
+  "A_INTLIT", "A_STRLIT", "A_IDENT", "A_GLUE",
+  "A_IF", "A_WHILE", "A_BREAK", "A_CONTINUE", "A_FUNCTION", "A_WIDEN", "A_RETURN",
+  "A_FUNCALL", "A_DEREF", "A_ADDR", "A_SCALE",
+  "A_SWITCH", "A_CASE", "A_DEFAULT",
+  "A_PREINC", "A_PREDEC", "A_POSTINC", "A_POSTDEC",
+  "A_NEGATE", "A_INVERT", "A_LOGNOT", "A_TOBOOL", "A_CAST",
+  "A_GOTO", "A_LABEL", "A_EMPTY",
+  "A_LAST" // sentinel
+};
+CASSERT(sizeof(opnames)/sizeof(char*) == A_LAST)
+
+char *opname(int op) {
+  ASSERT(op >= A_ASSIGN && op < A_LAST);
+  return opnames[op-A_ASSIGN];
+}
+
 int num_spilled_args(struct symtable *func, int argnum) {
   if (func->size < 0) { // vararg function
     return argnum - func->nelems; // args given - required args

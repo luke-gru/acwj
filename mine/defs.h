@@ -23,7 +23,7 @@
     typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 #else
 
-#define CASSERT(predicate) (void)0
+#define CASSERT(predicate)
 
 #endif
 
@@ -57,8 +57,6 @@ enum {
   T_LAST // sentinel
 };
 
-extern char *toknames[];
-
 // Token structure
 struct token {
   int token;
@@ -83,7 +81,7 @@ enum {
   A_SWITCH, A_CASE, A_DEFAULT,
   A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
   A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL, A_CAST,
-  A_GOTO, A_LABEL,
+  A_GOTO, A_LABEL, A_EMPTY,
   A_LAST // sentinel
 };
 
