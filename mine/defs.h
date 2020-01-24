@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <stddef.h>
 
 // Structure and enum definitions
 // Copyright (c) 2019 Warren Toomey, GPL3

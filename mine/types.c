@@ -52,6 +52,12 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
   int ltype;
   int lsize, rsize;
 
+  // any types will do here, ex: `if (ptr->name && !strcmp(ptr->name, "John"))`
+  // has types `char* and char (bool)`
+  if (op == A_LOGOR || op == A_LOGAND) {
+    return tree;
+  }
+
   ltype = tree->type;
 
   // Compare scalar int types

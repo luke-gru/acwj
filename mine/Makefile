@@ -14,9 +14,13 @@ bin/parser: expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c dec
 bin/compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c install_includes
 	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c
 
+bin/selfhosted: bin/compiler
+	./bin/compiler -o bin/selfhosted expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c
+
 scanner: bin/scanner
 parser: bin/parser
 compiler: bin/compiler
+selfhosted: bin/selfhosted
 
 clean:
 	rm -f *.o bin/* a.out out.s test/compiler/*.s test/compiler/*.o

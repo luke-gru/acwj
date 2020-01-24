@@ -5,8 +5,6 @@ Functional
 ----------
 * Allow arrays as function parameters
 * Put string literals in read-only memory
-* Get array variables to decay to a pointer to their first element
-* Get extern functions working
 * Get Composite member access working with mixed -> and .
 * Try to compile compiler itself
 * Add static local variables, only initialized during first call to function
@@ -15,7 +13,9 @@ Functional
 * Get (void)0; to parse (useful for preprocessor)
 * Get `1-1` working as intended, right now `-` right before a digit is scanned
 as part of the INTLIT
-* Allow assignment declaration as init value in `for` stmt
+* Allow assignment declaration as init value in `for` stmt `for (int i = 0;;`)
+* Get local struct declarations working
+* Implement goto and labels
 
 Optimizations
 -------------

@@ -489,8 +489,9 @@ struct symtable *scalar_declaration(char *varname, int type,
 
   if (Token.token == T_ASSIGN) {
     // Only possible for a global or local
-    if (class != C_GLOBAL && class != C_LOCAL && class != C_STATIC)
+    if (class != C_GLOBAL && class != C_LOCAL && class != C_STATIC) {
       fatals("Variable can not be initialised", varname);
+    }
     scan(&Token); // '='
 
     // Globals
@@ -509,7 +510,7 @@ struct symtable *scalar_declaration(char *varname, int type,
       exprnode->rvalue = 1;
 
       // Ensure the expression's type matches the variable
-      exprnode = modify_type(exprnode, varnode->type, varnode->ctype, 0);
+      exprnode = modify_type(exprnode, varnode->type, varnode->ctype, A_ASSIGN);
       if (exprnode == NULL)
         fatal("Incompatible expression in assignment");
 

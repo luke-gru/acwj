@@ -9,5 +9,6 @@ char *strrchr(const char *s, int c);
 int sprintf(char *str, const char *format);
 int snprintf(char *str, size_t size, const char *format);
 char *strerror(int errnum);
+int strcmp(const char *s1, const char *s2);
 
 #endif

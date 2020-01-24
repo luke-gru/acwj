@@ -1,0 +1,4 @@
+test/compiler/array_incr.c:3:5 Cannot ++ on rvalue at 3:5
+on line:
+  a++;
+at token: T_INC

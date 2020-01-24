@@ -64,7 +64,8 @@ struct ASTnode *primary(void);
 // set to the number of expressions in the tree at this point. If no
 // expressions are parsed, NULL is returned
 struct ASTnode *expression_list(int endtoken) {
-  struct ASTnode *child, *tree = NULL;
+  struct ASTnode *child;
+  struct ASTnode *tree = NULL;
   int exprcount = 1;
   // Loop until the end token
   while (Token.token != endtoken) {
