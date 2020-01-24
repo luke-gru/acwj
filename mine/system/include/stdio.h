@@ -2,6 +2,7 @@
 #define _STDIO_H_
 
 #include <stddef.h>
+#include <stdarg.h>
 
 #define EOF (-1)
 
@@ -20,5 +21,7 @@ size_t getline(char **lineptr, size_t *n, FILE *stream);
 
 FILE *popen(const char *command, const char *type);
 int pclose(FILE *stream);
+
+int vfprintf(FILE *stream, const char *format, va_list ap);
 
 #endif	// _STDIO_H_

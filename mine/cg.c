@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -24,6 +25,9 @@
 #endif
 
 static int AsmComments = 1;
+static int spillreg=0;
+static int lastspill=-1;
+static int lastalloc=-1;
 
 // List of available registers
 // and their names
@@ -82,26 +86,93 @@ void freeall_registers(int keepreg) {
   }
 }
 
+static void pushreg(int r) {
+  fprintf(Outfile, "\tpushq\t%s\n", reglist[r]);
+}
+
+static void popreg(int r) {
+  fprintf(Outfile, "\tpopq\t%s\n", reglist[r]);
+}
+
+// Spill all registers on the stack
+void spill_all_regs(void) {
+  int i;
+
+  fprintf(Outfile, "# spilling regs\n");
+  for (i = 0; i < NUMFREEREGS; i++) {
+    pushreg(i);
+  }
+}
+
+static void unspill_all_regs(void) {
+  int i;
+
+  fprintf(Outfile, "# unspilling regs\n");
+  for (i = NUMFREEREGS-1; i >= 0; i--) {
+    popreg(i);
+  }
+}
+
+#define SPILLING(reg) lastspill = reg
+#define UNSPILLING(reg) ASSERT(lastspill == reg); lastspill--
+
+/**
+ * FREE:
+ * IN USE: 0 1 2 3
+ * SPILL:
+ * In this case, spills register 0, returns it:
+ * FREE:
+ * IN USE: 0 1 2 3
+ * SPILL:  0
+ */
 // Allocate a free register. Return the number of
 // the register. Die if no available registers.
 int alloc_register(void) {
+  int reg;
   for (int i=0; i<NUMFREEREGS; i++) {
-    if (freereg[i]) {
-      freereg[i]= 0;
+    if (freereg[i]) { // if free
+      freereg[i]= 0; // mark in use
       return(i);
     }
   }
-  fatalv("Out of registers!\n");
+  // no more free registers, we must spill the oldest allocd register
+  reg = (spillreg % NUMFREEREGS);
+  spillreg++;
+  SPILLING(reg);
+  fprintf(Outfile, "# spilling reg %d\n", reg);
+  pushreg(reg);
+  return (reg);
 }
 
+
+/**
+ * FREE:
+ * IN USE: 0 1 2 3
+ * SPILL: 0
+ * In this case, free_register(3) unspills it:
+ * FREE:
+ * IN USE: 0 1 2 3
+ * SPILL: 0
+ */
 // Return a register to the list of available registers.
-// Check to see if it's not already there.
-static void free_register(int reg) {
+// Check to see if it's not already there. The newest allocated
+// register MUST be freed first.
+void free_register(int reg) {
+  int unspill;
   if (freereg[reg] != 0) {
-    fatalv("Error trying to free register %d\n", reg);
+    fatalv("Error trying to free register %d, it's not in use\n", reg);
   }
-  freereg[reg]= 1;
+  if (spillreg > 0) { // unspill the latest spill
+    spillreg--;
+    unspill = (spillreg % NUMFREEREGS);
+    UNSPILLING(unspill);
+    fprintf(Outfile, "# unspilling reg %d\n", unspill);
+    popreg(unspill);
+  } else {
+    freereg[reg]= 1; // mark as free
+  }
 }
+
 
 // Print out the assembly preamble
 void cgpreamble() {
@@ -218,9 +289,9 @@ int cgloadint(int value) {
 int cgadd(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
-  fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r1], reglist[r2]);
-  free_register(r1);
-  return(r2);
+  fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
+  free_register(r2);
+  return (r1);
 }
 
 // Subtract the second register from the first and
@@ -587,8 +658,7 @@ void cgcopyarg(struct symtable *func, int r, int argnum) {
 // Call a function and return the register with the result.
 // The arguments must be loaded into registers with `cgloadarg`.
 int cgcall(struct symtable *sym, int numargs) {
-  // Get a new register
-  int outr = alloc_register();
+  int outr;
   int num_args_spilled = 0;
   if (sym->size < 0 && numargs > sym->nelems) { // varargs
     num_args_spilled = numargs - sym->nelems;
@@ -604,12 +674,19 @@ int cgcall(struct symtable *sym, int numargs) {
     // restore spilled argument stack space (assume each argument is a word in size)
     fprintf(Outfile, "\taddq\t$%d, %%rsp # restore spilled argument stack space\n", 8*num_args_spilled);
   }
+  unspill_all_regs();
+  // Get a new register
+  outr = alloc_register();
   fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
   return (outr);
 }
 
 // XXX: doesn't work for returning structs as values
 void cgreturn(int reg, struct symtable *func) {
+  if (reg == NOREG) {
+    cgjump(func->endlabel);
+    return;
+  }
   ASSERT_REG(reg);
   // Generate code depending on the function's type
   int typesz = typesize(func->type, func->ctype);
@@ -963,4 +1040,15 @@ void cggotolabel(struct symtable *sym) {
 
 void cggoto(struct symtable *sym) {
   fprintf(Outfile, "\tjmp %s%d\n", sym->name, sym->size);
+}
+
+void cgcomment(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  fprintf(Outfile, "# ");
+  vfprintf(Outfile, fmt, ap);
+  if (fmt[strlen(fmt)-1] != '\n') {
+    fprintf(Outfile, "\n");
+  }
+  va_end(ap);
 }

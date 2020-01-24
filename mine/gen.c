@@ -136,6 +136,9 @@ int gen_funcall(struct ASTnode *n) {
     return gen_builtin_function(n);
   }
 
+  // Save the registers before we copy the arguments
+  spill_all_regs();
+
   numargs = gluetree ? gluetree->size : 0;
   numspilled = num_spilled_args(n->sym, numargs);
 
@@ -152,7 +155,6 @@ int gen_funcall(struct ASTnode *n) {
     reg = genAST(gluetree->right, NOREG, NOLABEL, NOLABEL, gluetree->op);
     // Copy this into the n'th function parameter: size is 1, 2, 3, ...
     cgcopyarg(n->sym, reg, gluetree->size);
-    genfreeregs(-1);
     gluetree = gluetree->left;
   }
 
@@ -269,6 +271,25 @@ int gen_logand(struct ASTnode *n) {
   return (r);
 }
 
+static void genASTOpComment(int op) {
+  cgcomment("Operation %s\n", opname(op));
+}
+static void genASTOpEndComment(int op) {
+  cgcomment("/Operation %s\n", opname(op));
+}
+
+int genSequence(struct ASTnode *n) {
+  int res;
+  ASSERT(n->left);
+  genASTOpComment(n->op);
+  res = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+  free_register(res);
+  ASSERT(n->right);
+  res = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+  genASTOpEndComment(n->op);
+  return (res);
+}
+
 // Given an AST, generate assembly code recursively.
 // Return the register id with the tree's final value
 int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int parentASTop) {
@@ -294,6 +315,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       return (genIF(n, looptoplabel, loopendlabel));
     case A_TERNARY:
       return (genTernary(n));
+    case A_SEQUENCE:
+      return (genSequence(n));
     case A_WHILE:
       return (genWhile(n));
     case A_SWITCH:

@@ -1,7 +1,10 @@
 #include <stdarg.h>
 #include <unistd.h>
+#ifdef SELFHOSTED
+#else
 #include <execinfo.h>
 #include <signal.h>
+#endif
 #include <string.h>
 #include "defs.h"
 #include "data.h"
@@ -14,9 +17,9 @@ static int LastSig = 0;
 
 int column() {
   if (Col < 0) { // can happen due to putback() in scan.c
-    return 0;
+    return (0);
   }
-  return Col;
+  return (Col);
 }
 
 static void print_filename(FILE *f) {
@@ -38,7 +41,7 @@ static void print_filename(FILE *f) {
 static void print_current_token(FILE *f) {
   fprintf(f, "at token: %s", tokenname(Token.token));
   if (Token.token == T_IDENT) {
-    fprintf(f, " with value: \"%s\"", Text);
+    fprintf(f, " with value: '%s'", Text);
   } else if (Token.token == T_INTLIT) {
     fprintf(f, " with value: %d", Token.intvalue);
   }
@@ -60,6 +63,9 @@ static void print_curline(FILE *f) {
 #endif
 }
 
+#ifdef SELFHOSTED
+static void print_stacktrace(int sig) { }
+#else
 static void print_stacktrace(int sig) {
   if (sig) {
     print_filename(stdout);
@@ -87,12 +93,16 @@ static void print_stacktrace(int sig) {
     exit(1);
   }
 }
+#endif
 
+#ifdef SELFHOSTED
+void setup_signal_handlers(void) {
+}
+#else
 void setup_signal_handlers(void) {
   signal(SIGSEGV, print_stacktrace);
 }
-
-
+#endif
 
 // Ensure that the current token is t,
 // and fetch the next token. Otherwise
@@ -109,9 +119,9 @@ void match(int t, char *what) {
 int scan_if_match(int t) {
   if (Token.token == t) {
     scan(&Token);
-    return 1;
+    return (1);
   }
-  return 0;
+  return (0);
 }
 
 void semi(void) {
@@ -164,7 +174,7 @@ void fatalv(const char *fmt, ...) {
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   va_end(ap);
-  if (fmt[strlen(fmt)-1] != '\n') {
+  if (fmt[strlen(fmt) - 1] != '\n') {
     fprintf(stderr, "%s", "\n");
   }
   if (Outfile) fclose(Outfile);         // assembly FILE
@@ -201,14 +211,14 @@ char *str_concat(char *str1, char *str2) {
     fprintf(stderr, "malloc failed in str_append!\n");
     exit(1);
   }
-  return new_str;
+  return (new_str);
 }
 
 void myassert(int expr, int line, const char *filename) {
   if (!expr) fatalv("assertion failed at %s:%d", filename, line);
 }
 
-#define CASE_PRINT(label) case label: return #label
+#define CASE_PRINT(label) case label: return (#label)
 #define CASE_DEFAULT_ERROR(name, val) default: \
   fatalv("Invalid " name ": %d", val)
 
@@ -226,7 +236,7 @@ const char *classname(int class) {
     CASE_PRINT(C_MEMBER);
     CASE_DEFAULT_ERROR("class", class);
   }
-  return NULL;
+  return (NULL);
 }
 
 const char *stypename(int stype) {
@@ -238,10 +248,11 @@ const char *stypename(int stype) {
     CASE_PRINT(S_ARRAY);
     CASE_DEFAULT_ERROR("stype", stype);
   }
-  return NULL;
+  return (NULL);
 }
 
 char *opnames[] = {
+  "A_SEQUENCE",
   "A_ASSIGN",
   "A_AS_ADD", "A_AS_SUBTRACT", "A_AS_MULTIPLY", "A_AS_DIVIDE",
   "A_TERNARY",
@@ -264,17 +275,17 @@ char *opnames[] = {
 CASSERT(sizeof(opnames)/sizeof(char*) == A_LAST)
 
 char *opname(int op) {
-  ASSERT(op >= A_ASSIGN && op < A_LAST);
-  return opnames[op-A_ASSIGN];
+  ASSERT(op >= A_SEQUENCE && op < A_LAST);
+  return (opnames[op - A_SEQUENCE]);
 }
 
 int num_spilled_args(struct symtable *func, int argnum) {
   if (func->size < 0) { // vararg function
-    return argnum - func->nelems; // args given - required args
+    return (argnum - func->nelems); // args given - required args
   }
   if (argnum > 6) {
-    return argnum-6;
+    return (argnum-6);
   } else {
-    return 0;
+    return (0);
   }
 }

@@ -32,6 +32,7 @@ enum {
   T_EOF=0,
   // beginning of operators (precedence table)
   // binary operators
+  T_COMMA, // comma operator (expression lists)
   T_ASSIGN,
   T_AS_PLUS, T_AS_MINUS, T_AS_STAR, T_AS_SLASH,
   T_QUESTION,
@@ -48,7 +49,7 @@ enum {
 
   T_INTLIT, T_SEMI, T_IDENT, T_STRLIT,
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN, T_LBRACKET, T_RBRACKET,
-  T_COMMA, T_DOT, T_ARROW, T_COLON,
+  T_DOT, T_ARROW, T_COLON,
   // keywords
   T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_BREAK, T_CONTINUE,
   T_VOID, T_CHAR, T_LONG, T_STRUCT, T_UNION, T_ENUM,
@@ -56,6 +57,7 @@ enum {
   T_SIZEOF, T_STATIC, T_CONST, T_GOTO, T_LABEL,
   T_LAST // sentinel
 };
+enum { T_FIRST = 0 };
 
 // Token structure
 struct token {
@@ -65,7 +67,8 @@ struct token {
 
 // AST node types (maps 1:1 with some tokens)
 enum {
-  A_ASSIGN=1,
+  A_SEQUENCE=1,
+  A_ASSIGN,
   A_AS_ADD, A_AS_SUBTRACT, A_AS_MULTIPLY, A_AS_DIVIDE,
   A_TERNARY,
   A_LOGOR, A_LOGAND,
@@ -84,9 +87,17 @@ enum {
   A_GOTO, A_LABEL, A_EMPTY,
   A_LAST // sentinel
 };
+enum {A_FIRST = 1};
 
 // 1111
 #define P_PTR_BITS (0xf)
+
+#define P_CHAR_MIN  (-128)
+#define P_CHAR_MAX  (127)
+#define P_INT_MIN   (-(2<<31))
+#define P_INT_MAX   ((2<<31)-1)
+#define P_LONG_MIN   (-(2<<63))
+#define P_LONG_MAX   ((2<<63)-1)
 
 // Primitive types. The bottom 4 bits is an integer
 // value that represents the level of indirection,

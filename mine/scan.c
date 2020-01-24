@@ -14,12 +14,12 @@ static int FirstNonSpaceInLine = 0; // used to track AtBol
 #ifdef DEBUG_SCANNER
 #define scandebug(...) debugnoisy("scan", __VA_ARGS__)
 #else
-#define scandebug(...) (void)0
+#define scandebug(...) 0
 #endif
 
 char *toknames[] = {
   "T_EOF",
-  "T_ASSIGN",
+  "T_COMMA", "T_ASSIGN",
   "T_AS_PLUS", "T_AS_MINUS", "T_AS_STAR", "T_AS_SLASH",
   "T_QUESTION",
   "T_LOGOR", "T_LOGAND",
@@ -33,7 +33,7 @@ char *toknames[] = {
 
   "T_INTLIT", "T_SEMI", "T_IDENT", "T_STRLIT",
   "T_LBRACE", "T_RBRACE", "T_LPAREN", "T_RPAREN", "T_LBRACKET", "T_RBRACKET",
-  "T_COMMA", "T_DOT", "T_ARROW", "T_COLON",
+  "T_DOT", "T_ARROW", "T_COLON",
   // keywords
   "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_BREAK", "T_CONTINUE",
   "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_UNION", "T_ENUM",
@@ -99,7 +99,7 @@ static int readchar(void) {
     AtBol = 0;
     FirstNonSpaceInLine = 0;
   }
-  return c;
+  return (c);
 }
 
 // Get the next character from the input file.
@@ -247,7 +247,7 @@ static int scanident(int c, char *buf, int lim) {
     if (lim - 1 == i) {
       fatal("Identifier too long");
     } else if (i < lim - 1) {
-      buf[i++] = c;
+      buf[i++] = (char)c;
     }
     c = next();
   }
@@ -364,7 +364,7 @@ static int hexchar(void) {
     fatal("missing digits after '\\x'");
   if (n > 255)
     fatal("value out of range after '\\x'");
-  return n;
+  return (n);
 }
 
 int scan_ch(void) {
@@ -375,16 +375,16 @@ int scan_ch(void) {
   c = next();
   if (c == '\\') {
     switch (c = next()) {
-      case 'a':  return '\a';
-      case 'b':  return '\b';
-      case 'f':  return '\f';
-      case 'n':  return '\n';
-      case 'r':  return '\r';
-      case 't':  return '\t';
-      case 'v':  return '\v';
-      case '\\': return '\\';
-      case '"':  return '"' ;
-      case '\'': return '\'';
+      case 'a':  return ('\a');
+      case 'b':  return ('\b');
+      case 'f':  return ('\f');
+      case 'n':  return ('\n');
+      case 'r':  return ('\r');
+      case 't':  return ('\t');
+      case 'v':  return ('\v');
+      case '\\': return ('\\');
+      case '"':  return ('"' );
+      case '\'': return ('\'');
       case '0':
       case '1':
       case '2':
@@ -401,7 +401,7 @@ int scan_ch(void) {
         putback(c);             // Put back the first non-octal char
         return (c2);
       case 'x':
-        return hexchar();
+        return (hexchar());
       default:
         fatalc("unknown escape sequence", c);
     }
@@ -416,14 +416,14 @@ int scan_str(char *buf, int start) {
   int i, c;
 
   // Loop while we have enough buffer space
-  for (i=start; i<TEXTLEN-1; i++) {
+  for (i=start; i<TEXTLEN - 1; i++) {
     // Get the next char and append to buf
     // Return when we hit the ending double quote
     if ((c = scan_ch()) == '"') {
       buf[i] = '\0';
       return (i);
     }
-    buf[i] = c;
+    buf[i] = (char)c;
   }
   // Ran out of buf[] space
   fatalv("String literal too long, max length is %d bytes", TEXTLEN);

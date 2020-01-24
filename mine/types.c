@@ -41,84 +41,104 @@ int ptrtype(int ptype) {
   return ((ptype & P_PTR_BITS) != 0);
 }
 
+static int int_fits_size(int intval, int bytesize, int unsignd) {
+  int minsz;
+  int maxsz;
+  if (unsignd) {
+    minsz = 0;
+    maxsz = (1<<bytesize)-1;
+  } else {
+    minsz = -(1<<bytesize-1);
+    maxsz = (1<<bytesize)-1;
+  }
+  return (intval >= minsz && intval <= maxsz);
+}
+
 // Given an AST tree and a type which we want it to become,
 // possibly modify the tree by widening or scaling so that
 // it is compatible with this type. Return the original tree
 // if no changes occurred, a modified tree, or NULL if the
 // tree is not compatible with the given type.
 // If this will be part of a binary operation, the AST op is not zero.
-struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
-    struct symtable *rctype, int op) {
-  int ltype;
+struct ASTnode *modify_type(struct ASTnode *rtree, int ltype,
+    struct symtable *lctype, int op) {
+
+  int rtype = rtree->type;
   int lsize, rsize;
 
   // any types will do here, ex: `if (ptr->name && !strcmp(ptr->name, "John"))`
   // has types `char* and char (bool)`
   if (op == A_LOGOR || op == A_LOGAND) {
-    return tree;
+    return (rtree);
   }
-
-  ltype = tree->type;
 
   // Compare scalar int types
   if (inttype(ltype) && inttype(rtype)) {
 
     // Both types same, nothing to do
-    if (ltype == rtype) return (tree);
+    if (ltype == rtype) return (rtree);
 
     // Get the sizes for each type
     lsize = genprimsize(ltype);
     rsize = genprimsize(rtype);
 
-    // Tree's size is too big
-    if (lsize > rsize) return (NULL);
+    // ex: (char) = (int) is NOT safe, truncation can occur
+    if (rsize > lsize) {
+      // safe cast in this case
+      if (rtree->op == A_INTLIT && int_fits_size(rtree->intvalue, lsize, 0)) {
+        return mkastunary(A_CAST, ltype, lctype, rtree, NULL, 0);
+      }
+      return NULL;
+    }
 
-    // Widen to the right
-    if (rsize > lsize) return (mkastunary(A_WIDEN, rtype, rctype, tree, NULL, 0));
+    // Widen to the right, ex: (int) = (char) -> (int) = (int) [char to int conversion]
+    if (lsize > rsize) {
+      return (mkastunary(A_WIDEN, ltype, lctype, rtree, NULL, 0));
+    }
   }
 
   if (ptrtype(ltype) && ptrtype(rtype)) {
     // We can compare them
     if (op >= A_EQ && op <= A_GE)
-      return (tree);
+      return (rtree);
 
     if (op == A_SUBTRACT) // ptr difference (p1-p2)
-      return (tree);
+      return (rtree);
 
-    if (op == A_ASSIGN && ltype == rtype) return tree;
+    if (op == A_ASSIGN && ltype == rtype) return (rtree);
 
     // A comparison of the same type for a non-binary operation is OK,
     // or when the left tree is of  `void *` type.
     if (!isbinastop(op) && (ltype == rtype || ltype == pointer_to(P_VOID)))
-      return (tree);
+      return (rtree);
   }
 
   // We can scale only on A_ADD or A_SUBTRACT operation
   if (op == A_ADD || op == A_SUBTRACT || op == A_AS_ADD || op == A_AS_SUBTRACT) {
 
-    // Left is int type, right is pointer type and the size
-    // of the original type is >1: scale the left
-    if (inttype(ltype) && ptrtype(rtype)) {
-      rsize = genprimsize(value_at(rtype));
-      if (rsize > 1) {
-        return (mkastunary(A_SCALE, rtype, rctype, tree, NULL, rsize));
+    // right is int type, left is pointer type and the size
+    // of the left's element type is > 1 (char): scale the right
+    if (inttype(rtype) && ptrtype(ltype)) {
+      lsize = genprimsize(value_at(ltype));
+      if (lsize > 1) {
+        return (mkastunary(A_SCALE, rtype, lctype, rtree, NULL, lsize));
       } else {
-        return (tree); // Size 1, no need to scale
+        return (rtree); // Size 1, no need to scale
       }
     }
   }
 
   // so that char *ptr = 0 works
-  if (op == A_ASSIGN && ptrtype(rtype) && inttype(ltype)) {
-    if (tree->intvalue == 0) {
-      return (mkastunary(A_WIDEN, P_LONG, NULL, tree, NULL, 0));
+  if (op == A_ASSIGN && ptrtype(ltype) && inttype(rtype)) {
+    if (rtree->intvalue == 0) {
+      return (mkastunary(A_WIDEN, P_LONG, NULL, rtree, NULL, 0));
     }
   }
 
   // allow `if (ptr == 0) {...}` and `return NULL`
   if (op == A_EQ || op == A_NE || op == A_RETURN && (ptrtype(rtype) || ptrtype(ltype))) {
     if (inttype(rtype) || inttype(ltype)) {
-      return (tree);
+      return (rtree);
     }
   }
 

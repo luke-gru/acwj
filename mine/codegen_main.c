@@ -8,10 +8,15 @@
 #define MAXOBJ 100
 char *objlist[MAXOBJ];        // List of object file names
 int objcnt = 0;               // Position to insert next name
+#define MAXDEFS 20
+char cpp_defines_str[TEXTLEN];
+int num_defines = 0;
+int cpp_defines_idx = 0;
 
 #ifndef INCDIR
 #define INCDIR "/tmp/include"
 #endif
+
 #define CPPCMD "cpp -nostdinc -isystem "
 
 // Compiler setup and top-level execution
@@ -55,10 +60,11 @@ static void init() {
 // Print out a usage if started incorrectly
 static void usage(char *prog) {
   fprintf(stderr,
-      "Usage: %s [-vcDST] [-o outfile] infile [infile2 ...]\n"
+      "Usage: %s [-vcdDSTM] [-o outfile] infile [infile2 ...]\n"
        "       -v give verbose output of the compilation stages\n"
        "       -c generate object files but don't link them\n"
-       "       -D print debug info to stderr\n"
+       "       -d print debug info to stderr\n"
+       "       -D specify define for preprocessor\n"
        "       -S generate assembly files but don't link them\n"
        "       -T dump the AST trees for each input file\n"
        "       -M dump the symbol table each input file\n"
@@ -101,7 +107,12 @@ char *do_compile(char *filename) {
     exit(1);
   }
 
-  snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
+  snprintf(cmd, TEXTLEN, "%s %s %s %s", CPPCMD, INCDIR, cpp_defines_str, filename);
+
+  if (O_verbose) {
+    fprintf(stdout, "CPP cmd:\n");
+    fprintf(stdout, " - %s\n", cmd);
+  }
 
   // Open up the input file
   if ((Infile = popen(cmd, "r")) == NULL) {
@@ -182,6 +193,37 @@ void do_link(char *outfilename, char **objlist) {
   if (err != 0) { fprintf(stderr, "Linking failed\n"); exit(1); }
 }
 
+// `define` is something like "-Dmacro[=arg] other args"
+static int add_define(char *define) {
+  if (num_defines == MAXDEFS) {
+    fprintf(stderr, "maximum defines reached\n"); exit(1);
+  }
+  char *p = define;
+  int len = 0;
+  while (*p && !isspace(*p)) {
+    if (cpp_defines_idx >= (512-1)) {
+      fprintf(stderr, "defines too long (%d)\n", cpp_defines_idx); exit(1);
+    }
+    cpp_defines_str[cpp_defines_idx++] = *p;
+    len++;
+    p++;
+  }
+  if (O_verbose)
+    fprintf(stdout, "Added define %.*s\n", len, define);
+  num_defines++;
+  return (len);
+}
+
+static void unlink_safe(char *name) {
+  ASSERT(name);
+  if (strlen(name) > 2 && name[strlen(name)-2] == '.' && name[strlen(name)-1] == 'c') {
+    fprintf(stderr, "Error: tried to remove C source file %s\n", name);
+    exit(1);
+  } else {
+    unlink(name);
+  }
+}
+
 #define AOUT "a.out"
 
 // Main program: check arguments and print a usage
@@ -202,24 +244,32 @@ int main(int argc, char **argv) {
   int i, j;
   // Scan for command-line options
   for (i = 1; i<argc; i++) {
+after_incr:
     // No leading '-', stop scanning for options
     if (*argv[i] != '-') break;
     for (j=1; *argv[i] == '-' && argv[i][j]; j++) {
+      if (O_verbose)
+        fprintf(stdout, "Processing option %s\n", argv[i]);
       switch (argv[i][j]) {
+        case 'v':
+          O_verbose = 1; break;
         case 'T':
           O_dumpAST = 1; O_parseOnly = 1; O_dolink = 0; break;
         case 'M':
           O_dumpsym = 1; break;
-        case 'D':
+        case 'd':
           O_debugNoisy = 1; break;
-        case 'v':
-          O_verbose = 1; break;
         case 'o':
           binname = argv[++i]; O_dolink = 1; break;
         case 'c':
           O_assemble = 1; O_keepasm = 0; O_dolink = 0; break;
         case 'S':
           O_keepasm = 1; O_assemble = 0; O_dolink = 0; break;
+        case 'D':
+          add_define(argv[i]);
+          i++;
+          goto after_incr;
+          break;
         default:
           fprintf(stderr, "Invalid option: %c\n", argv[i][j]);
           usage(argv[0]);
@@ -242,7 +292,7 @@ int main(int argc, char **argv) {
     }
 
     if (!O_keepasm)                     // Remove the assembly file if
-      unlink(asmfile);                  // we don't need to keep it
+      unlink_safe(asmfile);                  // we don't need to keep it
     i++;
   }
 
@@ -252,7 +302,7 @@ int main(int argc, char **argv) {
     // files, then remove them
     if (!O_assemble) {
       for (i = 0; objlist[i] != NULL; i++) {
-        unlink(objlist[i]);
+        unlink_safe(objlist[i]);
       }
     }
   }

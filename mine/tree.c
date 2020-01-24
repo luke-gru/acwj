@@ -227,6 +227,8 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_GOTO %s\n", n->sym->name); break;
     case A_EMPTY:
       fprintf(stdout, "A_EMPTY\n"); break;
+    case A_SEQUENCE:
+      fprintf(stdout, "A_SEQUENCE\n"); break;
     default:
       ASSERT(n->op < A_LAST);
       fatald("Unknown dumpAST AST node operator", n->op);

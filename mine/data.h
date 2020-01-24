@@ -21,6 +21,7 @@ char     OldText[TEXTLEN + 1];		// Last identifier scanned
 char     *CurLine;                      // Current line being tokenized
 
 struct symtable *CurFunctionSym;        // Symbol ptr of the current function being parsed and code-generated
+int CommaAsSeparator;                   // flag used in parser to differentiate comma as operator versus comma as separator
 
 // Symbol table lists
 struct symtable *Globalshead, *Globalstail;	// Global variables and functions

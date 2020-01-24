@@ -104,6 +104,9 @@ void cgpush0(void);
 void cgmove(int src, int dst);
 void cggoto(struct symtable *sym);
 void cggotolabel(struct symtable *sym);
+void spill_all_regs(void);
+void free_register(int reg);
+void cgcomment(const char *fmt, ...);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);

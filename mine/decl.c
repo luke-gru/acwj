@@ -17,8 +17,8 @@ static int ParseCompositeLevels[MAX_COMPOSITE_NESTING];
 #define SET_PARSING_COMPOSITE(ptype) ParseCompositeLevels[ParseCompositeLevel++] = ptype
 #define UNSET_PARSING_COMPOSITE() ASSERT(ParseCompositeLevel > 0), ParseCompositeLevel--
 
-#define IS_PARSING_STRUCT (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel-1] == P_STRUCT)
-#define IS_PARSING_UNION  (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel-1] == P_UNION)
+#define IS_PARSING_STRUCT (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel - 1] == P_STRUCT)
+#define IS_PARSING_UNION  (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel - 1] == P_UNION)
 
 #define TYPE_DEFN (-1)
 #define VOID_PARAMS (-2)
@@ -34,7 +34,7 @@ static int type_of_typedef(char *name, struct symtable **ctype, int fail) {
     if (fail) {
       fatals("unknown type", name);
     } else {
-      return -1;
+      return (-1);
     }
   }
   *ctype = t->ctype;
@@ -44,13 +44,13 @@ static int type_of_typedef(char *name, struct symtable **ctype, int fail) {
 // Given a typedef name, return the type it represents. Errors out if none
 // found.
 int type_of_typedef_fail(char *name, struct symtable **ctype) {
-  return type_of_typedef(name, ctype, 1);
+  return (type_of_typedef(name, ctype, 1));
 }
 
 // Given a typedef name, return the type it represents
 // Returns -1 if no type found
 int type_of_typedef_nofail(char *name, struct symtable **ctype) {
-  return type_of_typedef(name, ctype, 0);
+  return (type_of_typedef(name, ctype, 0));
 }
 
 // Parse the current token and
@@ -104,30 +104,30 @@ int parse_base_type(int t, struct symtable **ctype, int *class) {
       type = P_STRUCT;
       *ctype = composite_declaration(P_STRUCT);
       if (Token.token == T_SEMI) type = TYPE_DEFN;
-      return type;
+      return (type);
     case T_UNION:
       type = P_UNION;
       *ctype = composite_declaration(P_UNION);
       if (Token.token == T_SEMI) type = TYPE_DEFN;
-      return type;
+      return (type);
     case T_ENUM:
       type = P_INT;
       enum_declaration();
       if (Token.token == T_SEMI) type = TYPE_DEFN;
-      return type;
+      return (type);
     case T_TYPEDEF:
       type = typedef_declaration(ctype);
       if (Token.token == T_SEMI) type = TYPE_DEFN;
-      return type;
+      return (type);
     case T_IDENT: // might be typedef
       type = type_of_typedef_fail(Text, ctype);
       ident();
-      return type;
+      return (type);
     default:
       fatals("Expected a type, found token", tokenname(t));
   }
   scan(&Token);
-  return type;
+  return (type);
 }
 
 // Parse 0 or more '*'s after base type
@@ -143,7 +143,7 @@ int parse_pointer_array_type(int basetype) {
 
 int parse_full_type(int t, struct symtable **ctype, int *class) {
   int type = parse_base_type(t, ctype, class);
-  return parse_pointer_array_type(type);
+  return (parse_pointer_array_type(type));
 }
 
 // Returns the number of parameters found. Is a negative number if has
@@ -207,10 +207,8 @@ static int param_declaration_list(struct symtable *oldfuncsym,
   }
   if (hasvarargs) {
     return (-paramcnt);
-  } else {
-    // Return the count of parameters
-    return (paramcnt);
   }
+  return (paramcnt);
 }
 
 struct symtable *function_declaration(char *name, int type, struct symtable *ctype, int class) {
@@ -261,7 +259,7 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
   if (Token.token == T_SEMI) {
     oldfuncsym->stype = S_PROTO; // actually a prototype
     scan(&Token);
-    return oldfuncsym;
+    return (oldfuncsym);
   }
   oldfuncsym->stype = S_FUNCTION; // turn proto into real function
 
@@ -360,7 +358,9 @@ struct symtable *array_declaration(char *varname, int type,
       // Check we can add the next value, then parse and add it
       if (nelems != -1 && i == maxelems)
         fatal("Too many values given in initialisation list");
+      CommaAsSeparator = 1;
       initlist[i++] = parse_literal(type);
+      CommaAsSeparator = 0;
 
       // Increase the list size if the original size was
       // not set and we have hit the end of the current list
@@ -547,7 +547,7 @@ struct symtable *composite_declaration(int comptype) {
   int t;
   int membcount = 0;
   int fwddecl = 0;
-  const char *comptypename;
+  char *comptypename;
   struct symtable *oldmembtail;
   struct symtable *oldmembhead;
 
@@ -602,7 +602,7 @@ struct symtable *composite_declaration(int comptype) {
 
   if (fwddecl) {
     ASSERT(ctype);
-    return ctype;
+    return (ctype);
   }
   lbrace();
 
@@ -838,20 +838,21 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
     scan(&Token);
     dot();
     dot();
-    return VARARGS_PARAM;
+    return (VARARGS_PARAM);
   }
 
   // Get the initial type. If TYPE_DEFN, it was
   // a type definition, return this.
-  if ((inittype = parse_base_type(Token.token, ctype, &class)) == TYPE_DEFN)
+  if ((inittype = parse_base_type(Token.token, ctype, &class)) == TYPE_DEFN) {
     if (inittype == TYPE_DEFN && IS_PARSING_STRUCT && (*ctype) && (*ctype)->type == P_UNION) {
       debugnoisy("parse", "found anon union in struct %s, adding it as member", Structstail->name);
       ASSERT((*ctype)->member);
       addmember(NULL, P_UNION, *ctype, S_VARIABLE, 1);
-      return P_UNION; // anonymous union inside struct
+      return (P_UNION); // anonymous union inside struct
     } else {
       return (TYPE_DEFN);
     }
+  }
 
   // Now parse the list of symbols
   while (1) {
@@ -860,16 +861,22 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 
     // don't add a new parameter symbol if it's a prototype, just re-use them
     if (class == C_PARAM && CurFunctionSym && CurFunctionSym->stype == S_PROTO) {
-      ident();
-      return type;
+      if (type == P_VOID) {
+        return (VOID_PARAMS);
+      } else {
+        ident();
+        return (type);
+      }
     }
 
     if (class == C_PARAM && type == P_VOID && Token.token == T_RPAREN) {
-      return VOID_PARAMS;
+      return (VOID_PARAMS);
     }
 
     // Parse this symbol
+    CommaAsSeparator = 1;
     sym = symbol_declaration(type, *ctype, class, &assign_expr);
+    CommaAsSeparator = 0;
     ASSERT(sym);
 
     // Build assignment tree statements, store them to inpointer `assign_exprs`.
@@ -898,6 +905,7 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
     comma();
   }
   ASSERT(0);
+  return (-1);
 }
 
 void global_declarations(void) {

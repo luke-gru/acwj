@@ -339,12 +339,17 @@ struct ASTnode *return_statement(void) {
   int returntype, functype;
 
   ASSERT(CurFunctionSym != NULL);
-  // Can't return a value if function returns P_VOID
-  if (CurFunctionSym->type == P_VOID) // TODO: allow empty `return` for early exit
-    fatal("Can't return from a void function");
 
   // Ensure we have 'return' '('
   match(T_RETURN, "return");
+  if (Token.token == T_SEMI) {
+    if (CurFunctionSym->type != P_VOID) {
+      fatal("Incompatible types from return: can't return void from non-void function");
+    }
+    tree = mkastunary(A_RETURN, P_VOID, NULL, NULL, NULL, 0);
+    semi();
+    return tree;
+  }
   lparen(); // for some reason, force '(' for now
 
   if (Token.token != T_RPAREN) {

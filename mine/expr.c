@@ -214,6 +214,8 @@ struct ASTnode *member_access(struct ASTnode *left, int withpointer) {
 
   hasanonunion = 0;
 
+  ASSERT(typeptr);
+
   // Find the matching member's name in the type
   // Die if we can't find it
   for (m = typeptr->member; m != NULL; m = m->next) {
@@ -339,7 +341,8 @@ struct ASTnode *primary(void) {
   case T_INTLIT:
     // For an INTLIT token, make a leaf AST node for it.
     // Make it a P_CHAR if it's within the P_CHAR range
-    if ((Token.intvalue) >= 0 && (Token.intvalue < 256)) {
+    // FIXME: assume signed chars unless noted otherwise
+    if ((Token.intvalue) >= 0 && (Token.intvalue <= 255)) {
       n = mkastleaf(A_INTLIT, P_CHAR, NULL, NULL, Token.intvalue);
     } else {
       n = mkastleaf(A_INTLIT, P_INT, NULL, NULL, Token.intvalue);
@@ -399,13 +402,14 @@ static int binastop(int tokentype) {
   if (tokentype > T_EOF && tokentype < T_INTLIT)
     return(tokentype);
   fatals("Syntax error in binastop(), token", tokenname(tokentype));
+  return(-1);
 }
 
 
 // Operator precedence for each token (low first). Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
-  0, 10,                        // T_EOF, T_ASSIGN
+  0, 5, 10,                     // T_EOF, T_COMMA, T_ASSIGN
   10, 10, 10, 10,               // T_AS_PLUS, T_AS_MINUS, T_AS_STAR, T_AS_SLASH
   15,                           // T_QUESTION,
   20, 30,                       // T_LOGOR, T_LOGAND
@@ -431,7 +435,7 @@ static int op_precedence(int tokentype) {
 }
 
 static int rightassoc(int tokentype) {
-  // `a = b = c;`, `=` is right associative, same for '+=', '-=', '*=', '/='
+  // `a = b = c;`, `=` is right associative (a=(b=c)), same for '+=', '-=', '*=', '/='
   if (tokentype >= T_ASSIGN && tokentype <= T_AS_SLASH)
     return(1);
   return(0);
@@ -455,7 +459,12 @@ struct ASTnode *binexpr(int ptp) {
   // If we hit a ';', ':', ')', ']' or ',' return just the left node
   tokentype = Token.token;
   if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET ||
-      tokentype == T_COMMA || tokentype == T_COLON || tokentype == T_RBRACE) {
+      tokentype == T_COLON || tokentype == T_RBRACE) {
+    left->rvalue = 1;
+    return (left);
+  }
+  // comma separator in parameter list
+  if (CommaAsSeparator && tokentype == T_COMMA) {
     left->rvalue = 1;
     return (left);
   }
@@ -494,6 +503,8 @@ struct ASTnode *binexpr(int ptp) {
       // left and right around, so that the right expression's
       // code will be generated before the left expression
       ltemp= left; left= right; right= ltemp;
+    } else if (ASTop == A_SEQUENCE) {
+      left->rvalue = 1; // first value thrown away
     } else {
       left->rvalue = 1;
       right->rvalue = 1;
@@ -502,9 +513,9 @@ struct ASTnode *binexpr(int ptp) {
       rtemp = modify_type(right, left->type, left->ctype, ASTop);
 
       if (ltemp == NULL && rtemp == NULL)
-        fatalv("Incompatible types %s and %s in binary expression for op %s (%d)",
+        fatalv("Incompatible types %s and %s in binary expression for op %s",
             typename(left->type, NULL),
-            typename(right->type, NULL), opname(ASTop), ASTop);
+            typename(right->type, NULL), opname(ASTop));
 
       if (ltemp != NULL) left = ltemp;
       if (rtemp != NULL) right = rtemp;
@@ -518,8 +529,13 @@ struct ASTnode *binexpr(int ptp) {
     // If we hit a terminating token, return just the left node
     tokentype = Token.token;
     if (tokentype == T_SEMI || tokentype == T_RPAREN ||
-        tokentype == T_RBRACKET || tokentype == T_COMMA ||
-        tokentype == T_COLON || tokentype == T_RBRACE) {
+        tokentype == T_RBRACKET || tokentype == T_COLON ||
+        tokentype == T_RBRACE) {
+      left->rvalue = 1;
+      return (left);
+    }
+    // comma separator in parameter list
+    if (CommaAsSeparator && tokentype == T_COMMA) {
       left->rvalue = 1;
       return (left);
     }
@@ -548,7 +564,9 @@ struct ASTnode *funcall(void) {
   }
   lparen();
 
+  CommaAsSeparator = 1;
   tree = expression_list(T_RPAREN);
+  CommaAsSeparator = 0;
 
   rparen();
 
@@ -556,7 +574,7 @@ struct ASTnode *funcall(void) {
 
   // Build the function call AST node. Store the
   // function's return type as this node's type.
-  return mkastunary(A_FUNCALL, funcptr->type, funcptr->ctype, tree, funcptr, 0);
+  return (mkastunary(A_FUNCALL, funcptr->type, funcptr->ctype, tree, funcptr, 0));
 }
 
 /**
@@ -599,7 +617,7 @@ struct ASTnode *prefix(void) {
         /*fatal("* operator must be followed by an identifier or *");*/
 
       // Prepend an A_DEREF operation to the tree
-      tree = mkastunary(A_DEREF, value_at(tree->type), NULL, tree, NULL, 0);
+      tree = mkastunary(A_DEREF, value_at(tree->type), tree->ctype, tree, NULL, 0);
       break;
     case T_MINUS:
       scan(&Token);
