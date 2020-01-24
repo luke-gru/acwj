@@ -240,6 +240,8 @@ struct ASTnode *continue_statement() {
 }
 
 struct ASTnode *return_statement(void);
+struct ASTnode *goto_statement(void);
+struct ASTnode *label_statement(void);
 
 // Parse a single statement
 // and return its AST
@@ -288,6 +290,10 @@ struct ASTnode *single_statement(void) {
       return (continue_statement());
     case T_RETURN:
       return (return_statement());
+    case T_GOTO:
+      return (goto_statement());
+    case T_LABEL:
+      return (label_statement());
     default:
       stmt = binexpr(0);
       semi(); return (stmt);
@@ -351,4 +357,26 @@ struct ASTnode *return_statement(void) {
   rparen();
   semi();
   return (tree);
+}
+
+struct ASTnode *goto_statement(void) {
+  ASSERT(CurFunctionSym != NULL);
+  struct symtable *labelsym;
+  struct ASTnode *n;
+  scan(&Token); // goto
+  ident(); // label name
+  labelsym = add_or_find_label(Text);
+  n = mkastunary(A_GOTO, P_NONE, NULL, NULL, labelsym, 0);
+  semi();
+  return (n);
+}
+
+struct ASTnode *label_statement(void) {
+  ASSERT(CurFunctionSym != NULL);
+  struct symtable *labelsym;
+  struct ASTnode *n;
+  labelsym = add_or_find_label(Text);
+  n = mkastunary(A_LABEL, P_NONE, NULL, NULL, labelsym, 0);
+  scan(&Token); // the T_LABEL, ':' included (Text is filled with name)
+  return (n);
 }

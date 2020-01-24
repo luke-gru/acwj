@@ -102,6 +102,8 @@ void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
 int cg_builtin_vararg_addr_setup(void);
 void cgpush0(void);
 void cgmove(int src, int dst);
+void cggoto(struct symtable *sym);
+void cggotolabel(struct symtable *sym);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);
@@ -143,6 +145,7 @@ struct symtable *addmember(char *name, int ptype, struct symtable *ctype, int st
 struct symtable *addenum(char *name, int class, int value);
 struct symtable *addtypedef(char *name, int type, struct symtable *ctype,
 			   int stype, int size);
+struct symtable *add_or_find_label(char *s);
 struct symtable *findsymbol(char *s);
 struct symtable *findstruct(char *s);
 struct symtable *findunion(char *s);

@@ -31,6 +31,7 @@ struct symtable *Membershead, *Memberstail;	// List of struct types
 struct symtable *Unionshead,  *Unionstail;	// List of union types
 struct symtable *Enumshead,   *Enumstail;	// List of enum types and values
 struct symtable *Typeshead,   *Typestail;	// List of typedefs
+struct symtable *Labelshead,  *Labelstail;	// List of labels for current function, used by gotos
 
 int    O_dumpAST;          // option to print AST string representation to stdout
 int    O_dumpsym;          // option to print symbol table after compiling every file

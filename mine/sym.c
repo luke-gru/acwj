@@ -144,6 +144,13 @@ struct symtable *addtypedef(char *name, int type, struct symtable *ctype,
   return (sym);
 }
 
+struct symtable *addlabel(char *name) {
+  int lblnum = genlabel();
+  struct symtable *sym = newsym(name, 0, 0, 0, 0, 0, lblnum);
+  appendsym(&Labelshead, &Labelstail, sym);
+  return (sym);
+}
+
 // Determine if the symbol s is in the global symbol table.
 // Return a pointer to the found node or NULL if not found.
 struct symtable *findglob(char *s) {
@@ -220,6 +227,16 @@ struct symtable *findtypedef(char *s) {
   return (findsyminlist(s, Typeshead, 0));
 }
 
+struct symtable *findlabel(char *s) {
+  return (findsyminlist(s, Labelshead, 0));
+}
+
+struct symtable *add_or_find_label(char *s) {
+  struct symtable *lbl = findlabel(s);
+  if (lbl) return (lbl);
+  addlabel(s);
+}
+
 int isglobalsym(struct symtable *sym) {
   return sym->class == C_GLOBAL || sym->class == C_STATIC || sym->class == C_EXTERN;
 }
@@ -228,10 +245,12 @@ int issizedsym(struct symtable *sym) {
   return sym->size > 0 && sym->class != C_EXTERN;
 }
 
-// Clear all the entries in the local symbol table
+// Clear all the entries in the local symbol table, and clears goto labels for
+// current function.
 void freeloclsyms(void) {
   Localshead = Localstail = NULL;
   Paramshead = Paramstail = NULL;
+  Labelshead = Labelstail = NULL;
   CurFunctionSym = NULL;
 }
 
@@ -272,6 +291,7 @@ void clear_symtable(void) {
   Membershead = Memberstail = NULL;
   Enumshead = Enumstail = NULL;
   Typeshead = Typestail = NULL;
+  Labelshead = Labelstail = NULL;
 }
 
 #define TABS "\t\t\t\t\t"

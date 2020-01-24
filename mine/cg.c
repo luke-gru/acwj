@@ -958,3 +958,11 @@ void cgmove(int srcreg, int dstreg) {
   ASSERT_REG(dstreg);
   fprintf(Outfile, "\tmovq %s, %s\n", reglist[srcreg], reglist[dstreg]);
 }
+
+void cggotolabel(struct symtable *sym) {
+  fprintf(Outfile, "%s%d:\n", sym->name, sym->size);
+}
+
+void cggoto(struct symtable *sym) {
+  fprintf(Outfile, "\tjmp %s%d\n", sym->name, sym->size);
+}

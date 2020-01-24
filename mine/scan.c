@@ -38,7 +38,7 @@ char *toknames[] = {
   "T_INT", "T_IF", "T_ELSE", "T_WHILE", "T_FOR", "T_BREAK", "T_CONTINUE",
   "T_VOID", "T_CHAR", "T_LONG", "T_STRUCT", "T_UNION", "T_ENUM",
   "T_SWITCH", "T_CASE", "T_DEFAULT", "T_TYPEDEF", "T_RETURN", "T_EXTERN",
-  "T_SIZEOF", "T_STATIC", "T_CONST",
+  "T_SIZEOF", "T_STATIC", "T_CONST", "T_GOTO", "T_LABEL",
   NULL
 };
 // must line up with tokens enum to compile
@@ -317,10 +317,15 @@ static int keyword(char *s) {
     case 'u':
       if (!strcmp(s, "union"))
         return (T_UNION);
+      break;
     case 't':
-      if (!strcmp(s, "typedef")) {
+      if (!strcmp(s, "typedef"))
         return (T_TYPEDEF);
-      }
+      break;
+    case 'g':
+      if (!strcmp(s, "goto"))
+        return (T_GOTO);
+      break;
     default:
       break;
 
@@ -616,6 +621,11 @@ gettok:
         }
         // Not a recognised keyword, so it must be an identifier
         t->token = T_IDENT;
+        if ((c = next()) == ':') {
+          t->token = T_LABEL;
+        } else {
+          putback(c);
+        }
         break;
       }
       // The character isn't part of any recognised token, error

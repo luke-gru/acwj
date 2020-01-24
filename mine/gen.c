@@ -489,6 +489,12 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   }
   case A_CAST:
     return (leftreg); // assignment lvalue type takes care of proper assembly operation
+  case A_GOTO:
+    cggoto(n->sym);
+    return (NOREG);
+  case A_LABEL:
+    cggotolabel(n->sym);
+    return (NOREG);
   default:
     ASSERT(n->op < A_LAST);
     fatald("Unknown AST operator in genAST", n->op);
