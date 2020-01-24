@@ -61,6 +61,7 @@ static void usage(char *prog) {
        "       -D print debug info to stderr\n"
        "       -S generate assembly files but don't link them\n"
        "       -T dump the AST trees for each input file\n"
+       "       -M dump the symbol table each input file\n"
        "       -o outfile, produce the outfile executable file\n",
       prog);
   exit(1);
@@ -126,6 +127,12 @@ char *do_compile(char *filename) {
   global_declarations();        // Parse the global declarations
   genpostamble();               // Output the postamble
   fclose(Outfile);              // Close the output file
+  // Dump the symbol table if requested
+  if (O_dumpsym) {
+    printf("Symbols for %s\n", filename);
+    dumpsymtables();
+    fprintf(stdout, "\n\n");
+  }
   freestaticsyms();
   return (Outfilename);
 }
@@ -192,15 +199,17 @@ int main(int argc, char **argv) {
 
   O_dolink = 1; // by default, output a binary a.out
 
-  int i;
+  int i, j;
   // Scan for command-line options
   for (i = 1; i<argc; i++) {
     // No leading '-', stop scanning for options
     if (*argv[i] != '-') break;
-    for (int j=1; *argv[i] == '-' && argv[i][j]; j++) {
+    for (j=1; *argv[i] == '-' && argv[i][j]; j++) {
       switch (argv[i][j]) {
         case 'T':
           O_dumpAST = 1; O_parseOnly = 1; O_dolink = 0; break;
+        case 'M':
+          O_dumpsym = 1; break;
         case 'D':
           O_debugNoisy = 1; break;
         case 'v':
@@ -249,4 +258,5 @@ int main(int argc, char **argv) {
   }
 
   exit(0);
+  return (0);
 }

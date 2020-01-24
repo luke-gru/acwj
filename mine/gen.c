@@ -201,7 +201,9 @@ int genSwitch(struct ASTnode *n) {
       casecount++;
 
     // Generate the case code. Pass in the end label for the breaks
-    genAST(c->left, NOREG, NOLABEL, Lend, 0);
+    if (c->left) { // otherwise, it's a fallthru case
+      genAST(c->left, NOREG, NOLABEL, Lend, 0);
+    }
     genfreeregs(-1);
   }
 
@@ -216,6 +218,54 @@ int genSwitch(struct ASTnode *n) {
   free(casevals);
 
   return (NOREG);
+}
+
+// `||` operation
+int gen_logor(struct ASTnode *n) {
+  int Lend;
+  int reg, res;
+  int r = alloc_register(); // result register
+
+  Lend = genlabel();
+
+  res = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgboolean(res, 0, NOLABEL);
+  cgmove(res, r);
+  genfreeregs(r);
+  // if res is non-zero, jump to end (short-circuit)
+  cgjumpif(r, Lend);
+
+  res = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgboolean(res, 0, NOLABEL);
+  cgmove(res, r);
+  genfreeregs(r);
+
+  cglabel(Lend);
+  return (r);
+}
+
+// `&&` operation
+int gen_logand(struct ASTnode *n) {
+  int Lend;
+  int reg, res;
+  int r = alloc_register(); // result register
+
+  Lend = genlabel();
+
+  res = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgboolean(res, 0, NOLABEL);
+  cgmove(res, r);
+  genfreeregs(r);
+  // if res is zero, jump to end (short-circuit)
+  cgjumpunless(r, Lend);
+
+  res = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgboolean(res, 0, NOLABEL);
+  cgmove(res, r);
+  genfreeregs(r);
+
+  cglabel(Lend);
+  return (r);
 }
 
 // Given an AST, generate assembly code recursively.
@@ -267,6 +317,10 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       return (NOREG);
     case A_FUNCALL:
       return (gen_funcall(n));
+    case A_LOGOR:
+      return gen_logor(n);
+    case A_LOGAND:
+      return gen_logand(n);
     default: // continue below
       break;
   }

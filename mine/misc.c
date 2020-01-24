@@ -106,10 +106,12 @@ void match(int t, char *what) {
 }
 
 // If the current token is the following, fetch the next.
-void scan_if_match(int t) {
+int scan_if_match(int t) {
   if (Token.token == t) {
     scan(&Token);
+    return 1;
   }
+  return 0;
 }
 
 void semi(void) {

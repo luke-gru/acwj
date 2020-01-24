@@ -70,6 +70,8 @@ int cgcompare_and_set(int ASTop, int r1, int r2);
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
 void cglabel(int l);
 void cgjump(int l);
+void cgjumpif(int r, int label);
+void cgjumpunless(int r, int label);
 int cgwiden(int r, int oldtype, int newtype);
 int cgprimsize(int ptype);
 void cgcopyarg(struct symtable *func, int r, int argnum);
@@ -107,7 +109,7 @@ struct ASTnode *compound_statement(int inswitch);
 // misc.c
 int column(void);
 void match(int t, char *what);
-void scan_if_match(int t);
+int scan_if_match(int t);
 void semi(void);
 void ident(void);
 void lbrace(void);
@@ -155,6 +157,7 @@ void freestaticsyms(void);
 void clear_symtable(void);
 void dump_sym(struct symtable *sym, FILE *f);
 void dump_sym_list(struct symtable *sym, FILE *f);
+void dumpsymtables(void);
 
 // decl.c
 struct symtable *function_declaration(char *name, int type, struct symtable *ctype, int class);

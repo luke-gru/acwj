@@ -15,6 +15,7 @@ Functional
 * Get (void)0; to parse (useful for preprocessor)
 * Get `1-1` working as intended, right now `-` right before a digit is scanned
 as part of the INTLIT
+* Allow assignment declaration as init value in `for` stmt
 
 Optimizations
 -------------

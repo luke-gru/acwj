@@ -822,13 +822,26 @@ int cglognot(int r) {
   return (r);
 }
 
-// Convert an integer value to a boolean value. Jump if
-// it's an IF or WHILE operation
-int cgboolean(int r, int op, int label) {
+void cgjumpif(int r, int label) {
   ASSERT_REG(r);
-  fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
+  fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // set ZF to 1 if `r` == 0
+  fprintf(Outfile, "\tjne\tL%d\n", label); // Jump if ZF == 0
+}
+
+void cgjumpunless(int r, int label) {
+  ASSERT_REG(r);
+  fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // set ZF to 1 if `r` == 0
+  fprintf(Outfile, "\tje\tL%d\n", label); // Jump if ZF == 1
+}
+
+// Convert an integer value to a boolean value.
+// Jump to end label if `op` is an IF, WHILE or TERNARY operation and `r` is 0
+int cgboolean(int r, int op, int endlabel) {
+  ASSERT_REG(r);
+  fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // set ZF to 1 if `r` == 0
   if (op == A_IF || op == A_WHILE || op == A_TERNARY) { // NOTE: 'for' constructs are turned into A_WHILEs
-    fprintf(Outfile, "\tje\tL%d\n", label);
+    ASSERT(endlabel != NOLABEL);
+    fprintf(Outfile, "\tje\tL%d\n", endlabel); // Jump if ZF == 1
   } else {
     fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
     fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);

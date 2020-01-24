@@ -134,6 +134,7 @@ struct ASTnode *switch_statement(void) {
   int inloop = 1;
   int seendefault = 0;
   int casevalue = 0;
+  int lbracematched = 0;
   struct ASTnode *casetree = NULL, *casetail = NULL, *c;
   int ASTop;
 
@@ -161,44 +162,57 @@ struct ASTnode *switch_statement(void) {
         break;
       case T_CASE:
       case T_DEFAULT:
+        // FIXME: allow default as first case
         if (seendefault) {
           fatal("case or default after existing default");
         }
         if (Token.token == T_DEFAULT) {
           ASTop = A_DEFAULT;
           seendefault = 1;
-          scan(&Token);
+          scan(&Token); // default
+          casevalue = 0;
+          debugnoisy("parse", "switch: found default case");
         } else {
           ASTop = A_CASE;
-          scan(&Token);
+          scan(&Token); // case
           left = binexpr(0);
           if (left->op != A_INTLIT) {
             fatal("Expecting integer literal for case value");
           }
           casevalue = left->intvalue;
+          debugnoisy("parse", "switch: found case: %d", casevalue);
           // Walk the list of existing case values to ensure
           // that there isn't a duplicate case value
           for (c = casetree; c != NULL; c = c->right) {
-            if (casevalue == c->intvalue) {
+            if (casevalue == c->intvalue && c->op != A_DEFAULT) {
               fatalv("Duplicate case value %d", c->intvalue);
             }
           }
         }
         match(T_COLON, ":");
-        scan_if_match(T_LBRACE);
-        left = compound_statement(1);
-        scan_if_match(T_RBRACE);
         casecount++;
+        // case: 1 case 2:
+        if (Token.token == T_CASE) {
+          left = NULL;
+          debugnoisy("parse", "switch: found fallthru case: %d", casevalue);
+        } else {
+          lbracematched = scan_if_match(T_LBRACE);
+          left = compound_statement(1);
+          if (lbracematched)
+            scan_if_match(T_RBRACE);
+          debugnoisy("parse", "switch: found non-empty case: %d", casevalue);
+        }
         // Build a sub-tree with the compound statement as the left child
         // and link it in to the growing A_CASE tree
         if (casetree==NULL) {
           casetree = casetail = mkastunary(ASTop, P_NONE, NULL, left, NULL, casevalue);
         } else {
-          casetail->right= mkastunary(ASTop, P_NONE, NULL, left, NULL, casevalue);
+          casetail->right = mkastunary(ASTop, P_NONE, NULL, left, NULL, casevalue);
           casetail = casetail->right;
         }
         break;
       default:
+        ASSERT(0);
         fatalv("Unexpected token in switch: %s", tokenname(Token.token));
     }
   }
