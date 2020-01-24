@@ -303,6 +303,8 @@ struct ASTnode *single_statement(void) {
       stmt = binexpr(0);
       semi(); return (stmt);
   }
+  ASSERT(0);
+  return (NULL);
 }
 
 // Parse a compound statement and return its AST. Last token was '{'
@@ -331,6 +333,7 @@ struct ASTnode *compound_statement(int inswitch) {
     if (inswitch && (Token.token == T_CASE || Token.token == T_DEFAULT)) return (left);
   }
   ASSERT(0);
+  return (NULL);
 }
 
 // Parse a return statement and return its AST
@@ -348,7 +351,7 @@ struct ASTnode *return_statement(void) {
     }
     tree = mkastunary(A_RETURN, P_VOID, NULL, NULL, NULL, 0);
     semi();
-    return tree;
+    return (tree);
   }
   lparen(); // for some reason, force '(' for now
 

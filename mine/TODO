@@ -4,6 +4,7 @@ TODO
 Functional
 ----------
 * Allow arrays as function parameters
+* Allow structs as function parameters and local variables
 * Put string literals in read-only memory
 * Get Composite member access working with mixed -> and .
 * Try to compile compiler itself

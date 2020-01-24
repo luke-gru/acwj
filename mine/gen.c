@@ -4,11 +4,11 @@
 
 // Generic code generator
 // Copyright (c) 2019 Warren Toomey, GPL3
+static int label_id = 1;
 
 // Generate and return a new label number
 int genlabel(void) {
-  static int id = 1;
-  return (id++);
+  return (label_id++);
 }
 
 // Generate the code for an IF statement
@@ -111,13 +111,13 @@ int genWhile(struct ASTnode *n) {
 
 int is_builtin_function(struct ASTnode *n) {
   if (!strcmp(n->sym->name, "__builtin_vararg_addr_setup"))
-    return 1;
-  return 0;
+    return (1);
+  return (0);
 }
 
 int gen_builtin_function(struct ASTnode *n) {
   if (!strcmp(n->sym->name, "__builtin_vararg_addr_setup")) {
-    return cg_builtin_vararg_addr_setup();
+    return (cg_builtin_vararg_addr_setup());
   }
   return (NOREG);
 }
@@ -133,7 +133,7 @@ int gen_funcall(struct ASTnode *n) {
   int numspilled=0;
 
   if (is_builtin_function(n)) {
-    return gen_builtin_function(n);
+    return (gen_builtin_function(n));
   }
 
   // Save the registers before we copy the arguments

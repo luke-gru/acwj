@@ -187,6 +187,7 @@ int value_at(int ptype);
 char *typename(int ptype, struct symtable *ctype);
 int inttype(int ptype);
 int ptrtype(int ptype);
+int primtype(int type);
 int typesize(int type, struct symtable *ctype);
 
 // opt.c

@@ -196,14 +196,14 @@ void debugnoisy(const char *modulename, const char *fmt, ...) {
   fprintf(stderr, "[DEBUG %s]: ", modulename);
   vfprintf(stderr, fmt, ap);
   va_end(ap);
-  if (fmt[strlen(fmt)-1] != '\n') {
+  if (fmt[strlen(fmt) - 1] != '\n') {
     fprintf(stderr, "%s", "\n");
   }
 }
 
 char *str_concat(char *str1, char *str2) {
   char *new_str;
-  if ((new_str = malloc(strlen(str1)+strlen(str2)+1)) != NULL) {
+  if ((new_str = (char*)malloc(strlen(str1)+strlen(str2)+1)) != NULL) {
     new_str[0] = '\0';   // ensures the memory is an empty string
     strcat(new_str, str1);
     strcat(new_str, str2);
@@ -284,8 +284,7 @@ int num_spilled_args(struct symtable *func, int argnum) {
     return (argnum - func->nelems); // args given - required args
   }
   if (argnum > 6) {
-    return (argnum-6);
-  } else {
-    return (0);
+    return (argnum - 6);
   }
+  return (0);
 }

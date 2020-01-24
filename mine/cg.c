@@ -114,7 +114,7 @@ static void unspill_all_regs(void) {
 }
 
 #define SPILLING(reg) lastspill = reg
-#define UNSPILLING(reg) ASSERT(lastspill == reg); lastspill--
+#define UNSPILLING(reg) lastspill--
 
 /**
  * FREE:
@@ -238,6 +238,8 @@ void cgfuncpreamble(struct symtable *sym) {
   // The remaining parameters are already on the stack
   for (parm = sym->member, cnt = 1; parm != NULL; parm = parm->next, cnt++) {
     if (cnt > 6) {
+      // FIXME: what if it's bigger than 8 bytes, like a struct?
+      ASSERT(primtype(parm->type));
       parm->posn = paramOffset;
       paramOffset += 8;
       cgdebug("Generating parameter spill push for param %s, posn: %d", parm->name, parm->posn);
@@ -397,10 +399,15 @@ int cgloadglob(struct symtable *sym, int op) {
 // also perform this action.
 int cgloadlocal(struct symtable *sym, int op) {
   // Get a new register
-  int r = alloc_register();
+  int r;
   ASSERT(sym->class == C_LOCAL || sym->class == C_PARAM);
 
+  if (!primtype(sym->type)) {
+    return (cgaddress(sym));
+  }
+
   int size = cgprimsize(sym->type);
+  r = alloc_register();
 
   // Print out the code to initialise it
   switch (size) {
@@ -472,7 +479,7 @@ int cgstorglob(int r, struct symtable *sym) {
 // Store a register's value into a local variable
 int cgstorlocal(int r, struct symtable *sym) {
   ASSERT_REG(r);
-  int size = cgprimsize(sym->type);
+  int size = typesize(sym->type, sym->ctype);
 
   switch (size) {
     case CHARSZ:
@@ -484,12 +491,10 @@ int cgstorlocal(int r, struct symtable *sym) {
           sym->posn);
       break;
     case LONGSZ:
+    default:
       fprintf(Outfile, "\tmovq\t%s, %d(%%rbp)\n", reglist[r],
           sym->posn);
       break;
-    default:
-      fatalv("Bad type in cgstorlocal: %s (%d)",
-          typename(sym->type, sym->ctype), sym->type);
   }
   return (r);
 }
@@ -620,13 +625,14 @@ int cgwiden(int r, int oldtype, int newtype) {
 
 int cgprimsize(int ptype) {
   char *x = 0;
+  ASSERT(primtype(ptype));
   if (ptrtype(ptype)) return (PTRSZ);
   switch (ptype) {
     case P_CHAR: return (CHARSZ);
     case P_INT:  return (INTSZ);
     case P_LONG: return (LONGSZ);
     default:
-      fatald("Bad type in cgprimsize:", ptype);
+      fatalv("Bad type in cgprimsize: %s (%d)", typename(ptype, NULL), ptype);
   }
   return (0);                   // Keep -Wall happy
 }
@@ -729,9 +735,8 @@ int cgaddress(struct symtable *sym) {
   int r = alloc_register();
 
   ASSERT(sym);
-  ASSERT(sym->class != C_PARAM);
 
-  if (sym->class == C_LOCAL) {
+  if (sym->class == C_LOCAL || sym->class == C_PARAM) {
     fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->posn, reglist[r]);
   } else {
     fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[r]);
@@ -930,17 +935,18 @@ int cggetlocaloffset(struct symtable *sym) {
   ASSERT(sym->class == C_LOCAL || sym->class == C_PARAM);
   int type = sym->type;
   int stype = sym->stype;
+  struct symtable *ctype = sym->ctype;
   if (stype == S_ARRAY) {
     int arysize = sym->size;
     ASSERT(arysize > 0);
     // here, `type` is the pointer to the actual element type
-    int fullsize = cgprimsize(value_at(type))*arysize;
+    int fullsize = typesize(value_at(type), ctype)*arysize;
     localOffset += (fullsize > 4) ? fullsize : 4;
     return (-localOffset);
   } else if (stype == S_VARIABLE) {
     // Decrement the offset by a minimum of 4 bytes
     // and allocate on the stack
-    localOffset += (cgprimsize(type) > 4) ? cgprimsize(type) : 4;
+    localOffset += (typesize(type, ctype) > 4) ? typesize(type, ctype) : 4;
     return (-localOffset);
   } else {
     ASSERT(0);

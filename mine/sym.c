@@ -231,15 +231,15 @@ struct symtable *findlabel(char *s) {
 struct symtable *add_or_find_label(char *s) {
   struct symtable *lbl = findlabel(s);
   if (lbl) return (lbl);
-  addlabel(s);
+  return (addlabel(s));
 }
 
 int isglobalsym(struct symtable *sym) {
-  return sym->class == C_GLOBAL || sym->class == C_STATIC || sym->class == C_EXTERN;
+  return (sym->class == C_GLOBAL || sym->class == C_STATIC || sym->class == C_EXTERN);
 }
 
 int issizedsym(struct symtable *sym) {
-  return sym->size > 0 && sym->class != C_EXTERN;
+  return (sym->size > 0 && sym->class != C_EXTERN);
 }
 
 // Clear all the entries in the local symbol table, and clears goto labels for

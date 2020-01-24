@@ -164,7 +164,10 @@ char *do_assemble(char *filename) {
   snprintf(cmd, TEXTLEN, "%s %s %s", ASCMD, outfilename, filename);
   if (O_verbose) printf("%s\n", cmd);
   err = system(cmd);
-  if (err != 0) { fprintf(stderr, "Assembly of %s failed\n", filename); exit(1); }
+  if (err != 0) {
+    fprintf(stderr, "Assembly of %s failed\n", filename);
+    exit(1);
+  }
   return (outfilename);
 }
 
@@ -201,7 +204,7 @@ static int add_define(char *define) {
   char *p = define;
   int len = 0;
   while (*p && !isspace(*p)) {
-    if (cpp_defines_idx >= (512-1)) {
+    if (cpp_defines_idx >= (TEXTLEN - 1)) {
       fprintf(stderr, "defines too long (%d)\n", cpp_defines_idx); exit(1);
     }
     cpp_defines_str[cpp_defines_idx++] = *p;
@@ -216,10 +219,13 @@ static int add_define(char *define) {
 
 static void unlink_safe(char *name) {
   ASSERT(name);
-  if (strlen(name) > 2 && name[strlen(name)-2] == '.' && name[strlen(name)-1] == 'c') {
+  if (strlen(name) > 2 && name[strlen(name) - 2] == '.' && name[strlen(name) - 1] == 'c') {
     fprintf(stderr, "Error: tried to remove C source file %s\n", name);
     exit(1);
   } else {
+    if (O_verbose) {
+      fprintf(stdout, "rm %s\n", name);
+    }
     unlink(name);
   }
 }
@@ -259,12 +265,18 @@ after_incr:
           O_dumpsym = 1; break;
         case 'd':
           O_debugNoisy = 1; break;
+        // output executable file
         case 'o':
           binname = argv[++i]; O_dolink = 1; break;
+        // output object files
         case 'c':
-          O_assemble = 1; O_keepasm = 0; O_dolink = 0; break;
+          O_assemble = 1; O_dolink = 0; break;
+        // only output assembly files
         case 'S':
           O_keepasm = 1; O_assemble = 0; O_dolink = 0; break;
+        // keep assembly files
+        case 's':
+          O_keepasm = 1; break;
         case 'D':
           add_define(argv[i]);
           i++;

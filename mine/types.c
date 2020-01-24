@@ -166,7 +166,21 @@ int value_at(int type) {
 // Given a type and a composite type pointer, return
 // the size of this type in bytes
 int typesize(int type, struct symtable *ctype) {
-  if (type == P_STRUCT || type == P_UNION)
+  if (type == P_STRUCT || type == P_UNION) {
+    ASSERT(ctype);
     return (ctype->size);
+  }
   return (genprimsize(type));
+}
+
+// Is the given type a primitive type?
+int primtype(int type) {
+  if (ptrtype(type)) return (1);
+  switch (type) {
+    case P_CHAR:
+    case P_INT:
+    case P_LONG:
+      return (1);
+  }
+  return (0);
 }

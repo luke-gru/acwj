@@ -12,5 +12,6 @@ char *strerror(int errnum);
 int strcmp(const char *s1, const char *s2);
 void *memcpy(void *dest, const void *src, size_t n);
 size_t strlen(const char *s);
+char *strcat(char *dest, const char *src);
 
 #endif
