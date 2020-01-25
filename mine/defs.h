@@ -41,7 +41,7 @@ enum {
   T_EQ, T_NE,
   T_LT, T_GT, T_LE, T_GE,
   T_LSHIFT, T_RSHIFT,
-  T_PLUS, T_MINUS, T_STAR, T_SLASH,
+  T_PLUS, T_MINUS, T_STAR, T_SLASH, T_PERCENT,
 
   // other operators
   T_INC, T_DEC, T_INVERT, T_LOGNOT,
@@ -76,7 +76,7 @@ enum {
   A_EQ, A_NE,
   A_LT, A_GT, A_LE, A_GE,
   A_LSHIFT, A_RSHIFT,
-  A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, // end of mapping
+  A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, A_MODULO, // end of mapping
 
   A_INTLIT, A_STRLIT, A_IDENT, A_GLUE,
   A_IF, A_WHILE, A_BREAK, A_CONTINUE, A_FUNCTION, A_WIDEN, A_RETURN,

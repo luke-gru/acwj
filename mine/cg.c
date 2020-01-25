@@ -11,7 +11,7 @@
 #define LONGSZ 8
 #define PTRSZ 8
 
-#define ASSERT_REG(r) ASSERT(r >= 0 && r < (FIRSTPARAMREG+1));
+#define ASSERT_REG(r) ASSERT(r >= 0 && r < (FIRSTPARAMREG+1))
 
 #define NUMFREEREGS 4
 #define FIRSTPARAMREG 9
@@ -108,7 +108,7 @@ static void unspill_all_regs(void) {
   int i;
 
   fprintf(Outfile, "# unspilling regs\n");
-  for (i = NUMFREEREGS-1; i >= 0; i--) {
+  for (i = NUMFREEREGS - 1; i >= 0; i--) {
     popreg(i);
   }
 }
@@ -129,7 +129,8 @@ static void unspill_all_regs(void) {
 // the register. Die if no available registers.
 int alloc_register(void) {
   int reg;
-  for (int i=0; i<NUMFREEREGS; i++) {
+  int i;
+  for (i=0; i<NUMFREEREGS; i++) {
     if (freereg[i]) { // if free
       freereg[i]= 0; // mark in use
       return(i);
@@ -311,9 +312,9 @@ int cgsub(int r1, int r2) {
 int cgmul(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
-  fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
-  free_register(r1);
-  return(r2);
+  fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r2], reglist[r1]);
+  free_register(r2);
+  return(r1);
 }
 
 // Divide the first register by the second and
@@ -327,6 +328,17 @@ int cgdiv(int r1, int r2) {
   fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
   free_register(r2);
   return(r1);
+}
+
+int cgmod(int r1, int r2) {
+  ASSERT_REG(r1);
+  ASSERT_REG(r2);
+  fprintf(Outfile, "\tmovq\t%s,%%rax\n", reglist[r1]);
+  fprintf(Outfile, "\tcqo\n");
+  fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);
+  fprintf(Outfile, "\tmovq\t%%rdx,%s\n", reglist[r1]);
+  free_register(r2);
+  return (r1);
 }
 
 // Call printint() with the given register
@@ -351,40 +363,40 @@ int cgloadglob(struct symtable *sym, int op) {
   switch (size) {
     case CHARSZ:
       if (op == A_PREINC)
-        fprintf(Outfile, "\tincb\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tincb\t%s(%%rip)\n", sym->name);
       if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecb\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tdecb\t%s(%%rip)\n", sym->name);
       fprintf(Outfile, "\tmovzbq\t%s(%%rip), %s\n", sym->name, reglist[r]);
       if (op == A_POSTINC)
-        fprintf(Outfile, "\tincb\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tincb\t%s(%%rip)\n", sym->name);
       if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecb\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tdecb\t%s(%%rip)\n", sym->name);
       break;
     case INTSZ:
       if (op == A_PREINC)
-        fprintf(Outfile, "\tincl\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tincl\t%s(%%rip)\n", sym->name);
       if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecl\t%s(\%%rip)\n", sym->name);
-      fprintf(Outfile, "\tmovslq\t%s(\%%rip), %s\n", sym->name, reglist[r]);
+        fprintf(Outfile, "\tdecl\t%s(%%rip)\n", sym->name);
+      fprintf(Outfile, "\tmovslq\t%s(%%rip), %s\n", sym->name, reglist[r]);
       if (op == A_POSTINC)
-        fprintf(Outfile, "\tincl\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tincl\t%s(%%rip)\n", sym->name);
       if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecl\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tdecl\t%s(%%rip)\n", sym->name);
       break;
     case LONGSZ:
       if (op == A_PREINC)
-        fprintf(Outfile, "\tincq\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tincq\t%s(%%rip)\n", sym->name);
       if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecq\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tdecq\t%s(%%rip)\n", sym->name);
       if (sym->stype == S_ARRAY) {
-        fprintf(Outfile, "\tleaq\t%s(\%%rip), %s\n", sym->name, reglist[r]);
+        fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[r]);
       } else {
-        fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", sym->name, reglist[r]);
+        fprintf(Outfile, "\tmovq\t%s(%%rip), %s\n", sym->name, reglist[r]);
       }
       if (op == A_POSTINC)
-        fprintf(Outfile, "\tincq\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tincq\t%s(%%rip)\n", sym->name);
       if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecq\t%s(\%%rip)\n", sym->name);
+        fprintf(Outfile, "\tdecq\t%s(%%rip)\n", sym->name);
       break;
     default:
       fatalv("Bad type in cgloadglob: %s (%d)",
@@ -462,13 +474,13 @@ int cgstorglob(int r, struct symtable *sym) {
   ASSERT(sym->stype != S_ARRAY);
   switch (size) {
     case CHARSZ:
-      fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r], sym->name);
+      fprintf(Outfile, "\tmovb\t%s, %s(%%rip)\n", breglist[r], sym->name);
       break;
     case INTSZ:
-      fprintf(Outfile, "\tmovl\t%s, %s(\%%rip)\n", dreglist[r], sym->name);
+      fprintf(Outfile, "\tmovl\t%s, %s(%%rip)\n", dreglist[r], sym->name);
       break;
     case LONGSZ:
-      fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], sym->name);
+      fprintf(Outfile, "\tmovq\t%s, %s(%%rip)\n", reglist[r], sym->name);
       break;
     default:
       fatalv("Bad type in cgstorglob: %s (%d)", typename(type, sym->ctype), type);
@@ -504,6 +516,7 @@ void cgglobsym(struct symtable *sym) {
   int initvalue;
   int size;
   int type;
+  int i, j;
 
   if (sym->stype == S_FUNCTION || sym->class == C_EXTERN) return;
 
@@ -536,7 +549,7 @@ void cgglobsym(struct symtable *sym) {
   }
   fprintf(Outfile, "%s:\n", sym->name);
 
-  for (int i = 0; i < sym->nelems; i++) {
+  for (i = 0; i < sym->nelems; i++) {
     initvalue = 0;
     if (sym->initlist) {
       initvalue = sym->initlist[i];
@@ -557,7 +570,7 @@ void cgglobsym(struct symtable *sym) {
         }
         break;
       default:
-        for (int j = 0; j < size; j++) {
+        for (j = 0; j < size; j++) {
           fprintf(Outfile, "\t.byte\t0\n");
         }
     }
@@ -669,7 +682,7 @@ int cgcall(struct symtable *sym, int numargs) {
   if (sym->size < 0 && numargs > sym->nelems) { // varargs
     num_args_spilled = numargs - sym->nelems;
   } else if (numargs > 6) {
-    num_args_spilled = numargs-6;
+    num_args_spilled = numargs - 6;
   }
   if (num_args_spilled > 0 && num_args_spilled % 2 != 0) {
     num_args_spilled++; // %rsp requires 16-byte alignment before calls to SSE functions (like printf)
@@ -726,7 +739,7 @@ int cg_builtin_vararg_addr_setup(void) {
   int base_ptr_offset = (spilled_args*8)+16; // first vararg parameter is pushed last
   int r = alloc_register();
   fprintf(Outfile, "\tleaq\t%d(%%rbp), %s # __builtin_vararg_addr_setup\n", base_ptr_offset, reglist[r]);
-  return r;
+  return (r);
 }
 
 // Generate code to load the address of a global or local
@@ -829,7 +842,7 @@ void cgglobstr(int label, char *strval) {
 int cgloadglobstr(int label) {
   // Get a new register
   int r = alloc_register();
-  fprintf(Outfile, "\tleaq\tL%d(\%%rip), %s", label, reglist[r]);
+  fprintf(Outfile, "\tleaq\tL%d(%%rip), %s", label, reglist[r]);
   if (AsmComments) {
     fprintf(Outfile, " # %s = (char*)&L%d", reglist[r], label);
   }
@@ -948,9 +961,9 @@ int cggetlocaloffset(struct symtable *sym) {
     // and allocate on the stack
     localOffset += (typesize(type, ctype) > 4) ? typesize(type, ctype) : 4;
     return (-localOffset);
-  } else {
-    ASSERT(0);
   }
+  ASSERT(0);
+  return (-1);
 }
 
 // Given a scalar type, an existing memory offset
@@ -961,25 +974,26 @@ int cggetlocaloffset(struct symtable *sym) {
 // offset, or it could be above/below the original
 int cgalign(int type, int offset, int direction) {
   int alignment = cgalignment(type);
-  if (alignment == 1) return offset;
+  if (alignment == 1) return (offset);
 
   // Here we have an int or a long. Align it on a 4-byte offset
   // I put the generic code here so it can be reused elsewhere.
-  offset = (offset + direction * (alignment-1)) & ~(alignment-1);
+  offset = (offset + direction * (alignment - 1)) & ~(alignment - 1);
   return (offset);
 }
 
 int cgalignment(int type) {
-  if (ptrtype(type)) return 4;
+  if (ptrtype(type)) return (4);
   switch (type) {
     case P_CHAR:
-      return 1;
+      return (1);
     case P_INT:
     case P_LONG:
-      return 4;
+      return (4);
     default:
       fatalv("Bad type in cgalignment: %s (%d)", typename(type, NULL), type);
   }
+  return (-1);
 }
 
 // Generate a switch jump table and the code to
@@ -1053,7 +1067,7 @@ void cgcomment(const char *fmt, ...) {
   va_start(ap, fmt);
   fprintf(Outfile, "# ");
   vfprintf(Outfile, fmt, ap);
-  if (fmt[strlen(fmt)-1] != '\n') {
+  if (fmt[strlen(fmt) - 1] != '\n') {
     fprintf(Outfile, "\n");
   }
   va_end(ap);

@@ -418,7 +418,7 @@ static int OpPrec[] = {
   80, 80, 80, 80,               // T_LT, T_GT, T_LE, T_GE
   90, 90,                       // T_LSHIFT, T_RSHIFT
   100, 100,                     // T_PLUS, T_MINUS
-  110, 110                      // T_STAR, T_SLASH
+  110, 110, 110                 // T_STAR, T_SLASH, T_PERCENT
 };
 
 // Check that we have a binary operator and

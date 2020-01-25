@@ -261,7 +261,7 @@ char *opnames[] = {
   "A_EQ", "A_NE",
   "A_LT", "A_GT", "A_LE", "A_GE",
   "A_LSHIFT", "A_RSHIFT",
-  "A_ADD", "A_SUBTRACT", "A_MULTIPLY", "A_DIVIDE", // end of mapping
+  "A_ADD", "A_SUBTRACT", "A_MULTIPLY", "A_DIVIDE", "A_MODULO", // end of mapping
 
   "A_INTLIT", "A_STRLIT", "A_IDENT", "A_GLUE",
   "A_IF", "A_WHILE", "A_BREAK", "A_CONTINUE", "A_FUNCTION", "A_WIDEN", "A_RETURN",

@@ -26,3 +26,10 @@ Optimizations
 Would Be Nice
 -------------
 * Output debug information during compilation
+
+Bugs
+----
+This line:
+return ((ptype & (0xf)) == 0) && (ptype >= P_CHAR && ptype <= P_LONG);
+The issue is with binexpr in expr.c, which stops parsing at the ')'. Need to
+refactor this function.

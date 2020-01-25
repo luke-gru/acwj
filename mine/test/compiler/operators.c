@@ -14,6 +14,7 @@ int main() {
   printint(a);
   printint(++a);
   printint(a);
+  printint(10%3);
 
   return(0);
 }

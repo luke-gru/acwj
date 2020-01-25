@@ -27,7 +27,7 @@ char *toknames[] = {
   "T_EQ", "T_NE",
   "T_LT", "T_GT", "T_LE", "T_GE",
   "T_LSHIFT", "T_RSHIFT",
-  "T_PLUS", "T_MINUS", "T_STAR", "T_SLASH",
+  "T_PLUS", "T_MINUS", "T_STAR", "T_SLASH", "T_PERCENT",
 
   "T_INC", "T_DEC", "T_INVERT", "T_LOGNOT",
 
@@ -506,6 +506,9 @@ gettok:
         putback(c);
       }
       t->token = T_SLASH;
+      break;
+    case '%':
+      t->token = T_PERCENT;
       break;
     case ';':
       t->token = T_SEMI;

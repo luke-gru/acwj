@@ -6,35 +6,36 @@ char *typename(int ptype, struct symtable *ctype) {
   if (ptrtype(ptype)) {
     int valuetype = value_at(ptype);
     char *valuename = typename(valuetype, ctype);
-    return str_concat(valuename, "*");
+    return (str_concat(valuename, "*"));
   }
   switch (ptype) {
   case P_CHAR:
-    return strdup("char");
+    return (strdup("char"));
   case P_INT:
-    return strdup("int");
+    return (strdup("int"));
   case P_LONG:
-    return strdup("long");
+    return (strdup("long"));
   case P_VOID:
-    return strdup("void");
+    return (strdup("void"));
   case P_STRUCT:
     if (ctype && ctype->name)
-      return str_concat("struct ", ctype->name);
+      return (str_concat("struct ", ctype->name));
     else
-      return str_concat("struct ", "?");
+      return (str_concat("struct ", "?"));
   case P_UNION:
     if (ctype && ctype->name)
-      return str_concat("union ", ctype->name);
+      return (str_concat("union ", ctype->name));
     else
-      return str_concat("union ", "?");
+      return (str_concat("union ", "?"));
   default:
     fatald("Invalid typename", ptype);
   }
-  return NULL;
+  return (NULL);
 }
 
 int inttype(int ptype) {
-  return ((ptype & P_PTR_BITS) == 0) && (ptype >= P_CHAR && ptype <= P_LONG);
+  int nonptr = (ptype & P_PTR_BITS) == 0;
+  return (nonptr && (ptype >= P_CHAR && ptype <= P_LONG));
 }
 
 int ptrtype(int ptype) {
@@ -46,10 +47,10 @@ static int int_fits_size(int intval, int bytesize, int unsignd) {
   int maxsz;
   if (unsignd) {
     minsz = 0;
-    maxsz = (1<<bytesize)-1;
+    maxsz = (1<<bytesize) - 1;
   } else {
-    minsz = -(1<<bytesize-1);
-    maxsz = (1<<bytesize)-1;
+    minsz = -(1<<bytesize - 1);
+    maxsz = (1<<bytesize) - 1;
   }
   return (intval >= minsz && intval <= maxsz);
 }
@@ -86,9 +87,9 @@ struct ASTnode *modify_type(struct ASTnode *rtree, int ltype,
     if (rsize > lsize) {
       // safe cast in this case
       if (rtree->op == A_INTLIT && int_fits_size(rtree->intvalue, lsize, 0)) {
-        return mkastunary(A_CAST, ltype, lctype, rtree, NULL, 0);
+        return (mkastunary(A_CAST, ltype, lctype, rtree, NULL, 0));
       }
-      return NULL;
+      return (NULL);
     }
 
     // Widen to the right, ex: (int) = (char) -> (int) = (int) [char to int conversion]

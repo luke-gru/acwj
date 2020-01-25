@@ -192,7 +192,7 @@ struct ASTnode *switch_statement(void) {
         match(T_COLON, ":");
         casecount++;
         // case: 1 case 2:
-        if (Token.token == T_CASE) {
+        if (Token.token == T_CASE || Token.token == T_DEFAULT) {
           left = NULL;
           debugnoisy("parse", "switch: found fallthru case: %d", casevalue);
         } else {

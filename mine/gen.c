@@ -342,9 +342,9 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     case A_FUNCALL:
       return (gen_funcall(n));
     case A_LOGOR:
-      return gen_logor(n);
+      return (gen_logor(n));
     case A_LOGAND:
-      return gen_logand(n);
+      return (gen_logand(n));
     default: // continue below
       break;
   }
@@ -366,6 +366,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     return (cgmul(leftreg, rightreg));
   case A_DIVIDE:
     return (cgdiv(leftreg, rightreg));
+  case A_MODULO:
+    return (cgmod(leftreg, rightreg));
   case A_EQ:
   case A_NE:
   case A_LT:
@@ -452,7 +454,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       ASSERT(n->left);
       ASSERT(!n->right);
       ASSERT(leftreg != NOREG);
-      return leftreg;
+      return (leftreg);
     }
   case A_DEREF:
     // If we are an rvalue, dereference to get the value we point at
@@ -526,6 +528,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     fatald("Unknown AST operator in genAST", n->op);
   }
   ASSERT(0);
+  return (NOREG);
 }
 
 void genpreamble() {
@@ -552,7 +555,7 @@ void genglobsym(struct symtable *sym) {
 
 // NOTE: works for pointers to all primitive types as well
 int genprimsize(int ptype) {
-  return cgprimsize(ptype); // fine if parseOnly, doesn't actually generate code
+  return (cgprimsize(ptype)); // fine if parseOnly, doesn't actually generate code
 }
 
 int genglobstr(char *strvalue) {

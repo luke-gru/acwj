@@ -19,6 +19,8 @@ int printf(char *format);
 int fprintf(FILE *stream, char *format);
 size_t getline(char **lineptr, size_t *n, FILE *stream);
 
+int fputs(const char *s, FILE *stream);
+
 FILE *popen(const char *command, const char *type);
 int pclose(FILE *stream);
 

@@ -47,11 +47,12 @@ struct ASTnode *mkastunary(int op, int type, struct symtable *ctype, struct ASTn
   return (mkastnode(op, type, ctype, left, NULL, NULL, sym, intvalue));
 }
 
+static int label_id = 1;
+
 // Generate and return a new label number
 // just for AST dumping purposes
 static int gendumplabel(void) {
-  static int id = 1;
-  return (id++);
+  return (label_id++);
 }
 
 // Given an AST tree, print it out and follow the
@@ -59,6 +60,7 @@ static int gendumplabel(void) {
 void dumpAST(struct ASTnode *n, int label, int level) {
   int Lfalse, Lstart, Lend;
   struct ASTnode *casen;
+  int i;
 
   if (!n) return;
 
@@ -66,7 +68,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
   switch (n->op) {
     case A_IF:
       Lfalse = gendumplabel();
-      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      for (i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "A_IF");
       if (n->right) { Lend = gendumplabel();
         fprintf(stdout, ", end L%d", Lend);
@@ -77,7 +79,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       if (n->right) dumpAST(n->right, NOLABEL, level+2);
       return;
     case A_TERNARY:
-      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      for (i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "A_TERNARY\n");
       dumpAST(n->left, NOLABEL, level+2);
       dumpAST(n->mid, NOLABEL, level+2);
@@ -85,14 +87,14 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       return;
     case A_WHILE:
       Lstart = gendumplabel();
-      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      for (i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "A_WHILE, start L%d\n", Lstart);
       Lend = gendumplabel();
       dumpAST(n->left, Lend, level+2);
       dumpAST(n->right, NOLABEL, level+2);
       return;
     case A_SWITCH:
-      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      for (i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "A_SWITCH %d\n", n->intvalue);
       for (casen = n->right; casen != NULL; casen=casen->right) {
         dumpAST(casen, NOLABEL, level); // case node itself, with integer value
@@ -100,13 +102,13 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       }
       return;
     case A_CASE:
-      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      for (i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "A_CASE %d\n", n->intvalue); return;
     case A_DEFAULT:
-      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      for (i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "A_DEFAULT\n"); return;
     case A_GLUE:
-      for (int i=0; i < level; i++) fprintf(stdout, " ");
+      for (i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "GLUE\n");
       // General AST node handling
       if (n->left) dumpAST(n->left, NOLABEL, level+2);
@@ -116,7 +118,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       break;
   }
 
-  for (int i=0; i < level; i++) fprintf(stdout, " ");
+  for (i=0; i < level; i++) fprintf(stdout, " ");
 
   switch (n->op) {
     case A_FUNCTION:
@@ -129,6 +131,8 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_MULTIPLY\n"); break;
     case A_DIVIDE:
       fprintf(stdout, "A_DIVIDE\n"); break;
+    case A_MODULO:
+      fprintf(stdout, "A_MODULO\n"); break;
     case A_EQ:
       fprintf(stdout, "A_EQ\n"); break;
     case A_NE:
