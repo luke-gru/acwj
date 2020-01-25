@@ -57,6 +57,7 @@ static int stackOffset;
 enum { no_seg, text_seg, data_seg } currSeg = no_seg;
 
 static int Needs_case_eval_code = 0;
+static int Generated_case_eval_code = 0;
 
 void cgtextseg() {
   if (currSeg != text_seg) {
@@ -115,6 +116,17 @@ static void unspill_all_regs(void) {
 
 #define SPILLING(reg) lastspill = reg
 #define UNSPILLING(reg) lastspill--
+
+// Used to reset codegen state between files
+void cgreset(void) {
+  lastspill = -1;
+  lastalloc = -1;
+  spillreg = 0;
+  localOffset = 0;
+  stackOffset = 0;
+  currSeg = no_seg;
+  freeall_registers(-1);
+}
 
 /**
  * FREE:
@@ -182,11 +194,12 @@ void cgpreamble() {
 
 // Print out the assembly postamble
 void cgpostamble() {
-  if (Needs_case_eval_code) {
+  if (Needs_case_eval_code && !Generated_case_eval_code) {
     cgtextseg();
     // internal switch(expr) routine
     // params: %rdx = switch table, %rax = expr
     fputs(
+    "\t.globl __internal_switch\n"
 	  "__internal_switch:\n"
 	  "        pushq   %rsi\n"
 	  "        movq    %rdx, %rsi\n"
@@ -208,6 +221,7 @@ void cgpostamble() {
 	  "        popq    %rsi\n"
     "        jmp     *%rax\n"
     "\n", Outfile);
+    Generated_case_eval_code = 1;
   }
 }
 

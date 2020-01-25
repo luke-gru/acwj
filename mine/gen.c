@@ -568,3 +568,9 @@ int genglobstr(char *strvalue) {
 int genalign(int type, int offset, int direction) {
   return (cgalign(type, offset, direction));
 }
+
+// Used to reset codegen state between files
+void genreset(void) {
+  label_id = 1;
+  cgreset();
+}

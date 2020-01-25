@@ -48,6 +48,7 @@ int  genprimsize(int ptype);
 int  genglobstr(char *strvalue);
 int  genalign(int type, int offset, int direction);
 int  genlabel(void);
+void genreset(void);
 
 // cg.c
 void freeall_registers(int keepreg);
@@ -109,6 +110,7 @@ void cggotolabel(struct symtable *sym);
 void spill_all_regs(void);
 void free_register(int reg);
 void cgcomment(const char *fmt, ...);
+void cgreset(void);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);

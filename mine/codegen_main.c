@@ -129,6 +129,7 @@ char *do_compile(char *filename) {
   if (O_verbose)
     printf("compiling %s\n", filename);
   scan(&Token);                 // Get the first token from the input
+  genreset();
   genpreamble();                // Output the preamble
   global_declarations();        // Parse the global declarations
   genpostamble();               // Output the postamble
