@@ -242,6 +242,40 @@ int issizedsym(struct symtable *sym) {
   return (sym->size > 0 && sym->class != C_EXTERN);
 }
 
+// Given a pointer to a symbol that may already exist,
+// return true if this symbol doesn't exist. We use
+// this function to convert externs into globals
+int is_new_symbol(struct symtable *sym, int class,
+                  int type, struct symtable *ctype) {
+
+  // There is no existing symbol, thus is new
+  if (sym==NULL) return(1);
+
+  // global versus extern: if they match that it's not new
+  // and we can convert the class to global
+  if ((sym->class== C_GLOBAL && class== C_EXTERN)
+      || (sym->class== C_EXTERN && class== C_GLOBAL)) {
+
+      // If the types don't match, there's a problem
+      if (type != sym->type)
+        fatals("Type mismatch between global/extern", sym->name);
+
+      // Struct/unions, also compare the ctype
+      if (type >= P_STRUCT && ctype != sym->ctype)
+        fatals("Type mismatch between global/extern", sym->name);
+
+      // If we get to here, the types match, so mark the symbol
+      // as global
+      sym->class= C_GLOBAL;
+      // Return that symbol is not new
+      return(0);
+  }
+
+  // It must be a duplicate symbol if we get here
+  fatals("Duplicate global variable declaration", sym->name);
+  return(-1);   // Keep -Wall happy
+}
+
 // Clear all the entries in the local symbol table, and clears goto labels for
 // current function.
 void freeloclsyms(void) {

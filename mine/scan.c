@@ -61,6 +61,20 @@ static int chrpos(char *s, int c) {
   return (p ? p - s : -1);
 }
 
+void reset_scanner(void) {
+  Rejtoken = NULL;
+  CurLinePos = 0;
+  CurLineSize = 0;
+  CurLineLen = 0;
+  IsEOF = 0;
+  InPreprocLine = 0;
+  AtBol = 1; // beginning of line
+  FirstNonSpaceInLine = 0; // used to track AtBol
+  Line = 1;
+  Col = 0;
+  Putback = '\n';
+}
+
 static int readchar(void) {
   ssize_t res = 0;
   if (IsEOF) {

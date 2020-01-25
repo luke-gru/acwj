@@ -326,8 +326,11 @@ struct symtable *array_declaration(char *varname, int type,
     case C_EXTERN:
     case C_STATIC:
     case C_GLOBAL:
-      sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class,
-          initial_elems_count);
+      sym = findglob(varname);
+      if (is_new_symbol(sym, class, pointer_to(type), ctype)) {
+        sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class,
+            initial_elems_count);
+      }
       break;
     case C_LOCAL:
       sym = addlocl(varname, pointer_to(type), ctype, S_ARRAY,
@@ -468,7 +471,10 @@ struct symtable *scalar_declaration(char *varname, int type,
     case C_EXTERN:
     case C_GLOBAL:
     case C_STATIC:
-      sym = addglob(varname, type, ctype, S_VARIABLE, class, 1);
+      sym = findglob(varname);
+      if (is_new_symbol(sym, class, type, ctype)) {
+        sym = addglob(varname, type, ctype, S_VARIABLE, class, 1);
+      }
       break;
     case C_LOCAL:
       sym = addlocl(varname, type, ctype, S_VARIABLE, 1);

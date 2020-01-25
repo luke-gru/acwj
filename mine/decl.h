@@ -10,6 +10,7 @@
 int scan(struct token *t);
 char *tokenname(int toktype);
 void reject_token(struct token *t);
+void reset_scanner(void);
 
 // tree.c
 struct ASTnode *mkastnode(int op, int type,
@@ -160,6 +161,8 @@ struct symtable *findenumtype(char *name);
 struct symtable *findenumval(char *name);
 struct symtable *findtypedef(char *name);
 int isglobalsym(struct symtable *sym);
+int is_new_symbol(struct symtable *sym, int class,
+                  int type, struct symtable *ctype);
 int issizedsym(struct symtable *sym);
 void freeloclsyms(void);
 void freestaticsyms(void);

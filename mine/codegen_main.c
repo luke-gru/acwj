@@ -35,14 +35,10 @@ static void init_symtable() {
 
   // compiler builtins
   addglob("__builtin_vararg_addr_setup", P_INT, NULL, S_FUNCTION, C_GLOBAL, 1);
-
-  freeloclsyms();
 }
 
 // Initialise global variables
 static void init() {
-  Line = 1;
-  Putback = '\n';
   CurFunctionSym = NULL;
 
   O_dumpAST = 0; // when set to 1, so is O_parseOnly
@@ -127,9 +123,8 @@ char *do_compile(char *filename) {
     exit(1);
   }
 
-  Line = 1;                     // Reset the scanner
-  Putback = '\n';
-  clear_symtable();             // Clear the symbol table
+  reset_scanner();
+  clear_symtable();
   init_symtable();
   if (O_verbose)
     printf("compiling %s\n", filename);
