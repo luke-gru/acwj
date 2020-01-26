@@ -27,7 +27,6 @@
 static int AsmComments = 1;
 static int spillreg=0;
 static int lastspill=-1;
-static int lastalloc=-1;
 
 // List of available registers
 // and their names
@@ -58,6 +57,7 @@ enum { no_seg, text_seg, data_seg } currSeg = no_seg;
 
 static int Needs_case_eval_code = 0;
 static int Generated_case_eval_code = 0;
+void cgcommentsource(char *func);
 
 void cgtextseg() {
   if (currSeg != text_seg) {
@@ -115,12 +115,36 @@ static void unspill_all_regs(void) {
 }
 
 #define SPILLING(reg) lastspill = reg
-#define UNSPILLING(reg) lastspill--
+#if 0
+#define UNSPILLING(reg) ASSERT(reg == lastspill); lastspill--
+#endif
+
+/*
+ * Order of spills/unspills:
+ * spill 0
+ * spill 1
+ * spill 2
+ * unspill 2
+ * unspill 1
+ * unspill 0
+ */
+int UNSPILLING(int reg, int next) {
+  ASSERT_REG(reg);
+  if (reg != lastspill) {
+    fprintf(stderr,
+        "Warning: UNSPILL reg %d (%s) doesn't match SPILL reg %d (%s) for node line %d:%d\n",
+        reg, reglist[reg], lastspill, reglist[lastspill], GenNode->line, GenNode->col);
+    fprintf(Outfile,
+        "# Warning: UNSPILL reg %d (%s) doesn't match SPILL reg %d (%s) for node line %d:%d\n",
+        reg, reglist[reg], lastspill, reglist[lastspill], GenNode->line, GenNode->col);
+  }
+  lastspill = next;
+  return (1);
+}
 
 // Used to reset codegen state between files
 void cgreset(void) {
   lastspill = -1;
-  lastalloc = -1;
   spillreg = 0;
   localOffset = 0;
   stackOffset = 0;
@@ -172,14 +196,16 @@ int alloc_register(void) {
 // register MUST be freed first.
 void free_register(int reg) {
   int unspill;
+  int nextunspill;
   if (freereg[reg] != 0) {
     fatalv("Error trying to free register %d, it's not in use\n", reg);
   }
   if (spillreg > 0) { // unspill the latest spill
     spillreg--;
     unspill = (spillreg % NUMFREEREGS);
-    UNSPILLING(unspill);
-    fprintf(Outfile, "# unspilling reg %d\n", unspill);
+    nextunspill = ((spillreg - 1) % NUMFREEREGS);
+    fprintf(Outfile, "# unspilling reg %d, next unspill expected: %d\n", unspill, nextunspill);
+    UNSPILLING(unspill, nextunspill);
     popreg(unspill);
   } else {
     freereg[reg]= 1; // mark as free
@@ -188,8 +214,10 @@ void free_register(int reg) {
 
 
 // Print out the assembly preamble
-void cgpreamble() {
+void cgpreamble(char *filename) {
+  ASSERT(Outfile);
   freeall_registers(-1);
+  fprintf(Outfile, ".file %c%s%c\n", '"', filename, '"');
 }
 
 // Print out the assembly postamble
@@ -227,6 +255,7 @@ void cgpostamble() {
 
 void cgfuncpreamble(struct symtable *sym) {
   ASSERT(sym->stype == S_FUNCTION);
+  cgcommentsource("cgfuncpreamble");
   struct symtable *parm, *locvar;
   int cnt;
 
@@ -293,6 +322,7 @@ void cgfuncpostamble(struct symtable *sym) {
 // Return the number of the register
 int cgloadint(int value) {
 
+  cgcommentsource("cgloadint");
   // Get a new register
   int r= alloc_register();
 
@@ -306,6 +336,7 @@ int cgloadint(int value) {
 int cgadd(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgadd");
   fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
   free_register(r2);
   return (r1);
@@ -316,6 +347,7 @@ int cgadd(int r1, int r2) {
 int cgsub(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgsub");
   fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
   free_register(r2);
   return(r1);
@@ -326,6 +358,7 @@ int cgsub(int r1, int r2) {
 int cgmul(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgmul");
   fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r2], reglist[r1]);
   free_register(r2);
   return(r1);
@@ -336,6 +369,7 @@ int cgmul(int r1, int r2) {
 int cgdiv(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgdiv");
   fprintf(Outfile, "\tmovq\t%s,%%rax\n", reglist[r1]);
   fprintf(Outfile, "\tcqo\n");
   fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);
@@ -347,6 +381,7 @@ int cgdiv(int r1, int r2) {
 int cgmod(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgmod");
   fprintf(Outfile, "\tmovq\t%s,%%rax\n", reglist[r1]);
   fprintf(Outfile, "\tcqo\n");
   fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);
@@ -358,6 +393,7 @@ int cgmod(int r1, int r2) {
 // Call printint() with the given register
 void cgprintint(int r) {
   ASSERT_REG(r);
+  cgcommentsource("cgprintint");
   fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
   fprintf(Outfile, "\tcall\tprintint\n");
   free_register(r);
@@ -427,6 +463,7 @@ int cgloadlocal(struct symtable *sym, int op) {
   // Get a new register
   int r;
   ASSERT(sym->class == C_LOCAL || sym->class == C_PARAM);
+  cgcommentsource("cgloadlocal");
 
   if (!primtype(sym->type)) {
     return (cgaddress(sym));
@@ -505,6 +542,7 @@ int cgstorglob(int r, struct symtable *sym) {
 // Store a register's value into a local variable
 int cgstorlocal(int r, struct symtable *sym) {
   ASSERT_REG(r);
+  cgcommentsource("cgstorlocal");
   int size = typesize(sym->type, sym->ctype);
 
   switch (size) {
@@ -535,6 +573,7 @@ void cgglobsym(struct symtable *sym) {
   if (sym->stype == S_FUNCTION || sym->class == C_EXTERN) return;
 
   ASSERT(sym->class == C_GLOBAL || sym->class == C_STATIC);
+  cgcommentsource("cgglobsym");
 
   // Get the size of the variable (or its elements if an array)
   // and the type of the variable
@@ -600,6 +639,7 @@ static char *cmplist[] =
 int cgcompare_and_set(int ASTop, int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgcompare_and_set");
   // Check the range of the AST operation
   if (ASTop < A_EQ || ASTop > A_GE) {
     fatal("Bad ASTop in cgcompare_and_set()");
@@ -630,6 +670,7 @@ static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgcompare_and_jump");
 
   // Check the range of the AST operation
   if (ASTop < A_EQ || ASTop > A_GE)
@@ -667,6 +708,7 @@ int cgprimsize(int ptype) {
 // argnum 1 is first argument to function
 void cgcopyarg(struct symtable *func, int r, int argnum) {
   ASSERT_REG(r);
+  cgcommentsource("cgcopyarg");
   // varargs function
   if (func->size < 0 && argnum > func->nelems) {
     fprintf(Outfile, "\tpushq\t%s # varargs argument\n", reglist[r]); // last argument must be pushed first
@@ -691,6 +733,7 @@ void cgcopyarg(struct symtable *func, int r, int argnum) {
 // Call a function and return the register with the result.
 // The arguments must be loaded into registers with `cgloadarg`.
 int cgcall(struct symtable *sym, int numargs) {
+  cgcommentsource("cgcall");
   int outr;
   int num_args_spilled = 0;
   if (sym->size < 0 && numargs > sym->nelems) { // varargs
@@ -716,6 +759,7 @@ int cgcall(struct symtable *sym, int numargs) {
 
 // XXX: doesn't work for returning structs as values
 void cgreturn(int reg, struct symtable *func) {
+  cgcommentsource("cgreturn");
   if (reg == NOREG) {
     cgjump(func->endlabel);
     return;
@@ -760,6 +804,7 @@ int cg_builtin_vararg_addr_setup(void) {
 // identifier into a variable. Return a new register
 int cgaddress(struct symtable *sym) {
   int r = alloc_register();
+  cgcommentsource("cgaddress");
 
   ASSERT(sym);
 
@@ -775,6 +820,7 @@ int cgaddress(struct symtable *sym) {
 // pointing at into the same register
 int cgderef(int r, int type) {
   ASSERT_REG(r);
+  cgcommentsource("cgderef");
   int newtype = value_at(type);
   int size = cgprimsize(newtype);
 
@@ -817,6 +863,7 @@ int cgderef(int r, int type) {
 int cgstorderef(int r1, int r2, int type) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgstorderef");
   int size = cgprimsize(type);
   switch (size) {
     case CHARSZ:
@@ -837,6 +884,7 @@ int cgstorderef(int r1, int r2, int type) {
 // Shift a register left by a constant
 int cgshlconst(int r, int val) {
   ASSERT_REG(r);
+  cgcommentsource("cgshlconst");
   fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);
   return(r);
 }
@@ -856,6 +904,7 @@ void cgglobstr(int label, char *strval) {
 int cgloadglobstr(int label) {
   // Get a new register
   int r = alloc_register();
+  cgcommentsource("cgloadglobstr");
   fprintf(Outfile, "\tleaq\tL%d(%%rip), %s", label, reglist[r]);
   if (AsmComments) {
     fprintf(Outfile, " # %s = (char*)&L%d", reglist[r], label);
@@ -867,6 +916,7 @@ int cgloadglobstr(int label) {
 int cgbitand(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgbitand");
   fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r1], reglist[r2]);
   free_register(r1);
   return (r2);
@@ -875,6 +925,7 @@ int cgbitand(int r1, int r2) {
 int cgbitor(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgbitor");
   fprintf(Outfile, "\torq\t%s, %s\n", reglist[r1], reglist[r2]);
   free_register(r1);
   return (r2);
@@ -883,6 +934,7 @@ int cgbitor(int r1, int r2) {
 int cgbitxor(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgbitxor");
   fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r1], reglist[r2]);
   free_register(r1);
   return (r2);
@@ -891,6 +943,7 @@ int cgbitxor(int r1, int r2) {
 // Negate a register's value
 int cgnegate(int r) {
   ASSERT_REG(r);
+  cgcommentsource("cgnegate");
   fprintf(Outfile, "\tnegq\t%s\n", reglist[r]);
   return (r);
 }
@@ -898,6 +951,7 @@ int cgnegate(int r) {
 // Invert a register's value (bitwise not, or `~`)
 int cginvert(int r) {
   ASSERT_REG(r);
+  cgcommentsource("cginvert");
   fprintf(Outfile, "\tnotq\t%s\n", reglist[r]);
   return (r);
 }
@@ -905,6 +959,7 @@ int cginvert(int r) {
 int cgshl(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgshl");
   fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
   fprintf(Outfile, "\tshlq\t%%cl, %s\n", reglist[r1]);
   free_register(r2);
@@ -914,6 +969,7 @@ int cgshl(int r1, int r2) {
 int cgshr(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  cgcommentsource("cgshr");
   fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
   fprintf(Outfile, "\tshrq\t%%cl, %s\n", reglist[r1]);
   free_register(r2);
@@ -923,6 +979,7 @@ int cgshr(int r1, int r2) {
 // Logically negate a register's value
 int cglognot(int r) {
   ASSERT_REG(r);
+  cgcommentsource("cglognot");
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
   fprintf(Outfile, "\tsete\t%s\n", breglist[r]);
   fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
@@ -931,12 +988,14 @@ int cglognot(int r) {
 
 void cgjumpif(int r, int label) {
   ASSERT_REG(r);
+  cgcommentsource("cgjumpif");
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // set ZF to 1 if `r` == 0
   fprintf(Outfile, "\tjne\tL%d\n", label); // Jump if ZF == 0
 }
 
 void cgjumpunless(int r, int label) {
   ASSERT_REG(r);
+  cgcommentsource("cgjumpunless");
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // set ZF to 1 if `r` == 0
   fprintf(Outfile, "\tje\tL%d\n", label); // Jump if ZF == 1
 }
@@ -945,6 +1004,7 @@ void cgjumpunless(int r, int label) {
 // Jump to end label if `op` is an IF, WHILE or TERNARY operation and `r` is 0
 int cgboolean(int r, int op, int endlabel) {
   ASSERT_REG(r);
+  cgcommentsource("cgboolean");
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // set ZF to 1 if `r` == 0
   if (op == A_IF || op == A_WHILE || op == A_TERNARY) { // NOTE: 'for' constructs are turned into A_WHILEs
     ASSERT(endlabel != NOLABEL);
@@ -1024,6 +1084,7 @@ int cgalignment(int type) {
 void cgswitch(int reg, int casecount, int internal_switch_dispatch_label,
     int *caselabels, int *casevals, int defaultlabel) {
   ASSERT_REG(reg);
+  cgcommentsource("cgswitch");
 
   Needs_case_eval_code = 1; // output this in postamble
 
@@ -1063,6 +1124,7 @@ void cgpush0() {
 }
 
 void cgmove(int srcreg, int dstreg) {
+  cgcommentsource("cgmove");
   ASSERT_REG(srcreg);
   ASSERT_REG(dstreg);
   fprintf(Outfile, "\tmovq %s, %s\n", reglist[srcreg], reglist[dstreg]);
@@ -1073,7 +1135,16 @@ void cggotolabel(struct symtable *sym) {
 }
 
 void cggoto(struct symtable *sym) {
+  cgcommentsource("cggoto");
   fprintf(Outfile, "\tjmp %s%d\n", sym->name, sym->size);
+}
+
+void cgcommentsource(char *func) {
+  if (GenNode) {
+    cgcomment("from %s on line %d:%d", func, GenNode->line, GenNode->col);
+  } else {
+    cgcomment("from %s", func);
+  }
 }
 
 void cgcomment(const char *fmt, ...) {

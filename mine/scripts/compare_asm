@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+
+# exit immediately if any of the commands return non-zero
+set -e
+# print commands
+set -x
+
+# Compare assembly output of compiling a file with my compiler that was itself
+# compiled by GCC (original compiler) with that of the self-hosted compiler
+# Usage: ./scripts/compare_asm mytest.c
+
+make compiler
+make selfhosted
+./bin/compiler -S -o cmp_asm1.s $@
+./bin/selfhosted -S -o cmp_asm2.s $@

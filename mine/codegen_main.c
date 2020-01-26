@@ -46,8 +46,9 @@ static void init() {
   O_debugNoisy = 0;
   O_verbose = 0;
   O_assemble = 0; // assemble and keep object files
-  O_dolink = 0;   // assemble and link
+  O_dolink = 1;   // assemble and link
   O_keepasm = 0;
+  O_debugsymbols = 0;
 
   init_symtable();
   setup_signal_handlers();
@@ -64,7 +65,8 @@ static void usage(char *prog) {
        "       -S generate assembly files but don't link them\n"
        "       -T dump the AST trees for each input file\n"
        "       -M dump the symbol table each input file\n"
-       "       -o outfile, produce the outfile executable file\n",
+       "       -g output debug symbols in executable\n"
+       "       -o outfile, produce the outfile as output\n",
       prog);
   exit(1);
 }
@@ -92,26 +94,31 @@ char *alter_suffix(char *str, char suffix) {
   return (newstr);
 }
 
+char compile_cmd[TEXTLEN];
+
 // Given an input filename, compile that file
 // down to assembly code. Return the new file's name
-char *do_compile(char *filename) {
-  char cmd[TEXTLEN];
-
-  Outfilename = alter_suffix(filename, 's');
-  if (Outfilename == NULL) {
-    fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
-    exit(1);
+char *do_compile(char *filename, char *outfile) {
+  if (strstr(outfile, ".s")) {
+    Outfilename = strdup(outfile);
+  } else {
+    Outfilename = alter_suffix(filename, 's');
+    if (Outfilename == NULL) {
+      fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
+      exit(1);
+    }
   }
 
-  snprintf(cmd, TEXTLEN, "%s %s %s %s", CPPCMD, INCDIR, cpp_defines_str, filename);
+
+  snprintf(compile_cmd, TEXTLEN, "%s %s %s %s", CPPCMD, INCDIR, cpp_defines_str, filename);
 
   if (O_verbose) {
     fprintf(stdout, "CPP cmd:\n");
-    fprintf(stdout, " - %s\n", cmd);
+    fprintf(stdout, " - %s\n", compile_cmd);
   }
 
   // Open up the input file
-  if ((Infile = popen(cmd, "r")) == NULL) {
+  if ((Infile = popen(compile_cmd, "r")) == NULL) {
     fprintf(stderr, "Unable to open %s: %s\n", filename, strerror(errno));
     exit(1);
   }
@@ -129,8 +136,7 @@ char *do_compile(char *filename) {
   if (O_verbose)
     printf("compiling %s\n", filename);
   scan(&Token);                 // Get the first token from the input
-  genreset();
-  genpreamble();                // Output the preamble
+  genpreamble(filename);        // Output the preamble
   global_declarations();        // Parse the global declarations
   genpostamble();               // Output the postamble
   fclose(Outfile);              // Close the output file
@@ -141,14 +147,15 @@ char *do_compile(char *filename) {
     fprintf(stdout, "\n\n");
   }
   freestaticsyms();
+  genreset();
   return (Outfilename);
 }
 
-#define ASCMD "as -o "
+char assemble_cmd[TEXTLEN];
+#define ASCMD "as -g -o "
 // Given an input filename, assemble that file
 // down to object code. Return the object filename
 char *do_assemble(char *filename) {
-  char cmd[TEXTLEN];
   int err;
 
   char *outfilename = alter_suffix(filename, 'o');
@@ -157,9 +164,9 @@ char *do_assemble(char *filename) {
     exit(1);
   }
   // Build the assembly command and run it
-  snprintf(cmd, TEXTLEN, "%s %s %s", ASCMD, outfilename, filename);
-  if (O_verbose) printf("%s\n", cmd);
-  err = system(cmd);
+  snprintf(assemble_cmd, TEXTLEN, "%s %s %s", ASCMD, outfilename, filename);
+  if (O_verbose) printf("%s\n", assemble_cmd);
+  err = system(assemble_cmd);
   if (err != 0) {
     fprintf(stderr, "Assembly of %s failed\n", filename);
     exit(1);
@@ -167,17 +174,18 @@ char *do_assemble(char *filename) {
   return (outfilename);
 }
 
+char link_cmd[TEXTLEN];
 // FIXME: remove linking to mylib.c
 #define LDCMD "cc lib/mylib.c -o"
 // Given a list of object files and an output filename,
 // link all of the object filenames together.
 void do_link(char *outfilename, char **objlist) {
   int cnt, size = TEXTLEN;
-  char cmd[TEXTLEN], *cptr;
+  char *cptr;
   int err;
 
   // Start with the linker command and the output file
-  cptr = cmd;
+  cptr = link_cmd;
   cnt = snprintf(cptr, size, "%s %s ", LDCMD, outfilename);
   cptr += cnt; size -= cnt;
 
@@ -187,8 +195,8 @@ void do_link(char *outfilename, char **objlist) {
     cptr += cnt; size -= cnt; objlist++;
   }
 
-  if (O_verbose) printf("%s\n", cmd);
-  err = system(cmd);
+  if (O_verbose) printf("%s\n", link_cmd);
+  err = system(link_cmd);
   if (err != 0) { fprintf(stderr, "Linking failed\n"); exit(1); }
 }
 
@@ -234,16 +242,14 @@ static void unlink_safe(char *name) {
 int main(int argc, char **argv) {
   struct ASTnode *tree;
   char *asmfile, *objfile;
-  char *binname = AOUT;
+  char *outname = AOUT;
+  int i, j;
 
   if (argc < 2)
     usage(argv[0]);
 
   init();
 
-  O_dolink = 1; // by default, output a binary a.out
-
-  int i, j;
   // Scan for command-line options
   for (i = 1; i<argc; i++) {
 after_incr:
@@ -261,9 +267,9 @@ after_incr:
           O_dumpsym = 1; break;
         case 'd':
           O_debugNoisy = 1; break;
-        // output executable file
+        // output this file, whether executable (default), assembly or object
         case 'o':
-          binname = argv[++i]; O_dolink = 1; break;
+          outname = argv[++i]; break;
         // output object files
         case 'c':
           O_assemble = 1; O_dolink = 0; break;
@@ -278,6 +284,8 @@ after_incr:
           i++;
           goto after_incr;
           break;
+        case 'g':
+          O_debugsymbols = 1; break;
         default:
           fprintf(stderr, "Invalid option: %c\n", argv[i][j]);
           usage(argv[0]);
@@ -287,7 +295,7 @@ after_incr:
 
   // Work on each input file in turn
   while (i < argc) {
-    asmfile = do_compile(argv[i]);      // Compile the source file
+    asmfile = do_compile(argv[i], outname);      // Compile the source file
 
     if (O_dolink || O_assemble) {
       objfile = do_assemble(asmfile);   // Assemble it to object format
@@ -305,7 +313,7 @@ after_incr:
   }
 
   if (O_dolink) {
-    do_link(binname, objlist);
+    do_link(outname, objlist);
     // If we don't need to keep the object
     // files, then remove them
     if (!O_assemble) {

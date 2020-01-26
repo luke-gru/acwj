@@ -39,7 +39,7 @@ int interpretAST(struct ASTnode *n);
 // gen.c
 int  genAST(struct ASTnode *n, int reg,
         int loopstartlabel, int loopendlabel, int parentASTop);
-void genpreamble(void);
+void genpreamble(char *filename);
 void genpostamble(void);
 void genfreeregs(int keepreg);
 void genprintint(int reg);
@@ -53,7 +53,7 @@ void genreset(void);
 // cg.c
 void freeall_registers(int keepreg);
 int  alloc_register(void);
-void cgpreamble(void);
+void cgpreamble(char *filename);
 void cgpostamble(void);
 void cgfuncpreamble(struct symtable *sym);
 void cgfuncpostamble(struct symtable *sym);

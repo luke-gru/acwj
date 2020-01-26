@@ -525,6 +525,19 @@ struct ASTnode *binexpr(int ptp) {
     // into an AST operation at the same time.
     left = mkastnode(ASTop, left->type, left->ctype, left, NULL, right, NULL, 0);
 
+    // Some operators produce an int result regardless of their operands
+    switch (binastop(tokentype)) {
+      case A_LOGOR:
+      case A_LOGAND:
+      case A_EQ:
+      case A_NE:
+      case A_LT:
+      case A_GT:
+      case A_LE:
+      case A_GE:
+        left->type = P_INT;
+    }
+
     // Update the details of the current token.
     // If we hit a terminating token, return just the left node
     tokentype = Token.token;
@@ -611,11 +624,8 @@ struct ASTnode *prefix(void) {
     case T_STAR:
       scan(&Token);
       tree = prefix();
-      // For now, ensure it's either another deref or an
-      // identifier
-      /*if (tree->op != A_IDENT && tree->op != A_DEREF)*/
-        /*fatal("* operator must be followed by an identifier or *");*/
 
+      tree->rvalue = 1;
       // Prepend an A_DEREF operation to the tree
       tree = mkastunary(A_DEREF, value_at(tree->type), tree->ctype, tree, NULL, 0);
       break;

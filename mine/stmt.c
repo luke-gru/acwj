@@ -251,6 +251,9 @@ struct ASTnode *single_statement(void) {
   struct ASTnode *stmt = NULL;
 
   switch (Token.token) {
+    case T_SEMI:
+      semi();
+      return (empty_statement());
     case T_LBRACE:
       lbrace();
       if (Token.token == T_RBRACE) {

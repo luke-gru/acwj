@@ -59,13 +59,9 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype,
   node->nelems = nelems;
 
   if (stype == S_VARIABLE || stype == S_ARRAY) {
-    if (class == C_EXTERN) {
-      node->size = 0;
-    } else {
-      ASSERT(nelems > 0);
-      node->size = nelems * typesize(type, ctype);
-      ASSERT(node->size > 0);
-    }
+    ASSERT(nelems > 0);
+    node->size = nelems * typesize(type, ctype);
+    ASSERT(node->size > 0);
   } else {
     // Could be a struct or union type, where size will get calculated elsewhere.
     // Otherwise, could be a function symbol, no size, or extern variable

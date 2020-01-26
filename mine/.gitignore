@@ -1,6 +1,6 @@
 bin/*
 !bin/.gitignore
-out.s
+*.s
 a.out
 mytest.c
-mytest.s
+mytest2.c

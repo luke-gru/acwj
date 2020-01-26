@@ -531,9 +531,9 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   return (NOREG);
 }
 
-void genpreamble() {
+void genpreamble(char *filename) {
   if (O_parseOnly) return;
-  cgpreamble();
+  cgpreamble(filename);
 }
 void genpostamble() {
   if (O_parseOnly) return;

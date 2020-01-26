@@ -1,2 +1,2 @@
 Hello world
-Argument 0 is ./out
+Argument 0 is ./test/vendor/out

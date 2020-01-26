@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+set -e
+set -x
+
+# Compile a C source file and output an executable a.out, then run it.
+# Usage: ./scripts/runfile mytest.c
+make compiler && ./bin/compiler -o a.out $@ && ./a.out

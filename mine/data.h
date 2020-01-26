@@ -49,6 +49,7 @@ EXTERN int    O_verbose;          // Verbose output for compilation steps only
 EXTERN int    O_assemble;         // Do we assemble the assembly files to produce object files
 EXTERN int    O_dolink;           // Do we link the object files to produce a binary
 EXTERN int    O_keepasm;          // Do we keep the generated assembly file(s)
+EXTERN int    O_debugsymbols;     // Do we output debug symbols in the binary
 
 EXTERN struct ASTnode *GenNode;   // Currently generated node
 

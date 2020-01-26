@@ -12,7 +12,7 @@ int main() {
   int cnt;
 
   buf= "                                                             ";
-  zin = open("input030.c", 0);
+  zin = open("test/vendor/input030.c", 0);
   if (zin == -1) {
     return (1);
   }

@@ -15,7 +15,7 @@ bin/compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stm
 	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
 
 bin/selfhosted: bin/compiler
-	./bin/compiler -v -DSELFHOSTED=1 -o bin/selfhosted expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
+	./bin/compiler -v -s -DSELFHOSTED=1 -o bin/selfhosted expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
 
 scanner: bin/scanner
 parser: bin/parser

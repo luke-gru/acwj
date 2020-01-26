@@ -330,6 +330,8 @@ struct symtable *array_declaration(char *varname, int type,
       if (is_new_symbol(sym, class, pointer_to(type), ctype)) {
         sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class,
             initial_elems_count);
+      } else {
+        sym->class = class;
       }
       break;
     case C_LOCAL:
@@ -386,7 +388,7 @@ struct symtable *array_declaration(char *varname, int type,
     }
     if (i > nelems) nelems = i;
     sym->initlist = initlist;
-  }
+  } /* /assign */
 #undef TABLE_INCREMENT
 
   if (nelems > 0) { // extern declarations have nelems = 0
@@ -474,6 +476,8 @@ struct symtable *scalar_declaration(char *varname, int type,
       sym = findglob(varname);
       if (is_new_symbol(sym, class, type, ctype)) {
         sym = addglob(varname, type, ctype, S_VARIABLE, class, 1);
+      } else {
+        sym->class = class;
       }
       break;
     case C_LOCAL:
@@ -803,8 +807,6 @@ struct symtable *symbol_declaration(int type, struct symtable *ctype,
     case C_EXTERN:
     case C_STATIC:
     case C_GLOBAL:
-      if (findglob(varname) != NULL)
-        fatals("Duplicate global variable declaration", varname);
       break;
     case C_LOCAL:
     case C_PARAM:

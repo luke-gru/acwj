@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+set -e
+set -x
+
+# Use the C preprocessor on a file.
+# Usage: ./scripts/cpp expr.c > expr.cpp
+cpp -nostdinc -isystem /tmp/include $@

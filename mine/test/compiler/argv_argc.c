@@ -5,11 +5,6 @@ int main(int argc, char **argv) {
   char *argument;
   printf("Hello world\n");
 
-  char ****x;
-  char ***p;
-  int o;
-  o = x + p;
-
   for (i=0; i < argc; i++) {
     argument= *argv;
     argv= argv + 1;
