@@ -109,7 +109,6 @@ char *do_compile(char *filename, char *outfile) {
     }
   }
 
-
   snprintf(compile_cmd, TEXTLEN, "%s %s %s %s", CPPCMD, INCDIR, cpp_defines_str, filename);
 
   if (O_verbose) {
