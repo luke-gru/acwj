@@ -15,7 +15,7 @@ static int ParseCompositeLevel = 0;
 static int ParseCompositeLevels[MAX_COMPOSITE_NESTING];
 
 #define SET_PARSING_COMPOSITE(ptype) ParseCompositeLevels[ParseCompositeLevel++] = ptype
-#define UNSET_PARSING_COMPOSITE() ASSERT(ParseCompositeLevel > 0), ParseCompositeLevel--
+#define UNSET_PARSING_COMPOSITE() ASSERT(ParseCompositeLevel > 0), ParseCompositeLevel-=1
 
 #define IS_PARSING_STRUCT (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel - 1] == P_STRUCT)
 #define IS_PARSING_UNION  (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel - 1] == P_UNION)
@@ -529,10 +529,14 @@ struct symtable *scalar_declaration(char *varname, int type,
       exprnode = binexpr(0);
       exprnode->rvalue = 1;
 
+      int exprtype = exprnode->type;
+      struct symtable *exprctype = exprnode->ctype;
       // Ensure the expression's type matches the variable
       exprnode = modify_type(exprnode, varnode->type, varnode->ctype, A_ASSIGN);
-      if (exprnode == NULL)
-        fatal("Incompatible expression in assignment");
+      if (exprnode == NULL) {
+        fatalv("Incompatible expression in assignment. Expected type %s, got %s",
+            typename(varnode->type, varnode->ctype), typename(exprtype, exprctype));
+      }
 
       // Make an assignment AST tree
       ASSERT(assign_expr);

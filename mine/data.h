@@ -8,6 +8,8 @@
 #define EXTERN extern
 #endif
 
+#define LONGTEXTLEN 1024
+
 // fwd
 struct symtable;
 struct ASTnode;
@@ -23,8 +25,8 @@ EXTERN FILE     *Outfile;                      // Currently worked on assembly F
 EXTERN char     *Infilename;                   // Currently worked on C source code filename
 EXTERN char     *Outfilename;                  // Currently worked on assembly filename
 EXTERN struct   token Token;
-EXTERN char     Text[TEXTLEN + 1];		// Last identifier scanned
-EXTERN char     OldText[TEXTLEN + 1];		// Last identifier scanned
+EXTERN char     Text[LONGTEXTLEN + 1];		// Last identifier scanned
+EXTERN char     OldText[LONGTEXTLEN + 1];		// Last identifier scanned
 EXTERN char     *CurLine;                      // Current line being tokenized
 
 EXTERN struct symtable *CurFunctionSym;        // Symbol ptr of the current function being parsed and code-generated
@@ -50,6 +52,7 @@ EXTERN int    O_assemble;         // Do we assemble the assembly files to produc
 EXTERN int    O_dolink;           // Do we link the object files to produce a binary
 EXTERN int    O_keepasm;          // Do we keep the generated assembly file(s)
 EXTERN int    O_debugsymbols;     // Do we output debug symbols in the binary
+EXTERN int    O_nospill;          // If nospill, exit instead of spilling registers if compiler runs out
 
 EXTERN struct ASTnode *GenNode;   // Currently generated node
 

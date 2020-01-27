@@ -110,8 +110,12 @@ struct ASTnode *modify_type(struct ASTnode *rtree, int ltype,
 
     // A comparison of the same type for a non-binary operation is OK,
     // or when the left tree is of  `void *` type.
-    if (!isbinastop(op) && (ltype == rtype || ltype == pointer_to(P_VOID)))
+    // ex: char *str = (void*)0;
+    //     char *mem = malloc(1024);
+    if (!isbinastop(op) && (ltype == rtype || ltype == pointer_to(P_VOID) ||
+          rtype == pointer_to(P_VOID))) {
       return (rtree);
+    }
   }
 
   // We can scale only on A_ADD or A_SUBTRACT operation

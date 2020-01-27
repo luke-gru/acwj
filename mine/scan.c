@@ -14,7 +14,7 @@ static int FirstNonSpaceInLine = 0; // used to track AtBol
 #ifdef DEBUG_SCANNER
 #define scandebug(...) debugnoisy("scan", __VA_ARGS__)
 #else
-#define scandebug(...) 0
+#define scandebug(...)
 #endif
 
 char *toknames[] = {
@@ -136,7 +136,7 @@ static int next(void) {
   if (!InPreprocLine && CurLinePos == 1 && c == '#') {
     aminpreproc = InPreprocLine = 1;
     preproc_comment = 1;
-    memcpy(OldText, Text, TEXTLEN+1);
+    memcpy(OldText, Text, LONGTEXTLEN+1);
   }
   while (CurLinePos == 1 && c == '#') {                    // We've hit a pre-processor statement
     scandebug("skipping preproc line %s", CurLine);
@@ -164,7 +164,7 @@ static int next(void) {
     c = readchar();                  // and get the next character
   }
   if (preproc_comment) {
-    memcpy(Text, OldText, TEXTLEN+1);
+    memcpy(Text, OldText, LONGTEXTLEN+1);
   }
 
   Col++;
@@ -430,7 +430,7 @@ int scan_str(char *buf, int start) {
   int i, c;
 
   // Loop while we have enough buffer space
-  for (i=start; i<TEXTLEN - 1; i++) {
+  for (i=start; i<LONGTEXTLEN - 1; i++) {
     // Get the next char and append to buf
     // Return when we hit the ending double quote
     if ((c = scan_ch()) == '"') {
@@ -440,7 +440,7 @@ int scan_str(char *buf, int start) {
     buf[i] = (char)c;
   }
   // Ran out of buf[] space
-  fatalv("String literal too long, max length is %d bytes", TEXTLEN);
+  fatalv("String literal too long, max length is %d bytes", LONGTEXTLEN);
   return (0);
 }
 
@@ -642,7 +642,7 @@ gettok:
       } else if (isalpha(c) || '_' == c) {
         int atbol = AtBol;
         // Read in a keyword or identifier
-        scanident(c, Text, TEXTLEN);
+        scanident(c, Text, LONGTEXTLEN);
 
         // If it's a recognised keyword, return that token
         if ((tokentype = keyword(Text))) {

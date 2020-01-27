@@ -26,4 +26,8 @@ FILE *popen(const char *command, const char *type);
 int pclose(FILE *stream);
 int close(int fd);
 
+int scanf(const char *format);
+int fscanf(FILE *stream, const char *format);
+int sscanf(const char *str, const char *format);
+
 #endif	// _STDIO_H_

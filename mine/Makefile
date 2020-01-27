@@ -124,7 +124,10 @@ test_exec: bin/compiler
 test_regression: bin/compiler
 	./test/compiler/runtests
 
-test: test_scanner test_parser test_compiler test_exec test_regression
+test_vendor: bin/compiler
+	./test/vendor/runtests
+
+test: test_scanner test_parser test_compiler test_exec test_regression test_vendor
 
 install: bin/compiler install_includes
 	cp ./bin/compiler $(BINDIR)

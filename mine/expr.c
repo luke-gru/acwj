@@ -332,6 +332,7 @@ struct ASTnode *primary(void) {
     if (Token.token != T_LPAREN)
       fatal("Left parenthesis expected after sizeof");
     scan(&Token);
+    // TODO: allow variables to be used here
     type = parse_full_type(Token.token, &ctype, &class);
     size = typesize(type, ctype);
     rparen();
@@ -391,8 +392,26 @@ struct ASTnode *primary(void) {
 }
 
 int isbinastop(int op_or_token) {
-  if (op_or_token > T_EOF && op_or_token < T_INTLIT)
-    return (1);
+  switch (op_or_token) {
+    case T_LOGOR:
+    case T_LOGAND:
+    case T_BITOR:
+    case T_BITXOR:
+    case T_EQ:
+    case T_NE:
+    case T_LT:
+    case T_GT:
+    case T_LE:
+    case T_GE:
+    case T_LSHIFT:
+    case T_RSHIFT:
+    case T_PLUS:
+    case T_MINUS:
+    case T_STAR:
+    case T_SLASH:
+    case T_PERCENT:
+      return (1);
+  }
   return (0);
 }
 
@@ -610,7 +629,7 @@ struct ASTnode *prefix(void) {
 
       // Ensure that it's an identifier
       if (tree->op != A_IDENT)
-        fatalv("& operator must be followed by an identifier, has AST op: %d", tree->op);
+        fatalv("& operator must be followed by an identifier, has AST op: %s", opname(tree->op));
 
       // Prevent '&' being performed on an array
       if (tree->sym->stype == S_ARRAY)

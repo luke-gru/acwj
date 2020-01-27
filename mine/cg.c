@@ -172,6 +172,9 @@ int alloc_register(void) {
       return(i);
     }
   }
+  if (O_nospill) {
+    fatalv("Ran out of registers and nospill option is on");
+  }
   // no more free registers, we must spill the oldest allocd register
   reg = (spillreg % NUMFREEREGS);
   spillreg++;

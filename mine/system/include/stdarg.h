@@ -2,20 +2,19 @@
 #define _STDARG_H_
 
 typedef struct Va_List {
-    long varaddr;
-    int argpos;
+    int gp_offset;
+    int fp_offset;
+    long overflow_arg_area;
+    char *reg_save_area;
 } va_list;
 
-#define va_start(ap, lastarg) \
-    ap.varaddr = __builtin_vararg_addr_setup();\
-    ap.argpos = 0
+#define va_start(list, param) \
+    list.gp_offset = 50;\
+    list.fp_offset = 0;\
+    list.overflow_arg_area = (long)__builtin_vararg_addr_setup();\
+    list.reg_save_area = 0
 
-// TODO: get this to be an expression (needs either better ++ processing, or
-// allow comma expressions (ap.argpos++, other_expr)
-#define va_arg(ap, type) ((type)(*(type*)(ap.varaddr+(8*(ap.argpos))))); \
-    ap.argpos = ap.argpos + 1
-
-// TODO: get (void)0 to parse
-#define va_end(ap) 1+1
+#define va_arg(list, type) ((type)(list.overflow_arg_area = list.overflow_arg_area + 8), (*(type*)(list.overflow_arg_area - 8)))
+#define va_end(list)
 
 #endif

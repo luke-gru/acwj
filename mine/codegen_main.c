@@ -49,6 +49,7 @@ static void init() {
   O_dolink = 1;   // assemble and link
   O_keepasm = 0;
   O_debugsymbols = 0;
+  O_nospill = 0;
 
   init_symtable();
   setup_signal_handlers();
@@ -66,7 +67,8 @@ static void usage(char *prog) {
        "       -T dump the AST trees for each input file\n"
        "       -M dump the symbol table each input file\n"
        "       -g output debug symbols in executable\n"
-       "       -o outfile, produce the outfile as output\n",
+       "       -o outfile, produce the outfile as output\n"
+       "       -R no register spilling\n", // error if compiler runs out of registers
       prog);
   exit(1);
 }
@@ -266,7 +268,7 @@ after_incr:
           O_dumpsym = 1; break;
         case 'd':
           O_debugNoisy = 1; break;
-        // output this file, whether executable (default), assembly or object
+        // output the given filename, whether executable (default), assembly or object file
         case 'o':
           outname = argv[++i]; break;
         // output object files
@@ -285,6 +287,8 @@ after_incr:
           break;
         case 'g':
           O_debugsymbols = 1; break;
+        case 'R':
+          O_nospill = 1; break;
         default:
           fprintf(stderr, "Invalid option: %c\n", argv[i][j]);
           usage(argv[0]);
