@@ -24,7 +24,9 @@ struct ASTnode *mkastleaf(int op, int type, struct symtable *ctype,
         struct symtable *sym, int intvalue);
 struct ASTnode *mkastunary(int op, int type, struct symtable *ctype,
         struct ASTnode *left, struct symtable *sym, int intvalue);
+struct ASTnode *dupastnode(struct ASTnode *n, int recurse);
 void dumpAST(struct ASTnode *n, int label, int level);
+struct ASTnode *rewrite_tree(struct ASTnode *tree);
 
 // expr.c
 struct ASTnode *binexpr(int n);

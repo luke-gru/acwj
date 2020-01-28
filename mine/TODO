@@ -3,20 +3,19 @@ TODO
 
 Functional
 ----------
-* Allow arrays as function parameters
-* Allow structs as function parameters and local variables
-* Put string literals in read-only memory
-* Get Composite member access working with mixed -> and .
-* Try to compile compiler itself
-* Add static local variables, only initialized during first call to function
-* Allow ++ and -- operators after member access, not just identifiers
-* Allow expression lists (expr1, expr2)
+* Allow arrays as function parameters (decay to pointer, disallow re-assign?)
+* Allow structs as function parameters and local variables (needs more testing)
 * Get (void)0; to parse (useful for preprocessor)
 * Get `1-1` working as intended, right now `-` right before a digit is scanned
-as part of the INTLIT
+as part of the INTLIT (workarounds all over source code of compiler)
 * Allow assignment declaration as init value in `for` stmt `for (int i = 0;;`)
-* Get local struct declarations working
-* Implement goto and labels
+* Put string literals in read-only memory
+
+Bugs
+----
+* expression list as RHS of var declaration doesn't compile (see
+test/compiler/assignment_expressions2.c
+* compound assignment operators (+=, -=) don't check types of arguments in binexpr()
 
 Optimizations
 -------------
@@ -26,10 +25,4 @@ Optimizations
 Would Be Nice
 -------------
 * Output debug information during compilation
-
-Bugs
-----
-This line:
-return ((ptype & (0xf)) == 0) && (ptype >= P_CHAR && ptype <= P_LONG);
-The issue is with binexpr in expr.c, which stops parsing at the ')'. Need to
-refactor this function.
+* Add static local variables, only initialized during first call to function

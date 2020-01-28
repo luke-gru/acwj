@@ -1,0 +1,7 @@
+v.val: ello
+ptr: hello
+++ptr: ello
+++v.val: llo
+--v.val: ello
+v.val--: ello
+v.val: hello

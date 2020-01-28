@@ -15,7 +15,7 @@ static int ParseCompositeLevel = 0;
 static int ParseCompositeLevels[MAX_COMPOSITE_NESTING];
 
 #define SET_PARSING_COMPOSITE(ptype) ParseCompositeLevels[ParseCompositeLevel++] = ptype
-#define UNSET_PARSING_COMPOSITE() ASSERT(ParseCompositeLevel > 0), ParseCompositeLevel-=1
+#define UNSET_PARSING_COMPOSITE() ASSERT(ParseCompositeLevel > 0), ParseCompositeLevel--
 
 #define IS_PARSING_STRUCT (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel - 1] == P_STRUCT)
 #define IS_PARSING_UNION  (ParseCompositeLevel > 0 && ParseCompositeLevels[ParseCompositeLevel - 1] == P_UNION)

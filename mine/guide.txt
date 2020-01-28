@@ -146,3 +146,38 @@ fooptr->bar->val = &bar;
                 A_IDENT rval fooptr
                 A_INTLIT 4 (fooptr->bar offset)
             A_INTLIT 4 (bar->val offset)
+
+Increment/Decrement
+===================
+Non-identifiers:
+ex: v.val++
+
+v.val++; // same as (v.val = v.val + [1], v.val - [1])
+++v.val; // same as (v.val = v.val + [1])
+
+v.val++ tree:
+
+       A_POSTINC
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+
+       A_ASSIGN
+          A_ADD
+            A_DEREF rval (char*)
+              A_ADD
+                A_ADDR v
+                A_INTLIT 0
+            A_INTLIT 1
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+
+
+
+Identifiers:
+a++ // same as (a = a + [1], a - [1])
+--a // same as (a = a - [1])
+

@@ -33,9 +33,27 @@ struct ASTnode *mkastnode(int op, int type,
   n->intvalue = intvalue;
   n->line = Line;
   n->col = column();
+  n->rvalue = 0;
   return (n);
 }
 
+struct ASTnode *dupastnode(struct ASTnode *n, int recurse) {
+  ASSERT(n);
+  struct ASTnode *newn;
+  newn = mkastnode(n->op, n->type, n->ctype, n->left, n->mid, n->right,
+      n->sym, n->intvalue);
+  newn->rvalue = n->rvalue;
+  if (!recurse) {
+    return (newn);
+  }
+  if (newn->left)
+    newn->left = dupastnode(newn->left, recurse);
+  if (newn->mid)
+    newn->mid = dupastnode(newn->mid, recurse);
+  if (newn->right)
+    newn->right = dupastnode(newn->right, recurse);
+  return (newn);
+}
 
 // Make an AST leaf node
 struct ASTnode *mkastleaf(int op, int type, struct symtable *ctype, struct symtable *sym, int intvalue) {
@@ -208,9 +226,9 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_PREDEC:
       fprintf(stdout, "A_PREDEC\n"); break;
     case A_POSTINC:
-      fprintf(stdout, "A_POSTINC %s\n", n->sym->name); break;
+      fprintf(stdout, "A_POSTINC\n"); break;
     case A_POSTDEC:
-      fprintf(stdout, "A_POSTDEC %s\n", n->sym->name); break;
+      fprintf(stdout, "A_POSTDEC\n"); break;
     case A_NEGATE:
       fprintf(stdout, "A_NEGATE\n"); break;
     case A_INVERT:
@@ -240,4 +258,232 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 
   if (n->left) dumpAST(n->left, NOLABEL, level+2);
   if (n->right) dumpAST(n->right, NOLABEL, level+2);
+}
+
+/**
+ * Rewrite v.val++ to be equivalent to (v.val = v.val + 1, v.val - 1)
+ *
+ before:
+       A_POSTINC
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+
+ after:
+    A_SEQUENCE
+       A_ASSIGN
+          A_ADD
+            A_DEREF rval (char*)
+              A_ADD
+                A_ADDR v
+                A_INTLIT 0
+            A_INTLIT 1
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+      A_SUBTRACT
+        A_DEREF rval (char*)
+          A_ADD
+            A_ADDR v
+            A_INTLIT 0
+        A_INTLIT 1
+ *
+ */
+struct ASTnode *rewrite_postinc(struct ASTnode *tree) {
+  struct ASTnode *left = tree->left;
+  struct ASTnode *addnode;
+  struct ASTnode *subnode;
+  struct ASTnode *sequencenode;
+  struct ASTnode *right;
+  struct ASTnode *assignnode;
+  struct ASTnode *intlit;
+  int intval_incr = 1;
+
+  right = dupastnode(left, 1);
+  right->rvalue = 1;
+
+  if (ptrtype(right->type)) {
+    intval_incr = typesize(value_at(right->type), right->ctype);
+  }
+
+  intlit = mkastleaf(A_INTLIT, P_INT, NULL, NULL, intval_incr);
+  addnode = mkastnode(A_ADD, right->type, right->ctype, right, NULL, intlit, NULL, 0);
+  left->rvalue = 0;
+  assignnode = mkastnode(A_ASSIGN, right->type, right->ctype, addnode, NULL, left, NULL, 0);
+
+  subnode = dupastnode(addnode, 1);
+  subnode->op = A_SUBTRACT;
+  sequencenode = mkastnode(A_SEQUENCE, subnode->type, subnode->ctype, assignnode, NULL, subnode, NULL, 0);
+
+  return (sequencenode);
+}
+
+/**
+ * Rewrite v.val-- to be equivalent to (v.val = v.val - 1, v.val + 1)
+ *
+ before:
+       A_POSTDEC
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+
+ after:
+    A_SEQUENCE
+       A_ASSIGN
+          A_SUBTRACT
+            A_DEREF rval (char*)
+              A_ADD
+                A_ADDR v
+                A_INTLIT 0
+            A_INTLIT 1
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+      A_ADD
+        A_DEREF rval (char*)
+          A_ADD
+            A_ADDR v
+            A_INTLIT 0
+        A_INTLIT 1
+ *
+ */
+struct ASTnode *rewrite_postdec(struct ASTnode *tree) {
+  struct ASTnode *left = tree->left;
+  struct ASTnode *addnode;
+  struct ASTnode *subnode;
+  struct ASTnode *sequencenode;
+  struct ASTnode *right;
+  struct ASTnode *assignnode;
+  struct ASTnode *intlit;
+  int intval_decr = 1;
+
+  right = dupastnode(left, 1);
+  right->rvalue = 1;
+
+  if (ptrtype(right->type)) {
+    intval_decr = typesize(value_at(right->type), right->ctype);
+  }
+
+  intlit = mkastleaf(A_INTLIT, P_INT, NULL, NULL, intval_decr);
+  subnode = mkastnode(A_SUBTRACT, right->type, right->ctype, right, NULL, intlit, NULL, 0);
+  left->rvalue = 0;
+  assignnode = mkastnode(A_ASSIGN, right->type, right->ctype, subnode, NULL, left, NULL, 0);
+
+  addnode = dupastnode(subnode, 1);
+  addnode->op = A_ADD;
+  sequencenode = mkastnode(A_SEQUENCE, addnode->type, addnode->ctype, assignnode, NULL, addnode, NULL, 0);
+
+  return (sequencenode);
+}
+
+/**
+ * Rewrite ++v.val to be equivalent to (v.val = v.val + 1)
+ *
+ before:
+       A_PREINC
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+
+ after:
+       A_ASSIGN
+          A_ADD
+            A_DEREF rval (char*)
+              A_ADD
+                A_ADDR v
+                A_INTLIT 0
+            A_INTLIT 1
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+ *
+ */
+struct ASTnode *rewrite_preinc(struct ASTnode *tree) {
+  struct ASTnode *left = tree->left;
+  struct ASTnode *addnode;
+  struct ASTnode *right;
+  struct ASTnode *assignnode;
+  struct ASTnode *intlit;
+  int intval_incr = 1;
+
+  right = dupastnode(left, 1);
+  right->rvalue = 1;
+
+  if (ptrtype(right->type)) {
+    intval_incr = typesize(value_at(right->type), right->ctype);
+  }
+
+  intlit = mkastleaf(A_INTLIT, P_INT, NULL, NULL, intval_incr);
+  addnode = mkastnode(A_ADD, right->type, right->ctype, right, NULL, intlit, NULL, 0);
+  left->rvalue = 0;
+  assignnode = mkastnode(A_ASSIGN, right->type, right->ctype, addnode, NULL, left, NULL, 0);
+
+  return (assignnode);
+}
+
+/**
+ * Rewrite --v.val to be equivalent to (v.val = v.val - 1)
+ *
+ before:
+       A_PREDEC
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+
+ after:
+       A_ASSIGN
+          A_SUBTRACT
+            A_DEREF rval (char*)
+              A_ADD
+                A_ADDR v
+                A_INTLIT 0
+            A_INTLIT 1
+          A_DEREF (char*)
+            A_ADD
+              A_ADDR v
+              A_INTLIT 0
+ *
+ */
+struct ASTnode *rewrite_predec(struct ASTnode *tree) {
+  struct ASTnode *left = tree->left;
+  struct ASTnode *subnode;
+  struct ASTnode *right;
+  struct ASTnode *assignnode;
+  struct ASTnode *intlit;
+  int intval_decr = 1;
+
+  right = dupastnode(left, 1);
+  right->rvalue = 1;
+
+  if (ptrtype(right->type)) {
+    intval_decr = typesize(value_at(right->type), right->ctype);
+  }
+
+  intlit = mkastleaf(A_INTLIT, P_INT, NULL, NULL, intval_decr);
+  subnode = mkastnode(A_SUBTRACT, right->type, right->ctype, right, NULL, intlit, NULL, 0);
+  left->rvalue = 0;
+  assignnode = mkastnode(A_ASSIGN, right->type, right->ctype, subnode, NULL, left, NULL, 0);
+
+  return (assignnode);
+}
+
+struct ASTnode *rewrite_tree(struct ASTnode *tree) {
+  switch (tree->op) {
+    case A_POSTINC:
+      return (rewrite_postinc(tree));
+    case A_POSTDEC:
+      return (rewrite_postdec(tree));
+    case A_PREINC:
+      return (rewrite_preinc(tree));
+    case A_PREDEC:
+      return (rewrite_predec(tree));
+  }
+  return (NULL);
 }

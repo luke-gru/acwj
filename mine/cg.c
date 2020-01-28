@@ -407,6 +407,12 @@ int cgloadglob(struct symtable *sym, int op) {
   int r = alloc_register();
 
   int size = cgprimsize(sym->type);
+  int is_ptr_type = ptrtype(sym->type);
+  int elem_size = 0;
+  if (is_ptr_type) {
+    elem_size = typesize(value_at(sym->type), sym->ctype);
+  }
+  int i;
 
   if (sym->type == S_ARRAY) {
     ASSERT(size == PTRSZ); // must be pointer type
@@ -415,41 +421,17 @@ int cgloadglob(struct symtable *sym, int op) {
   // Print out the code to initialise it
   switch (size) {
     case CHARSZ:
-      if (op == A_PREINC)
-        fprintf(Outfile, "\tincb\t%s(%%rip)\n", sym->name);
-      if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecb\t%s(%%rip)\n", sym->name);
       fprintf(Outfile, "\tmovzbq\t%s(%%rip), %s\n", sym->name, reglist[r]);
-      if (op == A_POSTINC)
-        fprintf(Outfile, "\tincb\t%s(%%rip)\n", sym->name);
-      if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecb\t%s(%%rip)\n", sym->name);
       break;
     case INTSZ:
-      if (op == A_PREINC)
-        fprintf(Outfile, "\tincl\t%s(%%rip)\n", sym->name);
-      if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecl\t%s(%%rip)\n", sym->name);
       fprintf(Outfile, "\tmovslq\t%s(%%rip), %s\n", sym->name, reglist[r]);
-      if (op == A_POSTINC)
-        fprintf(Outfile, "\tincl\t%s(%%rip)\n", sym->name);
-      if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecl\t%s(%%rip)\n", sym->name);
       break;
     case LONGSZ:
-      if (op == A_PREINC)
-        fprintf(Outfile, "\tincq\t%s(%%rip)\n", sym->name);
-      if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecq\t%s(%%rip)\n", sym->name);
       if (sym->stype == S_ARRAY) {
         fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[r]);
       } else {
         fprintf(Outfile, "\tmovq\t%s(%%rip), %s\n", sym->name, reglist[r]);
       }
-      if (op == A_POSTINC)
-        fprintf(Outfile, "\tincq\t%s(%%rip)\n", sym->name);
-      if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecq\t%s(%%rip)\n", sym->name);
       break;
     default:
       fatalv("Bad type in cgloadglob: %s (%d)",
@@ -473,45 +455,27 @@ int cgloadlocal(struct symtable *sym, int op) {
   }
 
   int size = cgprimsize(sym->type);
+  int is_ptr_type = ptrtype(sym->type);
+  int elem_size = 0;
+  int i;
+  if (is_ptr_type) {
+    elem_size = typesize(value_at(sym->type), sym->ctype);
+  }
   r = alloc_register();
 
   // Print out the code to initialise it
   switch (size) {
     case CHARSZ:
-      if (op == A_PREINC)
-        fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->posn);
-      if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->posn);
       fprintf(Outfile, "\tmovzbq\t%d(%%rbp), %s\n", sym->posn,
           reglist[r]);
-      if (op == A_POSTINC)
-        fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->posn);
-      if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->posn);
       break;
     case INTSZ:
-      if (op == A_PREINC)
-        fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
-      if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->posn);
       fprintf(Outfile, "\tmovslq\t%d(%%rbp), %s\n", sym->posn,
           reglist[r]);
-      if (op == A_POSTINC)
-        fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
-      if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->posn);
       break;
     case LONGSZ:
-      if (op == A_PREINC)
-        fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->posn);
-      if (op == A_PREDEC)
-        fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->posn);
       fprintf(Outfile, "\tmovq\t%d(%%rbp), %s\n", sym->posn,
           reglist[r]);
-      if (op == A_POSTINC)
-        fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->posn);
-      if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->posn);
       break;
     default:
       fatalv("Bad type in cgloadlocal: %s (%d)",

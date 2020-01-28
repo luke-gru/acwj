@@ -118,8 +118,10 @@ struct ASTnode *postfix(void) {
         if (n->op == A_POSTINC || n->op == A_POSTDEC)
           fatal("Cannot ++ and/or -- more than once");
         scan(&Token);
+        // Prepend an A_POSTINC operation to the tree
+        n = mkastunary(A_POSTINC, n->type, n->ctype, n, NULL, 0);
+        n = rewrite_tree(n);
         // change AST operation
-        n->op = A_POSTINC;
         break;
       case T_DEC:
         if (n->rvalue)
@@ -128,8 +130,9 @@ struct ASTnode *postfix(void) {
         if (n->op == A_POSTINC || n->op == A_POSTDEC)
           fatal("Cannot ++ and/or -- more than once");
         scan(&Token);
-        // change AST operation
-        n->op = A_POSTDEC;
+        // Prepend an A_POSTDEC operation to the tree
+        n = mkastunary(A_POSTDEC, n->type, n->ctype, n, NULL, 0);
+        n = rewrite_tree(n);
         break;
       default:
         return (n);
@@ -509,8 +512,9 @@ struct ASTnode *binexpr(int ptp) {
         // consider the third expression's type.
         return (mkastnode(A_TERNARY, right->type, right->ctype, left, right, ltemp, NULL, 0));
     }
-    if (ASTop == A_ASSIGN) {
+    if (ASTop == A_ASSIGN) { // FIXME: do this check for A_AS_ADD, etc.
       right->rvalue = 1;
+      left->rvalue = 0;
       rtemp = modify_type(right, left->type, left->ctype, A_ASSIGN);
       if (rtemp == NULL) {
         fatalv("Incompatible expression in assignment. Expected type %s, got %s",
@@ -685,25 +689,24 @@ struct ASTnode *prefix(void) {
       // recursively as a prefix expression
       scan(&Token);
       tree = prefix();
+      if (tree->rvalue) {
+        fatal("Cannot increment `++` an rvalue expression");
+      }
 
-      // For now, ensure it's an identifier
-      if (tree->op != A_IDENT)
-        fatal("++ operator must be followed by an identifier");
-
-      // Prepend an A_PREINC operation to the tree
       tree = mkastunary(A_PREINC, tree->type, tree->ctype, tree, NULL, 0);
+      tree = rewrite_tree(tree);
       break;
     case T_DEC:
       // recursively as a prefix expression
       scan(&Token);
       tree = prefix();
-
-      // For now, ensure it's an identifier
-      if (tree->op != A_IDENT)
-        fatal("-- operator must be followed by an identifier");
+      if (tree->rvalue) {
+        fatal("Cannot decrement `--` an rvalue expression");
+      }
 
       // Prepend an A_PREDEC operation to the tree
       tree = mkastunary(A_PREDEC, tree->type, tree->ctype, tree, NULL, 0);
+      tree = rewrite_tree(tree);
       break;
     default:
       ASSERT(Token.token != T_SEMI);

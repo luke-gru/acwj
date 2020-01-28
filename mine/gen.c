@@ -296,6 +296,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   int leftreg, rightreg;
   leftreg = NOREG;
   rightreg = NOREG;
+  int is_compound_assn = 0;
 
   if (O_parseOnly)
     return (NOREG);
@@ -345,6 +346,11 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       return (gen_logor(n));
     case A_LOGAND:
       return (gen_logand(n));
+    case A_POSTINC: // should be rewritten
+    case A_POSTDEC:
+    case A_PREINC:
+    case A_PREDEC:
+      ASSERT(0);
     default: // continue below
       break;
   }
@@ -402,18 +408,22 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   case A_AS_DIVIDE:
     switch (n->op) {
       case A_AS_ADD:
+        is_compound_assn = 1;
         leftreg = cgadd(leftreg, rightreg);
         n->right = n->left;
         break;
       case A_AS_SUBTRACT:
+        is_compound_assn = 1;
         leftreg = cgsub(leftreg, rightreg);
         n->right = n->left;
         break;
       case A_AS_MULTIPLY:
+        is_compound_assn = 1;
         leftreg = cgmul(leftreg, rightreg);
         n->right = n->left;
         break;
       case A_AS_DIVIDE:
+        is_compound_assn = 1;
         leftreg = cgdiv(leftreg, rightreg);
         n->right = n->left;
         break;
@@ -426,6 +436,10 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
           return (cgstorlocal(leftreg, n->right->sym));
         }
       case A_DEREF: // ex: *a = 12
+        if (is_compound_assn) {
+          n->right->rvalue = 0;
+          rightreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+        }
         return (cgstorderef(leftreg, rightreg, n->right->type));
       default:
         fatald("Can't A_ASSIGN in genAST(), op", n->op);
@@ -476,30 +490,6 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     return (cgshl(leftreg, rightreg));
   case A_RSHIFT:
     return (cgshr(leftreg, rightreg));
-  case A_POSTINC: // doesn't have children
-    if (isglobalsym(n->sym)) {
-      return (cgloadglob(n->sym, n->op));
-    } else {
-      return (cgloadlocal(n->sym, n->op));
-    }
-  case A_POSTDEC: // doesn't have children
-    if (isglobalsym(n->sym)) {
-      return (cgloadglob(n->sym, n->op));
-    } else {
-      return (cgloadlocal(n->sym, n->op));
-    }
-  case A_PREINC: // has 1 child
-    if (isglobalsym(n->left->sym)) {
-      return (cgloadglob(n->left->sym, n->op));
-    } else {
-      return (cgloadlocal(n->left->sym, n->op));
-    }
-  case A_PREDEC: // has 1 child
-    if (isglobalsym(n->left->sym)) {
-      return (cgloadglob(n->left->sym, n->op));
-    } else {
-      return (cgloadlocal(n->left->sym, n->op));
-    }
   case A_NEGATE:
     return (cgnegate(leftreg));
   case A_INVERT:
