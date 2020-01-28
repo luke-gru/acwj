@@ -603,16 +603,26 @@ static char *cmplist[] =
   { "sete", "setne", "setl", "setg", "setle", "setge" };
 
 // Compare two registers.
-int cgcompare_and_set(int ASTop, int r1, int r2) {
+int cgcompare_and_set(int ASTop, int r1, int r2, int type) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
+  int size = cgprimsize(type);
   cgcommentsource("cgcompare_and_set");
   // Check the range of the AST operation
   if (ASTop < A_EQ || ASTop > A_GE) {
     fatal("Bad ASTop in cgcompare_and_set()");
   }
 
-  fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+  switch (size) {
+    case 1:
+      fprintf(Outfile, "\tcmpb\t%s, %s\n", breglist[r2], breglist[r1]);
+      break;
+    case 4:
+      fprintf(Outfile, "\tcmpl\t%s, %s\n", dreglist[r2], dreglist[r1]);
+      break;
+    default:
+      fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+  }
   fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
   fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
   free_register(r1);
@@ -634,16 +644,27 @@ void cgjump(int l) {
 static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 
 // Compare two registers and jump if false.
-int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
+int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
   cgcommentsource("cgcompare_and_jump");
+  int size = cgprimsize(type);
 
   // Check the range of the AST operation
   if (ASTop < A_EQ || ASTop > A_GE)
     fatal("Bad ASTop in cgcompare_and_set()");
 
-  fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+  switch (size) {
+    case 1:
+      fprintf(Outfile, "\tcmpb\t%s, %s\n", breglist[r2], breglist[r1]);
+      break;
+    case 4:
+      fprintf(Outfile, "\tcmpl\t%s, %s\n", dreglist[r2], dreglist[r1]);
+      break;
+    default:
+      fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+  }
+
   fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
   freeall_registers(-1);
   return (NOREG);
@@ -698,7 +719,7 @@ void cgcopyarg(struct symtable *func, int r, int argnum) {
 }
 
 // Call a function and return the register with the result.
-// The arguments must be loaded into registers with `cgloadarg`.
+// The arguments must be loaded into registers with `cgcopyarg`.
 int cgcall(struct symtable *sym, int numargs) {
   cgcommentsource("cgcall");
   int outr;

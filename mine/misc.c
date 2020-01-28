@@ -165,7 +165,12 @@ void fatald(char *s, int d) {
 }
 
 void fatalc(char *s, int c) {
+#ifdef SELFHOSTED
+  fprintf(stderr, "%s: '%c' at %d:%d\n", s, c, Line, column());
+  exit(1);
+#else
   fatalv("%s: '%c' at %d:%d", s, c, Line, column());
+#endif
 }
 
 void fatalv(const char *fmt, ...) {

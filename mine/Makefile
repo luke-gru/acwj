@@ -17,10 +17,14 @@ bin/compiler: expr.c interp.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stm
 bin/selfhosted: bin/compiler
 	./bin/compiler -v -s -DSELFHOSTED=1 -o bin/selfhosted expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
 
+bin/selfscanner: bin/compiler scanner_main.c scan.c misc.c opt.c data.c install_includes
+	./bin/compiler -DSELFHOSTED=1 -s -o bin/selfscanner scanner_main.c scan.c misc.c data.c
+
 scanner: bin/scanner
 parser: bin/parser
 compiler: bin/compiler
 selfhosted: bin/selfhosted
+selfscanner: bin/selfscanner
 
 clean:
 	rm -f *.o bin/* a.out out.s test/compiler/*.s test/compiler/*.o

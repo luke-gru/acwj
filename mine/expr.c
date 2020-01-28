@@ -510,6 +510,7 @@ struct ASTnode *binexpr(int ptp) {
         // Build and return the AST for this statement. Use the middle
         // expression's type as the return type. XXX We should also
         // consider the third expression's type.
+        left = toboolnode(left);
         return (mkastnode(A_TERNARY, right->type, right->ctype, left, right, ltemp, NULL, 0));
     }
     if (ASTop == A_ASSIGN) { // FIXME: do this check for A_AS_ADD, etc.

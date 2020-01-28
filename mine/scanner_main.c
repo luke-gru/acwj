@@ -4,7 +4,7 @@
 #include <errno.h>
 
 #ifndef INCDIR
-#error "INCDIR must be defined"
+#define INCDIR "/tmp/include"
 #endif
 #define CPPCMD "cpp -nostdinc -isystem "
 
@@ -30,6 +30,7 @@ static void usage(char *prog) {
 static void scanfile() {
   FILE *f = stderr;
   while (scan(&Token)) {
+    printf("scanned\n");
     fprintf(f, "Token %s", tokenname(Token.token));
     if (Token.token == T_INTLIT)
       fprintf(f, ", value %d", Token.intvalue);
@@ -43,7 +44,7 @@ static void scanfile() {
 // Main program: check arguments and print a usage
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
   char cmd[TEXTLEN];
   char *filename;
   int rawread = 0;
@@ -78,4 +79,5 @@ int main(int argc, char *argv[]) {
 
   scanfile();
   exit(0);
+  return (0);
 }

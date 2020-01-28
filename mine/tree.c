@@ -487,3 +487,19 @@ struct ASTnode *rewrite_tree(struct ASTnode *tree) {
   }
   return (NULL);
 }
+
+struct ASTnode *toboolnode(struct ASTnode *tree) {
+  struct ASTnode *booln;
+  switch (tree->op) {
+    case A_EQ:
+    case A_NE:
+    case A_LT:
+    case A_GT:
+    case A_LE:
+    case A_GE:
+      return (tree);
+  }
+  tree->rvalue = 1;
+  booln = mkastunary(A_TOBOOL, tree->type, tree->ctype, tree, NULL, 0);
+  return (booln);
+}

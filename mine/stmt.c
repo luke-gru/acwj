@@ -45,10 +45,7 @@ struct ASTnode *if_statement(void) {
   // and the ')' following. Ensure
   // the tree's operation is a comparison.
   condAST = binexpr(0);
-
-  if (condAST->op < A_EQ || condAST->op > A_GE) {
-    condAST = mkastunary(A_TOBOOL, condAST->type, condAST->ctype, condAST, NULL, 0);
-  }
+  condAST = toboolnode(condAST);
   rparen();
 
   // Get the AST for the compound statement
@@ -71,9 +68,7 @@ struct ASTnode *while_statement(void) {
   lparen();
 
   condAST = binexpr(0);
-  if (condAST->op < A_EQ || condAST->op > A_GE) {
-    condAST = mkastunary(A_TOBOOL, condAST->type, condAST->ctype, condAST, NULL, 0);
-  }
+  condAST = toboolnode(condAST);
   rparen();
 
   Looplevel++;
@@ -101,9 +96,7 @@ struct ASTnode *for_statement(void) {
 
   // Get the condition and the ';'
   condAST = binexpr(0);
-  if (condAST->op < A_EQ || condAST->op > A_GE) {
-    condAST = mkastunary(A_TOBOOL, condAST->type, condAST->ctype, condAST, NULL, 0);
-  }
+  condAST = toboolnode(condAST);
   semi();
 
   // Get the post_op statement and the ')'

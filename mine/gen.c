@@ -384,9 +384,9 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     // followed by a jump. Otherwise, compare registers and
     // set one to 1 or 0 based on the comparison.
     if (parentASTop == A_IF || parentASTop == A_WHILE || parentASTop == A_TERNARY)
-      return (cgcompare_and_jump(n->op, leftreg, rightreg, reg));
+      return (cgcompare_and_jump(n->op, leftreg, rightreg, reg, n->left->type));
     else
-      return (cgcompare_and_set(n->op, leftreg, rightreg));
+      return (cgcompare_and_set(n->op, leftreg, rightreg, n->left->type));
   case A_INTLIT:
     return (cgloadint(n->intvalue));
   case A_IDENT:

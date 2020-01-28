@@ -27,6 +27,7 @@ struct ASTnode *mkastunary(int op, int type, struct symtable *ctype,
 struct ASTnode *dupastnode(struct ASTnode *n, int recurse);
 void dumpAST(struct ASTnode *n, int label, int level);
 struct ASTnode *rewrite_tree(struct ASTnode *tree);
+struct ASTnode *toboolnode(struct ASTnode *tree);
 
 // expr.c
 struct ASTnode *binexpr(int n);
@@ -71,8 +72,8 @@ int cgstorglob(int r, struct symtable *sym);
 int cgloadlocal(struct symtable *sym, int ASTop);
 int cgstorlocal(int r, struct symtable *sym);
 void cgglobsym(struct symtable *sym);
-int cgcompare_and_set(int ASTop, int r1, int r2);
-int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
+int cgcompare_and_set(int ASTop, int r1, int r2, int type);
+int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type);
 void cglabel(int l);
 void cgjump(int l);
 void cgjumpif(int r, int label);
