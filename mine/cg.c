@@ -901,6 +901,14 @@ int cgloadglobstr(int label) {
   return (r);
 }
 
+// Load a boolean value (only 0 or 1)
+// into the given register
+void cgloadboolean(int r, int val) {
+  ASSERT_REG(r);
+  ASSERT(val == 0 || val == 1);
+  fprintf(Outfile, "\tmovq\t$%d, %s\n", val, reglist[r]);
+}
+
 int cgbitand(int r1, int r2) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
@@ -994,9 +1002,14 @@ int cgboolean(int r, int op, int endlabel) {
   ASSERT_REG(r);
   cgcommentsource("cgboolean");
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // set ZF to 1 if `r` == 0
-  if (op == A_IF || op == A_WHILE || op == A_TERNARY) { // NOTE: 'for' constructs are turned into A_WHILEs
+  if (op == A_IF || op == A_WHILE || op == A_TERNARY ||
+      op == A_LOGOR || op == A_LOGAND) { // NOTE: 'for' constructs are turned into A_WHILEs
     ASSERT(endlabel != NOLABEL);
-    fprintf(Outfile, "\tje\tL%d\n", endlabel); // Jump if ZF == 1
+    if (op == A_LOGOR) {
+      fprintf(Outfile, "\tjne\tL%d\n", endlabel); // Jump if ZF == 0 (`r` is true)
+    } else {
+      fprintf(Outfile, "\tje\tL%d\n", endlabel); // Jump if ZF == 1 (`r` is false)
+    }
   } else {
     fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
     fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);

@@ -5,6 +5,7 @@
 // Generic code generator
 // Copyright (c) 2019 Warren Toomey, GPL3
 static int label_id = 1;
+static int AssignLevel;
 
 // Generate and return a new label number
 int genlabel(void) {
@@ -224,51 +225,53 @@ int genSwitch(struct ASTnode *n) {
 
 // `||` operation
 int gen_logor(struct ASTnode *n) {
-  int Lend;
-  int reg, res;
-  int r = alloc_register(); // result register
+  int Lend, Ltrue;
+  int reg;
 
   Lend = genlabel();
+  Ltrue = genlabel();
 
-  res = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
-  cgboolean(res, 0, NOLABEL);
-  cgmove(res, r);
-  genfreeregs(r);
+  reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, 0);
+  cgboolean(reg, n->op, Ltrue); // jump to Ltrue if true
+  genfreeregs(-1);
   // if res is non-zero, jump to end (short-circuit)
-  cgjumpif(r, Lend);
 
-  res = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
-  cgboolean(res, 0, NOLABEL);
-  cgmove(res, r);
-  genfreeregs(r);
+  reg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, 0);
+  cgboolean(reg, n->op, Ltrue); // jump to Ltrue if true
+  genfreeregs(reg);
+
+  cgloadboolean(reg, 0);
+  cgjump(Lend);
+  cglabel(Ltrue);
+  cgloadboolean(reg, 1);
 
   cglabel(Lend);
-  return (r);
+  return (reg);
 }
 
 // `&&` operation
 int gen_logand(struct ASTnode *n) {
-  int Lend;
-  int reg, res;
-  int r;
+  int Lend, Lfalse;
+  int reg;
 
   Lend = genlabel();
+  Lfalse = genlabel();
 
-  res = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
-  r = alloc_register();
-  cgboolean(res, 0, NOLABEL);
-  cgmove(res, r);
-  genfreeregs(r);
-  // if res is zero, jump to end (short-circuit)
-  cgjumpunless(r, Lend);
+  reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgboolean(reg, n->op, Lfalse);
+  genfreeregs(-1);
 
-  res = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
-  cgboolean(res, 0, NOLABEL);
-  cgmove(res, r);
-  genfreeregs(r);
+  reg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgboolean(reg, n->op, Lfalse);
+  genfreeregs(reg);
+
+  cgloadboolean(reg, 1);
+  cgjump(Lend);
+  cglabel(Lfalse);
+  cgloadboolean(reg, 0);
 
   cglabel(Lend);
-  return (r);
+  return (reg);
 }
 
 static void genASTOpComment(int op) {
@@ -351,6 +354,12 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     case A_PREINC:
     case A_PREDEC:
       ASSERT(0);
+    case A_ASSIGN:
+    case A_AS_ADD:
+    case A_AS_SUBTRACT:
+    case A_AS_MULTIPLY:
+    case A_AS_DIVIDE:
+      AssignLevel++;
     default: // continue below
       break;
   }
@@ -431,16 +440,20 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     switch (n->right->op) {
       case A_IDENT: // ex: a = 12
         if (isglobalsym(n->right->sym)) {
-          return (cgstorglob(leftreg, n->right->sym));
+          reg = cgstorglob(leftreg, n->right->sym);
         } else {
-          return (cgstorlocal(leftreg, n->right->sym));
+          reg = cgstorlocal(leftreg, n->right->sym);
         }
+        AssignLevel--;
+        return (reg);
       case A_DEREF: // ex: *a = 12
         if (is_compound_assn) {
           n->right->rvalue = 0;
           rightreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
         }
-        return (cgstorderef(leftreg, rightreg, n->right->type));
+        reg = cgstorderef(leftreg, rightreg, n->right->type);
+        AssignLevel--;
+        return (reg);
       default:
         fatald("Can't A_ASSIGN in genAST(), op", n->op);
     }
@@ -476,6 +489,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     if (n->rvalue) {
       return (cgderef(leftreg, n->left->type));
     } else {
+      ASSERT(AssignLevel != 0);
       return (leftreg);
     }
   case A_STRLIT:

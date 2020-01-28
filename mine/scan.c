@@ -54,11 +54,11 @@ char *tokenname(int tok) {
 
 // Return the position of character c
 // in string s, or -1 if c not found
-static int chrpos(char *s, int c) {
+static long chrpos(char *s, int c) {
   char *p;
 
   p = strchr(s, c);
-  return (p ? p - s : -1);
+  return (p ? (p - s) : -1);
 }
 
 void reset_scanner(void) {
@@ -83,7 +83,7 @@ static int readchar(void) {
   if (CurLinePos == CurLineLen) { // new line
     CurLinePos = 0;
     AtBol = 1;
-    res = getline(&CurLine, &CurLineSize, Infile);
+    res = (ssize_t)getline(&CurLine, &CurLineSize, Infile);
     if (res == -1) {
       IsEOF = 1;
       return (EOF);
@@ -94,7 +94,7 @@ static int readchar(void) {
   if (!CurLine) { // first line
     CurLinePos = 0;
     AtBol = 1;
-    res = getline(&CurLine, &CurLineSize, Infile);
+    res = (ssize_t)getline(&CurLine, &CurLineSize, Infile);
     if (res == -1) {
       IsEOF = 1;
       return (EOF);
@@ -141,13 +141,15 @@ static int next(void) {
   while (CurLinePos == 1 && c == '#') {                    // We've hit a pre-processor statement
     scandebug("skipping preproc line %s", CurLine);
     scan(&Token);                       // Get the line number into l
-    if (Token.token != T_INTLIT)
+    if (Token.token != T_INTLIT) {
       fatals("Expecting pre-processor line number, got:", Text);
+    }
     l = Token.intvalue;
 
     scan(&Token);                       // Get the filename in Text
-    if (Token.token != T_STRLIT)
+    if (Token.token != T_STRLIT) {
       fatalv("Expecting pre-processor file name, got: %s", tokenname(Token.token));
+    }
 
     if (Text[0] != '<') {               // If this is a real filename
       if (strcmp(Text, Infilename) != 0) {     // and not the one we have now
@@ -159,6 +161,9 @@ static int next(void) {
     // Skip to the end of the line
     while ((c = readchar()) != '\n') {
       scandebug("next skip EOL: %c", c);
+      if (c == EOF) {
+        return (EOF);
+      }
     }
     Col = 0;
     c = readchar();                  // and get the next character
@@ -202,6 +207,7 @@ static int skip(void) {
 
   c = next();
   while (' ' == c || '\t' == c || '\n' == c || '\r' == c || '\f' == c) {
+    if (c == EOF) return (EOF);
     c = next();
   }
   return (c);
@@ -219,7 +225,8 @@ static int skip_until(int until_char) {
 // value from the input file. Store
 // the value as a string in Text.
 static int scanint(int c) {
-  long k, val = 0, radix = 10;
+  long val = 0, radix = 10;
+  long k;
 
   if (c == '0') {
     if ((c = next()) == 'x') {
@@ -361,7 +368,7 @@ static int keyword(char *s) {
 
 // Read in a hexadecimal constant from the input
 static int hexchar(void) {
-  int c, h, n = 0, f = 0;
+  long c, h, n = 0, f = 0;
 
   // Loop getting characters
   while (isxdigit(c = next())) {
@@ -378,7 +385,7 @@ static int hexchar(void) {
     fatal("missing digits after '\\x'");
   if (n > 255)
     fatal("value out of range after '\\x'");
-  return (n);
+  return ((int)n);
 }
 
 int scan_ch(void) {

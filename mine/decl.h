@@ -114,6 +114,7 @@ void spill_all_regs(void);
 void free_register(int reg);
 void cgcomment(const char *fmt, ...);
 void cgreset(void);
+void cgloadboolean(int r, int val);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);
