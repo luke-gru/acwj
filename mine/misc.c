@@ -153,15 +153,30 @@ void dot(void) {
 
 // Print out fatal messages
 void fatal(char *s) {
+#ifdef SELFHOSTED
+  fprintf(stderr, "%s at %d:%d\n", s, Line, column());
+  exit(1);
+#else
   fatalv("%s at %d:%d", s, Line, column());
+#endif
 }
 
 void fatals(char *s1, char *s2) {
+#ifdef SELFHOSTED
+  fprintf(stderr, "%s:%s at %d:%d\n", s1, s2, Line, column());
+  exit(1);
+#else
   fatalv("%s:%s at %d:%d", s1, s2, Line, column());
+#endif
 }
 
 void fatald(char *s, int d) {
+#ifdef SELFHOSTED
+  fprintf(stderr, "%s: %d at %d:%d\n", s, d, Line, column());
+  exit(1);
+#else
   fatalv("%s: %d at %d:%d", s, d, Line, column());
+#endif
 }
 
 void fatalc(char *s, int c) {
@@ -174,10 +189,16 @@ void fatalc(char *s, int c) {
 }
 
 void fatalv(const char *fmt, ...) {
+#ifdef SELFHOSTED
+  /*fputs(fmt, stderr);*/
+  /*fprintf(stderr, "\n");*/
+#endif
   print_filename(stderr);
   va_list ap;
   va_start(ap, fmt);
+  /*fprintf(stderr, "vfprintf start\n");*/
   vfprintf(stderr, fmt, ap);
+  /*fprintf(stderr, "vfprintf end\n");*/
   va_end(ap);
   if (fmt[strlen(fmt) - 1] != '\n') {
     fprintf(stderr, "%s", "\n");

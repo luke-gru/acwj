@@ -360,8 +360,9 @@ struct ASTnode *primary(void) {
       break;
     }
     // See if this identifier exists as a symbol. For arrays, set rvalue to 1.
-    if ((varptr = findsymbol(Text)) == NULL)
+    if ((varptr = findsymbol(Text)) == NULL) {
       fatals("Unknown variable or function", Text);
+    }
     switch (varptr->stype) {
       case S_VARIABLE:
         n = mkastleaf(A_IDENT, varptr->type, varptr->ctype, varptr, 0);

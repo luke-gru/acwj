@@ -1,7 +1,11 @@
 #ifndef my_cc_decl_h
 #define my_cc_decl_h
 
+#ifdef NDEBUG
+#define ASSERT(expr) 0
+#else
 #define ASSERT(expr) myassert(!!(expr), __LINE__, __FILE__)
+#endif
 
 // Function prototypes for all compiler files
 // Copyright (c) 2019 Warren Toomey, GPL3

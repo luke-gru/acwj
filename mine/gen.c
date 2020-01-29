@@ -564,7 +564,7 @@ int genprimsize(int ptype) {
 
 int genglobstr(char *strvalue) {
   int l = genlabel();
-  if (O_parseOnly) return (l);
+  if (O_parseOnly) { return (l); }
   cgglobstr(l, strvalue);
   return (l);
 }

@@ -307,13 +307,14 @@ void cgfuncpreamble(struct symtable *sym) {
   // Align the stack pointer to be a multiple of 16
   // less than its previous value
   stackOffset = (localOffset + 15) & ~15;
-  fprintf(Outfile, "\taddq\t$%d,%%rsp\n", -stackOffset);
+  fprintf(Outfile, "\taddq\t$%d, %%rsp\n", -stackOffset);
 }
 
 // Print out the assembly postamble
 void cgfuncpostamble(struct symtable *sym) {
   cglabel(sym->endlabel);
-  fprintf(Outfile, "\taddq\t$%d,%%rsp\n", stackOffset);
+  /*fprintf(Outfile, "\taddq\t$%d,%%rsp\n", stackOffset);*/
+  fprintf(Outfile, "\tleaq\t0(%%rbp), %%rsp\n");
   fputs(
     "\tpopq	%rbp\n"
     "\tret\n",

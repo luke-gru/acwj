@@ -7,7 +7,7 @@
 // Copyright (c) 2019 Warren Toomey, GPL3
 //
 #ifndef INCDIR
-#error "INCDIR must be defined"
+#define INCDIR "/tmp/include"
 #endif
 #define CPPCMD "cpp -nostdinc -isystem "
 
@@ -34,21 +34,25 @@ static void usage(char *prog) {
 // Main program: check arguments and print a usage
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
-void main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
   char cmd[TEXTLEN];
   char *filename;
+  int i,j;
   if (argc < 2)
     usage(argv[0]);
 
   init();
 
   // Scan for command-line options
-  for (int i=1; i<argc; i++) {
+  for (i=1; i<argc; i++) {
     if (*argv[i] != '-') break;
-    for (int j=1; argv[i][j]; j++) {
+    for (j=1; argv[i][j]; j++) {
       switch (argv[i][j]) {
         case 'T':
           O_dumpAST = 1;
+          break;
+        case 'v':
+          O_verbose = 1;
           break;
         default:
           fprintf(stderr, "Invalid option: %c\n", argv[i][j]);
@@ -57,8 +61,12 @@ void main(int argc, char *argv[]) {
     }
   }
 
-  filename = argv[argc-1];
+  filename = argv[argc - 1];
   snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
+  if (O_verbose) {
+    printf("CPP cmd:\n");
+    printf(" - %s\n", cmd);
+  }
   if ((Infile = popen(cmd, "r")) == NULL) {
     fatalv("Unable to open %s: %s\n", filename, strerror(errno));
   }
@@ -67,4 +75,5 @@ void main(int argc, char *argv[]) {
   scan(&Token);			// Get the first token from the input
   global_declarations();
   exit(0);
+  return (0);
 }

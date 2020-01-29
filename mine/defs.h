@@ -133,8 +133,8 @@ struct ASTnode {
   struct ASTnode *right;                // can be NULL
   struct symtable *sym;		        // For many AST nodes, the pointer to its symbol
   union {
-    int intvalue;		// For A_INTLIT, the integer value, for A_STRLIT the asm label
-    int size;                   // For A_SCALE, the size to multiply by
+    int intvalue;		        // For A_INTLIT, the integer value, for A_STRLIT the asm label
+    int size;                           // For A_SCALE, the size to multiply by
   };
   int line;
   int col;

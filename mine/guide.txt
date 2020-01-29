@@ -181,3 +181,31 @@ Identifiers:
 a++ // same as (a = a + [1], a - [1])
 --a // same as (a = a - [1])
 
+
+selfhosted in newsym:
+        A_ASSIGN
+          A_TERNARY
+            A_TOBOOL
+              A_IDENT rval name (char*)
+            A_FUNCALL strdup
+              GLUE
+                A_IDENT rval name (char*)
+            A_INTLIT 0
+          A_DEREF (char*)
+            A_ADD
+ERROR
+
+bin/compiler:
+
+        A_ASSIGN
+          A_TERNARY
+            A_TOBOOL
+              A_IDENT rval name (char*)
+            A_FUNCALL strdup
+              GLUE
+                A_IDENT rval name (char*)
+            A_INTLIT 0
+          A_DEREF (char*)
+            A_ADD
+              A_IDENT rval node (struct symtable*)
+              A_INTLIT 8

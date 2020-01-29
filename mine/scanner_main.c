@@ -30,7 +30,6 @@ static void usage(char *prog) {
 static void scanfile() {
   FILE *f = stderr;
   while (scan(&Token)) {
-    printf("scanned\n");
     fprintf(f, "Token %s", tokenname(Token.token));
     if (Token.token == T_INTLIT)
       fprintf(f, ", value %d", Token.intvalue);

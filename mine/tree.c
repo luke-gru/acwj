@@ -23,6 +23,7 @@ struct ASTnode *mkastnode(int op, int type,
     exit(1);
   }
   // Copy in the field values and return it
+  ASSERT(op >= A_FIRST && op <= A_LAST);
   n->op = op;
   n->type = type;
   n->ctype = ctype;

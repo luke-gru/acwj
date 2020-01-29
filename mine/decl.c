@@ -763,6 +763,7 @@ void enum_declaration(void) {
 int typedef_declaration(struct symtable **ctype) {
   int type;
   int class; // unused
+  struct symtable *foundsym;
 
   match(T_TYPEDEF, "typedef");
 
@@ -771,8 +772,10 @@ int typedef_declaration(struct symtable **ctype) {
 
   ASSERT(Token.token == T_IDENT);
   // See if the typedef identifier already exists
-  if (findtypedef(Text) != NULL)
+  foundsym = findtypedef(Text);
+  if (foundsym != NULL) {
     fatals("redefinition of typedef", Text);
+  }
 
   // It doesn't exist so add it to the typedef list
   debugnoisy("parse", "adding new typedef, %s -> %s",
