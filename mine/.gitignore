@@ -1,6 +1,7 @@
 bin/*
 !bin/.gitignore
 *.s
+*.o
 a.out
 mytest.c
 mytest2.c

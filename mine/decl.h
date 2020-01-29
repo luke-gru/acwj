@@ -32,6 +32,7 @@ struct ASTnode *dupastnode(struct ASTnode *n, int recurse);
 void dumpAST(struct ASTnode *n, int label, int level);
 struct ASTnode *rewrite_tree(struct ASTnode *tree);
 struct ASTnode *toboolnode(struct ASTnode *tree);
+int tree_has_funcall(struct ASTnode *tree);
 
 // expr.c
 struct ASTnode *binexpr(int n);
@@ -64,7 +65,7 @@ void cgpreamble(char *filename);
 void cgpostamble(void);
 void cgfuncpreamble(struct symtable *sym);
 void cgfuncpostamble(struct symtable *sym);
-int cgloadint(int value);
+int cgloadint(int value, int type);
 int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
@@ -115,6 +116,8 @@ void cgmove(int src, int dst);
 void cggoto(struct symtable *sym);
 void cggotolabel(struct symtable *sym);
 void spill_all_regs(void);
+void spill_all_paramregs(void);
+void unspill_all_paramregs(void);
 void free_register(int reg);
 void cgcomment(const char *fmt, ...);
 void cgreset(void);

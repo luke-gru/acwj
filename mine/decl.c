@@ -124,7 +124,7 @@ int parse_base_type(int t, struct symtable **ctype, int *class) {
       ident();
       return (type);
     default:
-      fatals("Expected a type, found token", tokenname(t));
+      fatalv("Expected a type, found token %s", tokenname(t));
   }
   scan(&Token);
   return (type);
@@ -738,8 +738,9 @@ void enum_declaration(void) {
     // get the following int literal
     if (Token.token == T_ASSIGN) {
       scan(&Token);
-      if (Token.token != T_INTLIT)
+      if (Token.token != T_INTLIT) {
         fatal("Expected int literal after '='");
+      }
       intval = Token.intvalue;
       scan(&Token); // the int literal
     }
@@ -747,8 +748,9 @@ void enum_declaration(void) {
     // Increment the value for the next enum identifier.
     etype = addenum(name, C_ENUMVAL, intval++);
     // Bail out on a right curly bracket, else get a comma
-    if (Token.token == T_RBRACE)
+    if (Token.token == T_RBRACE) {
       break;
+    }
     comma();
   }
   rbrace();

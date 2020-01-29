@@ -602,9 +602,9 @@ struct ASTnode *funcall(void) {
   }
   lparen();
 
-  CommaAsSeparator = 1;
+  CommaAsSeparator++;
   tree = expression_list(T_RPAREN);
-  CommaAsSeparator = 0;
+  CommaAsSeparator--;
 
   rparen();
 

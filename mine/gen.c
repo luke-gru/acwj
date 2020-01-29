@@ -148,12 +148,22 @@ int gen_funcall(struct ASTnode *n) {
     cgpush0(); // padding
   }
 
+  int param_regs_spilled = 0;
+
   // If there is a list of arguments, walk this list
   // from the last argument (right-hand child) to the
   // first
   while (gluetree) {
+    param_regs_spilled = 0;
+    if (tree_has_funcall(gluetree->right)) {
+      spill_all_paramregs();
+      param_regs_spilled = 1;
+    }
     // Calculate the expression's value
     reg = genAST(gluetree->right, NOREG, NOLABEL, NOLABEL, gluetree->op);
+    if (param_regs_spilled) {
+      unspill_all_paramregs();
+    }
     // Copy this into the n'th function parameter: size is 1, 2, 3, ...
     cgcopyarg(n->sym, reg, gluetree->size);
     gluetree = gluetree->left;
@@ -397,7 +407,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     else
       return (cgcompare_and_set(n->op, leftreg, rightreg, n->left->type));
   case A_INTLIT:
-    return (cgloadint(n->intvalue));
+    return (cgloadint(n->intvalue, n->type));
   case A_IDENT:
     // Load our value if we are an rvalue
     // or we are being dereferenced
@@ -470,7 +480,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       case 4: return (cgshlconst(leftreg, 2));
       case 8: return (cgshlconst(leftreg, 3));
       default:
-        rightreg = cgloadint(n->size);
+        rightreg = cgloadint(n->size, n->type);
         return (cgmul(leftreg, rightreg));
     }
   case A_ADDR:

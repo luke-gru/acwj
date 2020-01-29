@@ -32,6 +32,7 @@ struct ASTnode *mkastnode(int op, int type,
   n->right = right;
   n->sym = sym;
   n->intvalue = intvalue;
+  n->size = intvalue;
   n->line = Line;
   n->col = column();
   n->rvalue = 0;
@@ -169,7 +170,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_RSHIFT:
       fprintf(stdout, "A_RSHIFT\n"); break;
     case A_INTLIT:
-      fprintf(stdout, "A_INTLIT %d\n", n->intvalue); break;
+      fprintf(stdout, "A_INTLIT (%s) %d\n", typename(n->type, NULL), n->intvalue); break;
     case A_STRLIT:
       fprintf(stdout, "A_STRLIT (asm label %d)\n", n->intvalue); break;
     case A_IDENT:
@@ -503,4 +504,19 @@ struct ASTnode *toboolnode(struct ASTnode *tree) {
   tree->rvalue = 1;
   booln = mkastunary(A_TOBOOL, tree->type, tree->ctype, tree, NULL, 0);
   return (booln);
+}
+
+int tree_has_funcall(struct ASTnode *tree) {
+  ASSERT(tree);
+  if (tree->op == A_FUNCALL) return (1);
+  if (tree->left) {
+    if (tree_has_funcall(tree->left)) return (1);
+  }
+  if (tree->mid) {
+    if (tree_has_funcall(tree->mid)) return (1);
+  }
+  if (tree->right) {
+    if (tree_has_funcall(tree->right)) return (1);
+  }
+  return (0);
 }

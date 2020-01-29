@@ -114,6 +114,25 @@ static void unspill_all_regs(void) {
   }
 }
 
+void spill_all_paramregs() {
+  int i;
+  fprintf(Outfile, "# spilling param regs\n");
+  for (i = 0; i < MAXREGISTERPARAMS; i++) {
+    // push rdi, rsi, ... r9
+    pushreg(FIRSTPARAMREG-i);
+  }
+}
+
+void unspill_all_paramregs() {
+  int i;
+  int lastparamreg = NUMFREEREGS;
+  fprintf(Outfile, "# unspilling param regs\n");
+  for (i = lastparamreg; i <= FIRSTPARAMREG; i++) {
+    // pop r9, r8... rsi, rdi
+    popreg(i);
+  }
+}
+
 #define SPILLING(reg) lastspill = reg
 #if 0
 #define UNSPILLING(reg) ASSERT(reg == lastspill); lastspill--
@@ -324,15 +343,24 @@ void cgfuncpostamble(struct symtable *sym) {
 
 // Load an integer literal value into a register.
 // Return the number of the register
-int cgloadint(int value) {
-
+int cgloadint(int value, int type) {
   cgcommentsource("cgloadint");
-  // Get a new register
-  int r= alloc_register();
+  int size, r;
+  size = cgprimsize(type);
 
-  // Print out the code to initialise it
-  fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
-  return(r);
+  r = alloc_register();
+
+  switch (size) {
+    case CHARSZ:
+    case INTSZ:
+    case LONGSZ:
+      // Print out the code to initialise it
+      fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
+      break;
+    default:
+      fatalv("Unexpected type in cgloadint: %s (%d)", typename(type, NULL), type);
+  }
+  return (r);
 }
 
 // Add two registers together and return
@@ -523,10 +551,11 @@ int cgstorlocal(int r, struct symtable *sym) {
           sym->posn);
       break;
     case LONGSZ:
-    default:
       fprintf(Outfile, "\tmovq\t%s, %d(%%rbp)\n", reglist[r],
           sym->posn);
       break;
+    default:
+      fatalv("Bad type in cgstorlocal: %s (%d)", typename(sym->type, sym->ctype), sym->type);
   }
   return (r);
 }
@@ -615,14 +644,17 @@ int cgcompare_and_set(int ASTop, int r1, int r2, int type) {
   }
 
   switch (size) {
-    case 1:
+    case CHARSZ:
       fprintf(Outfile, "\tcmpb\t%s, %s\n", breglist[r2], breglist[r1]);
       break;
-    case 4:
+    case INTSZ:
       fprintf(Outfile, "\tcmpl\t%s, %s\n", dreglist[r2], dreglist[r1]);
       break;
-    default:
+    case LONGSZ:
       fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+      break;
+    default:
+      fatalv("Bad type in cgcompare_and_set: %s (%d)", typename(type, NULL), type);
   }
   fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
   fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
@@ -656,14 +688,17 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type) {
     fatal("Bad ASTop in cgcompare_and_set()");
 
   switch (size) {
-    case 1:
+    case CHARSZ:
       fprintf(Outfile, "\tcmpb\t%s, %s\n", breglist[r2], breglist[r1]);
       break;
-    case 4:
+    case INTSZ:
       fprintf(Outfile, "\tcmpl\t%s, %s\n", dreglist[r2], dreglist[r1]);
       break;
-    default:
+    case LONGSZ:
       fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+      break;
+    default:
+      fatalv("Bad type in cgcompare_and_jump: %s (%d)", typename(type, NULL), type);
   }
 
   fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
@@ -694,13 +729,14 @@ int cgprimsize(int ptype) {
   return (0);                   // Keep -Wall happy
 }
 
-// argnum 1 is first argument to function
+// NOTE: argnum 1 is first argument to function. Frees the given
+// register after the value is copied to its destination.
 void cgcopyarg(struct symtable *func, int r, int argnum) {
   ASSERT_REG(r);
   cgcommentsource("cgcopyarg");
   // varargs function
   if (func->size < 0 && argnum > func->nelems) {
-    fprintf(Outfile, "\tpushq\t%s # varargs argument\n", reglist[r]); // last argument must be pushed first
+    fprintf(Outfile, "\tpushq\t%s # varargs argument %d\n", reglist[r], argnum); // last argument must be pushed first
     free_register(r);
     return;
   }
@@ -708,12 +744,12 @@ void cgcopyarg(struct symtable *func, int r, int argnum) {
   // register on the stack. We rely on being called with
   // successive arguments in the correct order for x86-64
   if (argnum > 6) {
-    fprintf(Outfile, "\tpushq\t%s # spilled argument\n", reglist[r]); // last argument must be pushed first
+    fprintf(Outfile, "\tpushq\t%s # spilled argument %d\n", reglist[r], argnum); // last argument must be pushed first
   } else {
     // Otherwise, copy the value into one of the six registers
     // used to hold parameter values
-    fprintf(Outfile, "\tmovq\t%s, %s # standard argument\n", reglist[r],
-            reglist[FIRSTPARAMREG - argnum + 1]);
+    fprintf(Outfile, "\tmovq\t%s, %s # standard argument %d for %s\n", reglist[r],
+            reglist[FIRSTPARAMREG - argnum + 1], argnum, func->name);
   }
 
   free_register(r);
@@ -814,7 +850,7 @@ int cgderef(int r, int type) {
   int size = cgprimsize(newtype);
 
   switch (size) {
-    case 1:
+    case CHARSZ:
       fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
       if (AsmComments) {
         fprintf(Outfile, " # %s = *%s", reglist[r], reglist[r]);
@@ -828,14 +864,15 @@ int cgderef(int r, int type) {
       }
       fprintf(Outfile, "\n");
       break;
-    case 4:
-      fprintf(Outfile, "\tmovl\t(%s), %s", reglist[r], dreglist[r]);
+    case INTSZ:
+      fprintf(Outfile, "\tmovl\t(%s), %s\n", reglist[r], dreglist[r]);
+      fprintf(Outfile, "\tandl %s, %s\n", dreglist[r], dreglist[r]);
       if (AsmComments) {
         fprintf(Outfile, " # %s = *%s", dreglist[r], dreglist[r]);
       }
       fprintf(Outfile, "\n");
       break;
-    case 8:
+    case LONGSZ:
       fprintf(Outfile, "\tmovq\t(%s), %s", reglist[r], reglist[r]);
       if (AsmComments) {
         fprintf(Outfile, " # %s = *%s", reglist[r], reglist[r]);
