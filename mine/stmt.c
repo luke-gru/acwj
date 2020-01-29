@@ -108,16 +108,9 @@ struct ASTnode *for_statement(void) {
   bodyAST = single_statement();
   Looplevel--;
 
-  // For now, all four sub-trees have to be non-NULL.
-  // Later on, we'll change the semantics for when some are missing
+  tree = mkastnode(A_FOR, P_NONE, NULL, condAST, postopAST, bodyAST, NULL, 0);
 
-  // Glue the compound statement and the postop tree
-  tree = mkastnode(A_GLUE, P_NONE, NULL, bodyAST, NULL, postopAST, NULL, 0);
-
-  // Make a WHILE loop with the condition and this new body
-  tree = mkastnode(A_WHILE, P_NONE, NULL, condAST, NULL, tree, NULL, 0);
-
-  // And glue the preop tree to the A_WHILE tree
+  /* glue the preop tree to the A_FOR tree*/
   return (mkastnode(A_GLUE, P_NONE, NULL, preopAST, NULL, tree, NULL, 0));
 }
 

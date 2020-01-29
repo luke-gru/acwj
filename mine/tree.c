@@ -113,6 +113,15 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       dumpAST(n->left, Lend, level+2);
       dumpAST(n->right, NOLABEL, level+2);
       return;
+    case A_FOR:
+      Lstart = gendumplabel();
+      for (i=0; i < level; i++) fprintf(stdout, " ");
+      fprintf(stdout, "A_FOR, start L%d\n", Lstart);
+      Lend = gendumplabel();
+      dumpAST(n->left, Lend, level+2);
+      dumpAST(n->mid, NOLABEL, level+2);
+      dumpAST(n->right, Lstart, level+2);
+      return;
     case A_SWITCH:
       for (i=0; i < level; i++) fprintf(stdout, " ");
       fprintf(stdout, "A_SWITCH %d\n", n->intvalue);

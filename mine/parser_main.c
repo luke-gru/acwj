@@ -17,8 +17,15 @@ static void init() {
   Putback = '\n';
   CurFunctionSym = NULL;
   addglob("printint", P_VOID, NULL, S_FUNCTION, C_GLOBAL, 1);
+  addparam("myint", P_INT, NULL, S_VARIABLE, 1);
   addglob("printchar", P_VOID, NULL, S_FUNCTION, C_GLOBAL, 1);
+  addparam("mychar", P_CHAR, NULL, S_VARIABLE, 1);
   addglob("printstring", P_VOID, NULL, S_FUNCTION, C_GLOBAL, 1);
+  addparam("mystring", pointer_to(P_CHAR), NULL, S_VARIABLE, 1);
+
+  // compiler builtins
+  addglob("__builtin_vararg_addr_setup", P_INT, NULL, S_FUNCTION, C_GLOBAL, 1);
+
   O_dumpAST = 0;
   O_parseOnly = 1;
   Outfile = stdout; // just in case we try to dump some assembly somewhere, that this isn't NULL and doesn't segfault
@@ -53,6 +60,9 @@ int main(int argc, char **argv) {
           break;
         case 'v':
           O_verbose = 1;
+          break;
+        case 'd':
+          O_debugNoisy = 1;
           break;
         default:
           fprintf(stderr, "Invalid option: %c\n", argv[i][j]);

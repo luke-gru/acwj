@@ -27,7 +27,9 @@ void appendsym(struct symtable **head, struct symtable **tail,
 // Return a pointer to the found node or NULL if not found.
 static struct symtable *findsyminlist(char *s, struct symtable *list, int class) {
   for (; list != NULL; list = list->next) {
-    if (class && class != list->class) continue;
+    if (class && class != list->class) {
+      continue;
+    }
     if ((list->name != NULL) && !strcmp(s, list->name)) {
       return (list);
     }

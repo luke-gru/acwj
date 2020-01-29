@@ -746,7 +746,8 @@ void enum_declaration(void) {
     }
     // Build an enum value node for this identifier.
     // Increment the value for the next enum identifier.
-    etype = addenum(name, C_ENUMVAL, intval++);
+    etype = addenum(name, C_ENUMVAL, intval);
+    intval++;
     // Bail out on a right curly bracket, else get a comma
     if (Token.token == T_RBRACE) {
       break;
@@ -909,8 +910,9 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 
     // We parsed a function, there is no list so leave
     if (sym->stype == S_FUNCTION || sym->stype == S_PROTO) {
-      if (!isglobalsym(sym))
-        fatal("Function definition not at global level");
+      if (!isglobalsym(sym)) {
+        fatalv("Function definition not at global level: %s, class: %d, isglobalsym: %d", sym->name, sym->class, isglobalsym(sym));
+      }
       return (type);
     }
 

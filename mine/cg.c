@@ -866,7 +866,6 @@ int cgderef(int r, int type) {
       break;
     case INTSZ:
       fprintf(Outfile, "\tmovl\t(%s), %s\n", reglist[r], dreglist[r]);
-      fprintf(Outfile, "\tandl %s, %s\n", dreglist[r], dreglist[r]);
       if (AsmComments) {
         fprintf(Outfile, " # %s = *%s", dreglist[r], dreglist[r]);
       }
@@ -1040,7 +1039,7 @@ int cgboolean(int r, int op, int endlabel) {
   ASSERT_REG(r);
   cgcommentsource("cgboolean");
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // set ZF to 1 if `r` == 0
-  if (op == A_IF || op == A_WHILE || op == A_TERNARY ||
+  if (op == A_IF || op == A_WHILE || op == A_FOR || op == A_TERNARY ||
       op == A_LOGOR || op == A_LOGAND) { // NOTE: 'for' constructs are turned into A_WHILEs
     ASSERT(endlabel != NOLABEL);
     if (op == A_LOGOR) {

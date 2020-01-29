@@ -110,6 +110,31 @@ int genWhile(struct ASTnode *n) {
   return (NOREG);
 }
 
+int genFor(struct ASTnode *n) {
+  int Lstart, Lnext, Lend;
+
+  Lstart = genlabel();
+  Lnext = genlabel();
+  Lend = genlabel();
+
+  cglabel(Lstart);
+  // Generate the condition code followed
+  // by a jump to the end label.
+  // We cheat by sending the Lend label as a register.
+  genAST(n->left, Lend, Lnext, Lend, n->op);
+  genfreeregs(-1);
+
+  // compound statement
+  genAST(n->right, NOLABEL, Lnext, Lend, n->op);
+  genfreeregs(-1);
+
+  cglabel(Lnext);
+  genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgjump(Lstart);
+  cglabel(Lend);
+  return (NOREG);
+}
+
 int is_builtin_function(struct ASTnode *n) {
   if (!strcmp(n->sym->name, "__builtin_vararg_addr_setup"))
     return (1);
@@ -333,6 +358,8 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       return (genSequence(n));
     case A_WHILE:
       return (genWhile(n));
+    case A_FOR:
+      return (genFor(n));
     case A_SWITCH:
       return (genSwitch(n));
     case A_BREAK:
@@ -402,7 +429,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     // If the parent AST node is an A_IF, generate a compare
     // followed by a jump. Otherwise, compare registers and
     // set one to 1 or 0 based on the comparison.
-    if (parentASTop == A_IF || parentASTop == A_WHILE || parentASTop == A_TERNARY)
+    if (parentASTop == A_IF || parentASTop == A_WHILE || parentASTop == A_FOR || parentASTop == A_TERNARY)
       return (cgcompare_and_jump(n->op, leftreg, rightreg, reg, n->left->type));
     else
       return (cgcompare_and_set(n->op, leftreg, rightreg, n->left->type));

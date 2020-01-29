@@ -1,0 +1,89 @@
+#!/bin/sh
+# Run each test and compare
+# against known good output
+
+cd test/compiler
+successes=0
+failures=0
+
+# Build our compiler if needed
+if [ ! -f ../../bin/selfhosted ]
+then
+    (cd ../.. && make selfhosted)
+fi
+
+# Try to use each input source file
+for i in *.c
+do
+    # We can't do anything if there's no file to test against
+    if [ ! -f "$i.out" -a ! -f "$i.err" ]
+    then
+        echo "Can't run test on $i, no output file!"
+
+        # Output file: compile the source, run it and
+        # capture the output, and compare it against
+        # the known-good output
+    else if [ -f "$i.out" ]
+    then
+        # Print the test name, compile it
+        # with our compiler
+        echo -n $i
+        # HACK: when we remove the linking to lib/mylib.c in the compiler, we
+        # can remove this `cd` hack.
+        cd ../..
+        ./bin/selfhosted -o test/compiler/out "test/compiler/$i"
+        cd test/compiler
+
+        # NOTE: we switch back to root directory during execution because some
+        # test scripts currently rely on being started from there.
+        cd ../..
+        ./test/compiler/out > "test/compiler/$i.trial"
+        cd test/compiler
+
+        # Compare this against the correct output
+        cmp -s "$i.out" "$i.trial"
+
+        # If different, announce failure
+        # and print out the difference
+        if [ "$?" -eq "1" ]
+        then
+            echo ": failed"
+            diff -c "$i.out" "$i.trial"
+            failures=$((failures+1))
+            echo
+            # No failure, so announce success
+        else
+            successes=$((successes+1))
+            echo ": OK"
+        fi
+
+        # Error file: compile the source and
+        # capture the error messages. Compare
+        # against the known-bad output. Same
+        # mechanism as before
+    else if [ -f "$i.err" ]
+    then
+        echo -n $i
+        cd ../..
+        ./bin/selfhosted -o test/compiler/out test/compiler/$i 1>/dev/null 2> "test/compiler/$i.trial"
+        cd test/compiler
+        cmp -s "$i.err" "$i.trial"
+        if [ "$?" -eq "1" ]
+        then
+            echo ": failed"
+            diff -c "$i.err" "$i.trial"
+            failures=$((failures+1))
+            echo
+        else
+            successes=$((successes+1))
+            echo ": OK"
+        fi
+    fi
+    fi
+    fi
+rm -f out out.s "$i.trial"
+done
+
+echo "$successes successful"
+echo "$failures failed"
+exit $failures

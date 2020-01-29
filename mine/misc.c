@@ -189,10 +189,6 @@ void fatalc(char *s, int c) {
 }
 
 void fatalv(const char *fmt, ...) {
-#ifdef SELFHOSTED
-  /*fputs(fmt, stderr);*/
-  /*fprintf(stderr, "\n");*/
-#endif
   print_filename(stderr);
   va_list ap;
   va_start(ap, fmt);
@@ -290,7 +286,7 @@ char *opnames[] = {
   "A_ADD", "A_SUBTRACT", "A_MULTIPLY", "A_DIVIDE", "A_MODULO", // end of mapping
 
   "A_INTLIT", "A_STRLIT", "A_IDENT", "A_GLUE",
-  "A_IF", "A_WHILE", "A_BREAK", "A_CONTINUE", "A_FUNCTION", "A_WIDEN", "A_RETURN",
+  "A_IF", "A_WHILE", "A_FOR", "A_BREAK", "A_CONTINUE", "A_FUNCTION", "A_WIDEN", "A_RETURN",
   "A_FUNCALL", "A_DEREF", "A_ADDR", "A_SCALE",
   "A_SWITCH", "A_CASE", "A_DEFAULT",
   "A_PREINC", "A_PREDEC", "A_POSTINC", "A_POSTDEC",
