@@ -117,6 +117,7 @@ int genWhile(struct ASTnode *n) {
 
 int genFor(struct ASTnode *n) {
   int Lstart, Lnext, Lend;
+  int reg;
 
   Lstart = genlabel();
   Lnext = genlabel();
@@ -134,7 +135,11 @@ int genFor(struct ASTnode *n) {
   genfreeregs(-1);
 
   cglabel(Lnext);
-  genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+  if (n->mid) {
+    // post-increment
+    reg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+    if (reg != NOREG) free_register(reg);
+  }
   cgjump(Lstart);
   cglabel(Lend);
   return (NOREG);

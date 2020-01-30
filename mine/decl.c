@@ -339,8 +339,11 @@ struct symtable *array_declaration(char *varname, int type,
           initial_elems_count);
       break;
     case C_PARAM:
+      sym = addparam(varname, pointer_to(type), ctype, S_VARIABLE,
+          1);
+      break;
     case C_MEMBER:
-      fatal("For now, declaration of member or parameter arrays is not implemented");
+      fatal("For now, declaration of member arrays is not implemented");
     default:
       ASSERT(0);
   }
@@ -391,11 +394,13 @@ struct symtable *array_declaration(char *varname, int type,
   } /* /assign */
 #undef TABLE_INCREMENT
 
-  if (nelems > 0) { // extern declarations have nelems = 0
-    sym->nelems = nelems;
-    sym->size = sym->nelems * typesize(type, ctype);
-  } else {
-    ASSERT(sym->class == C_EXTERN);
+  if (class != C_PARAM) {
+    if (nelems > 0) { // extern declarations have nelems = 0
+      sym->nelems = nelems;
+      sym->size = sym->nelems * typesize(type, ctype);
+    } else {
+      ASSERT(sym->class == C_EXTERN);
+    }
   }
 
   if (isglobalsym(sym)) {
@@ -411,8 +416,8 @@ int parse_cast_type(struct symtable **ctype) {
   type = parse_full_type(Token.token, ctype, &class);
 
   // Do some error checking. I'm sure more can be done
-  if (type == P_STRUCT || type == P_UNION || type == P_VOID) {
-    fatal("Cannot cast to a struct, union or void type");
+  if (type == P_STRUCT || type == P_UNION) {
+    fatal("Cannot cast to a struct or union type");
   }
   return (type);
 }

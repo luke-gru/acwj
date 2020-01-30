@@ -150,7 +150,6 @@ void dot(void) {
   match(T_DOT, ".");
 }
 
-
 // Print out fatal messages
 void fatal(char *s) {
 #ifdef SELFHOSTED

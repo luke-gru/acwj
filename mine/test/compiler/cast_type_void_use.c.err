@@ -1,0 +1,4 @@
+test/compiler/cast_type_void_use.c:6:19 Cannot use a void type at 6:19
+on line:
+  a = (int)(void)5;
+at token: T_SEMI

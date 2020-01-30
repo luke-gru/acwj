@@ -17,6 +17,12 @@ bin/compiler: expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c
 bin/selfhosted: bin/compiler
 	./bin/compiler -v -s -DSELFHOSTED=1 -o bin/selfhosted expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
 
+bin/selfhosted0: bin/selfhosted
+	./bin/selfhosted -v -s -DSELFHOSTED=1 -o bin/selfhosted0 expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
+
+bin/selfhosted1: bin/selfhosted0
+	./bin/selfhosted0 -v -s -DSELFHOSTED=1 -o bin/selfhosted1 expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
+
 bin/selfscanner: bin/compiler scanner_main.c scan.c misc.c opt.c data.c install_includes
 	./bin/compiler -DSELFHOSTED=1 -s -o bin/selfscanner scanner_main.c scan.c misc.c data.c
 
@@ -27,6 +33,8 @@ scanner: bin/scanner
 parser: bin/parser
 compiler: bin/compiler
 selfhosted: bin/selfhosted
+selfhosted0: bin/selfhosted0
+selfhosted1: bin/selfhosted1
 selfscanner: bin/selfscanner
 selfparser: bin/selfparser
 
@@ -134,6 +142,12 @@ test_regression: bin/compiler
 
 test_vendor: bin/compiler
 	./test/vendor/runtests
+
+test_selfhosted_parser: bin/parser bin/selfparser
+	./test/parser/runtests
+
+test_selfhosted_regression: bin/compiler bin/selfhosted
+	./test/compiler/runtests1
 
 test: test_scanner test_parser test_compiler test_exec test_regression test_vendor
 

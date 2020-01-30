@@ -770,7 +770,7 @@ int cgcall(struct symtable *sym, int numargs) {
   if (num_args_spilled > 0 && num_args_spilled % 2 != 0) {
     num_args_spilled++; // %rsp requires 16-byte alignment before calls to SSE functions (like printf)
   }
-  /*fprintf(Outfile, "\tmovq $0, %%rax # 0 out rax for vector registers (varargs)\n");*/
+  fprintf(Outfile, "\tmovq $0, %%rax # 0 out rax for vector registers (varargs)\n");
   fprintf(Outfile, "\tcall\t%s\n", sym->name);
   if (num_args_spilled > 0) {
     // restore spilled argument stack space (assume each argument is a word in size)

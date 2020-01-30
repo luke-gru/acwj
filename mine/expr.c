@@ -301,6 +301,9 @@ struct ASTnode *paren_expression(void) {
     if (casttype == n->type) {
       // TODO: warn useless cast
     }
+    if (casttype != P_VOID && n->type == P_VOID) {
+      fatal("Cannot use a void type");
+    }
     // Otherwise, make a unary AST node for the cast
     n = mkastunary(A_CAST, casttype, ctype, n, NULL, 0);
   }
