@@ -702,7 +702,8 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type) {
   }
 
   fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
-  freeall_registers(-1);
+  free_register(r1);
+  free_register(r2);
   return (NOREG);
 }
 
@@ -769,7 +770,7 @@ int cgcall(struct symtable *sym, int numargs) {
   if (num_args_spilled > 0 && num_args_spilled % 2 != 0) {
     num_args_spilled++; // %rsp requires 16-byte alignment before calls to SSE functions (like printf)
   }
-  fprintf(Outfile, "\tmovq $0, %%rax # 0 out rax for vector registers (varargs)\n");
+  /*fprintf(Outfile, "\tmovq $0, %%rax # 0 out rax for vector registers (varargs)\n");*/
   fprintf(Outfile, "\tcall\t%s\n", sym->name);
   if (num_args_spilled > 0) {
     // restore spilled argument stack space (assume each argument is a word in size)
@@ -1066,12 +1067,20 @@ int cggetlocaloffset(struct symtable *sym) {
     ASSERT(arysize > 0);
     // here, `type` is the pointer to the actual element type
     int fullsize = typesize(value_at(type), ctype)*arysize;
-    localOffset += (fullsize > 4) ? fullsize : 4;
+    if (fullsize > 4) {
+      localOffset += fullsize;
+    } else {
+      localOffset += 4;
+    }
     return (-localOffset);
   } else if (stype == S_VARIABLE) {
     // Decrement the offset by a minimum of 4 bytes
     // and allocate on the stack
-    localOffset += (typesize(type, ctype) > 4) ? typesize(type, ctype) : 4;
+    if (typesize(type, ctype) > 4) {
+      localOffset += typesize(type, ctype);
+    } else {
+      localOffset += 4;
+    }
     return (-localOffset);
   }
   ASSERT(0);

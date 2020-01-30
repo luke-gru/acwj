@@ -1,8 +1,8 @@
 #include <stdarg.h>
 #include <unistd.h>
+#include <execinfo.h>
 #ifdef SELFHOSTED
 #else
-#include <execinfo.h>
 #include <signal.h>
 #endif
 #include <string.h>
@@ -67,15 +67,15 @@ static void print_curline(FILE *f) {
 static void print_stacktrace(int sig) { }
 #else
 static void print_stacktrace(int sig) {
+  void *callstack[128];
   if (sig) {
     print_filename(stdout);
     fprintf(stdout, "\n");
     print_curline(stdout);
   }
 
-  void* callstack[128];
   int i, frames = backtrace(callstack, 128);
-  char** strs = backtrace_symbols(callstack, frames);
+  char **strs = backtrace_symbols(callstack, frames);
   if (LastSig && LastSig == sig) {
     fprintf(stdout, "Error: got signal %s again, aborting\n", strsignal(sig));
     exit(1);

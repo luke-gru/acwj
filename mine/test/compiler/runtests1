@@ -6,11 +6,9 @@ cd test/compiler
 successes=0
 failures=0
 
-# Build our compiler if needed
-if [ ! -f ../../bin/selfhosted ]
-then
-    (cd ../.. && make selfhosted)
-fi
+set -e
+(cd ../.. && make selfhosted)
+set +e
 
 # Try to use each input source file
 for i in *.c

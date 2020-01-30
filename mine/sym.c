@@ -233,7 +233,13 @@ struct symtable *add_or_find_label(char *s) {
 }
 
 int isglobalsym(struct symtable *sym) {
-  return (sym->class == C_GLOBAL || sym->class == C_STATIC || sym->class == C_EXTERN);
+  switch (sym->class) {
+    case C_GLOBAL:
+    case C_STATIC:
+    case C_EXTERN:
+      return (1);
+  }
+  return (0);
 }
 
 int issizedsym(struct symtable *sym) {

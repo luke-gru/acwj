@@ -65,8 +65,11 @@ int genTernary(struct ASTnode *n) {
   // end of the overall expression
   Lfalse = genlabel();
   Lend = genlabel();
-  genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
-  genfreeregs(-1);
+  expreg = genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
+  if (expreg != NOREG) {
+    free_register(expreg);
+  }
+  /*genfreeregs(-1);*/
 
   // Get a register to hold the result of the two expressions
   reg = alloc_register();
@@ -74,16 +77,18 @@ int genTernary(struct ASTnode *n) {
   // Move the expression result into the known register.
   expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
   cgmove(expreg, reg);
+  free_register(expreg);
   // Don't free the register holding the result, though!
-  genfreeregs(reg);
+  /*genfreeregs(reg);*/
   cgjump(Lend);
   cglabel(Lfalse);
   // Generate the false expression and the end label.
   // Move the expression result into the known register.
   expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
   cgmove(expreg, reg);
+  free_register(expreg);
   // Don't free the register holding the result, though!
-  genfreeregs(reg);
+  /*genfreeregs(reg);*/
   cglabel(Lend);
   return (reg);
 }
@@ -445,6 +450,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
         return (cgloadlocal(n->sym, n->op));
       }
     } else {
+      ASSERT(AssignLevel > 0);
       return (NOREG); // lvalue, let the ASSIGN node do the 'store' work
     }
   case A_ASSIGN:
@@ -455,23 +461,31 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
     switch (n->op) {
       case A_AS_ADD:
         is_compound_assn = 1;
+        ASSERT(leftreg != rightreg);
         leftreg = cgadd(leftreg, rightreg);
         n->right = n->left;
+        n->right->rvalue = 0;
         break;
       case A_AS_SUBTRACT:
         is_compound_assn = 1;
+        ASSERT(leftreg != rightreg);
         leftreg = cgsub(leftreg, rightreg);
         n->right = n->left;
+        n->right->rvalue = 0;
         break;
       case A_AS_MULTIPLY:
         is_compound_assn = 1;
+        ASSERT(leftreg != rightreg);
         leftreg = cgmul(leftreg, rightreg);
         n->right = n->left;
+        n->right->rvalue = 0;
         break;
       case A_AS_DIVIDE:
         is_compound_assn = 1;
+        ASSERT(leftreg != rightreg);
         leftreg = cgdiv(leftreg, rightreg);
         n->right = n->left;
+        n->right->rvalue = 0;
         break;
     }
     switch (n->right->op) {
@@ -485,7 +499,6 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
         return (reg);
       case A_DEREF: // ex: *a = 12
         if (is_compound_assn) {
-          n->right->rvalue = 0;
           rightreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
         }
         reg = cgstorderef(leftreg, rightreg, n->right->type);

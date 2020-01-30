@@ -75,6 +75,39 @@ static int gendumplabel(void) {
   return (label_id++);
 }
 
+static char sym_ident_stype_display_c(struct symtable *sym) {
+  switch (sym->stype) {
+    case S_VARIABLE:
+      return ('v');
+    case S_FUNCTION:
+    case S_PROTO:
+      return ('f');
+    case S_ARRAY:
+      return ('a');
+    default:
+      ASSERT(0);
+  }
+  return (0);
+}
+
+static char sym_ident_class_display_c(struct symtable *sym) {
+  switch (sym->class) {
+    case C_GLOBAL:
+      return ('g');
+    case C_STATIC:
+      return ('s');
+    case C_EXTERN:
+      return ('e');
+    case C_LOCAL:
+      return ('l');
+    case C_PARAM:
+      return ('p');
+    default:
+      ASSERT(0);
+  }
+  return (0);
+}
+
 // Given an AST tree, print it out and follow the
 // traversal of the tree that genAST() follows
 void dumpAST(struct ASTnode *n, int label, int level) {
@@ -184,12 +217,20 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       fprintf(stdout, "A_STRLIT (asm label %d)\n", n->intvalue); break;
     case A_IDENT:
       if (n->rvalue)
-        fprintf(stdout, "A_IDENT rval %s (%s)\n", n->sym->name, typename(n->sym->type, n->sym->ctype));
+        fprintf(stdout, "A_IDENT %s (%s) rval [%c%c]\n",
+            n->sym->name,
+            typename(n->sym->type, n->sym->ctype),
+            sym_ident_stype_display_c(n->sym),
+            sym_ident_class_display_c(n->sym));
       else
-        fprintf(stdout, "A_IDENT %s (%s)\n", n->sym->name, typename(n->sym->type, n->sym->ctype));
+        fprintf(stdout, "A_IDENT %s (%s) [%c%c]\n",
+            n->sym->name,
+            typename(n->sym->type, n->sym->ctype),
+            sym_ident_stype_display_c(n->sym),
+            sym_ident_class_display_c(n->sym));
       return;
     case A_ASSIGN:
-      fprintf(stdout, "A_ASSIGN\n"); break;
+      fprintf(stdout, "A_ASSIGN (%s)\n", typename(n->type, n->ctype)); break;
     case A_AS_ADD:
       fprintf(stdout, "A_AS_ADD\n"); break;
     case A_AS_SUBTRACT:
@@ -209,9 +250,9 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_BITAND:
       fprintf(stdout, "A_BITAND\n"); break;
     case A_WIDEN:
-      fprintf(stdout, "A_WIDEN\n"); break;
+      fprintf(stdout, "A_WIDEN (%s)\n", typename(n->type, n->ctype)); break;
     case A_RETURN:
-      fprintf(stdout, "A_RETURN\n"); break;
+      fprintf(stdout, "A_RETURN (%s)\n", typename(n->type, n->ctype)); break;
     case A_FUNCALL:
       if (n->sym) {
         fprintf(stdout, "A_FUNCALL %s\n", n->sym->name); break;
@@ -220,7 +261,12 @@ void dumpAST(struct ASTnode *n, int label, int level) {
       }
     case A_ADDR:
       if (n->sym) {
-        fprintf(stdout, "A_ADDR %s\n", n->sym->name); break;
+        fprintf(stdout, "A_ADDR %s (%s) [%c%c]\n",
+            n->sym->name,
+            typename(n->sym->type, n->sym->ctype),
+            sym_ident_stype_display_c(n->sym),
+            sym_ident_class_display_c(n->sym));
+        break;
       } else {
         fprintf(stdout, "A_ADDR\n"); break;
       }

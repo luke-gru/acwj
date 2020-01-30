@@ -1,3 +1,4 @@
+#include <stdio.h>
 int   d, f;
 int  *e;
 
@@ -6,12 +7,12 @@ int main() {
   b= 3;
   c= 5;
   a= b + c * 10;
-  printint(a);
+  printf("%d\n", a);
 
   d= 12;
-  printint(d);
+  printf("%d\n", d);
   e= &d;
   f= *e;
-  printint(f);
+  printf("%d\n", f);
   return(0);
 }
