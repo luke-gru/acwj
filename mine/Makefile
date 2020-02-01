@@ -1,33 +1,37 @@
 INCDIR=/tmp/include
 BINDIR=/tmp
 
+SCANNER_SRCS = scanner_main.c scan.c misc.c opt.c data.c
+PARSER_SRCS = expr.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c data.c
+COMPILER_SRCS = expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c gen_ir.c
+
 install_includes:
 	mkdir -p $(INCDIR)
 	rsync -a system/include/. $(INCDIR)
 
-bin/scanner: scanner_main.c scan.c misc.c opt.c data.c install_includes
-	cc -o bin/scanner -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic scanner_main.c scan.c misc.c data.c
+bin/scanner: $(SCANNER_SRCS) install_includes
+	cc -o bin/scanner -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic $(SCANNER_SRCS)
 
-bin/parser: expr.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c data.c install_includes
-	cc -o bin/parser -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic expr.c interp.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c data.c
+bin/parser: $(PARSER_SRCS) install_includes
+	cc -o bin/parser -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic $(PARSER_SRCS)
 
-bin/compiler: expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c install_includes
-	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
+bin/compiler: $(COMPILER_SRCS) install_includes
+	cc -o bin/compiler -DINCDIR=\"$(INCDIR)\" -DCOMPILE_ASSERTS=1 -g -rdynamic $(COMPILER_SRCS)
 
 bin/selfhosted: bin/compiler
-	./bin/compiler -v -s -DSELFHOSTED=1 -o bin/selfhosted expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
+	./bin/compiler -v -s -DSELFHOSTED=1 -o bin/selfhosted $(COMPILER_SRCS)
 
 bin/selfhosted0: bin/selfhosted
-	./bin/selfhosted -v -s -DSELFHOSTED=1 -o bin/selfhosted0 expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
+	./bin/selfhosted -v -s -DSELFHOSTED=1 -o bin/selfhosted0 $(COMPILER_SRCS)
 
 bin/selfhosted1: bin/selfhosted0
-	./bin/selfhosted0 -v -s -DSELFHOSTED=1 -o bin/selfhosted1 expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c
+	./bin/selfhosted0 -v -s -DSELFHOSTED=1 -o bin/selfhosted1 $(COMPILER_SRCS)
 
-bin/selfscanner: bin/compiler scanner_main.c scan.c misc.c opt.c data.c install_includes
-	./bin/compiler -DSELFHOSTED=1 -s -o bin/selfscanner scanner_main.c scan.c misc.c data.c
+bin/selfscanner: bin/compiler install_includes $(SCANNER_SRCS)
+	./bin/compiler -DSELFHOSTED=1 -s -o bin/selfscanner $(SCANNER_SRCS)
 
-bin/selfparser: bin/compiler expr.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c data.c install_includes
-	./bin/compiler -DSELFHOSTED=1 -s -o bin/selfparser expr.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c data.c
+bin/selfparser: bin/compiler install_includes $(PARSER_SRCS)
+	./bin/compiler -DSELFHOSTED=1 -s -o bin/selfparser $(PARSER_SRCS)
 
 scanner: bin/scanner
 parser: bin/parser

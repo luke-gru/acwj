@@ -45,6 +45,7 @@ EXTERN struct symtable *Labelshead,  *Labelstail;	// List of labels for current 
 
 EXTERN int    O_dumpAST;          // option to print AST string representation to stdout
 EXTERN int    O_dumpsym;          // option to print symbol table after compiling every file
+EXTERN int    O_dumpIR;           // option to print IR string representation to stdout
 EXTERN int    O_parseOnly;        // option to not output any assembly language to a file
 EXTERN int    O_debugNoisy;       // Turns on various debug messages, which go to stderr
 EXTERN int    O_verbose;          // Verbose output for compilation steps only

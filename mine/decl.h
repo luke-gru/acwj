@@ -58,6 +58,11 @@ int  genalign(int type, int offset, int direction);
 int  genlabel(void);
 void genreset(void);
 
+struct BasicBlock;
+// gen_ir.c
+struct BasicBlock *genIR(struct ASTnode *n);
+void dumpIR(struct BasicBlock *bb, FILE *f);
+
 // cg.c
 void freeall_registers(int keepreg);
 int  alloc_register(void);

@@ -3,10 +3,9 @@ TODO
 
 Functional
 ----------
-* Get (void)0; to parse (useful for preprocessor)
-* Allow structs as function parameters and local variables (needs more testing)
 * Get `1-1` working as intended, right now `-` right before a digit is scanned
 as part of the INTLIT (workarounds all over source code of compiler)
+* Allow structs as function parameters and local variables (needs more testing)
 * Allow assignment declaration as init value in `for` stmt `for (int i = 0;;`)
 * Put string literals in read-only memory
 * Allow structs to be returned (see what gcc does, caller allocates stack
@@ -21,6 +20,7 @@ test/compiler/assignment_expressions2.c
 
 Optimizations
 -------------
+* Better register allocation/spilling (linear scan)
 * Omit the frame pointer as micro-optimization, use stack pointer offsets instead
 * Various register optimizations
 

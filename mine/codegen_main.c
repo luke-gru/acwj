@@ -50,6 +50,7 @@ static void init() {
   O_keepasm = 0;
   O_debugsymbols = 0;
   O_nospill = 0;
+  O_dumpIR = 0;
 
   init_symtable();
   setup_signal_handlers();
@@ -68,6 +69,7 @@ static void usage(char *prog) {
        "       -M dump the symbol table each input file\n"
        "       -g output debug symbols in executable\n"
        "       -o outfile, produce the outfile as output\n"
+       "       -i dump IR\n"
        "       -R no register spilling\n", // error if compiler runs out of registers
       prog);
   exit(1);
@@ -264,6 +266,8 @@ after_incr:
           O_verbose = 1; break;
         case 'T':
           O_dumpAST = 1; O_parseOnly = 1; O_dolink = 0; break;
+        case 'i':
+          O_dumpIR = 1; O_parseOnly = 1; O_dolink = 0; break;
         case 'M':
           O_dumpsym = 1; break;
         case 'd':
