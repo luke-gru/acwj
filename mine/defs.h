@@ -171,6 +171,7 @@ struct symtable {
   int *initlist;                // List of initial values
   struct symtable *next;        // next symbol in the list
   struct symtable *member;      // First param for a function, first member for struct, union or enum
+  int ssa_num;                  // Increased every time it's saved to memory in gen_ir
 };
 
 enum {

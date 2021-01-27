@@ -74,6 +74,7 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype,
   node->next = NULL;
   node->member = NULL;
   node->initlist = NULL;
+  node->ssa_num = 0;
 
   return (node);
 }

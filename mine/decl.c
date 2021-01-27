@@ -1,6 +1,7 @@
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+#include "gen_ir.h"
 
 // Parsing of declarations
 // Copyright (c) 2019 Warren Toomey, GPL3
@@ -211,6 +212,11 @@ static int param_declaration_list(struct symtable *oldfuncsym,
   return (paramcnt);
 }
 
+void IRaddBB(IRModule *mod, struct BasicBlock *bb) {
+    assert(mod);
+    mod->blocks = bb;
+}
+
 struct symtable *function_declaration(char *name, int type, struct symtable *ctype, int class) {
   struct ASTnode *tree, *finalstmt;
   struct symtable *oldfuncsym, *newfuncsym = NULL;
@@ -296,14 +302,20 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
     fprintf(stdout, "\n\n");
   }
 
+  if (!cur_module) {
+      cur_module = new_module("main");
+  }
+
   struct BasicBlock *bb;
+  bb = genIR(tree);
+  IRaddBB(cur_module, bb);
 
   if (O_dumpIR) {
-    bb = genIR(tree);
     dumpIR(bb, stdout);
   }
 
   genAST(tree, NOREG, NOLABEL, NOLABEL, 0);
+
   freeloclsyms();
   return (oldfuncsym);
 }

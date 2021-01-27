@@ -59,9 +59,14 @@ int  genlabel(void);
 void genreset(void);
 
 struct BasicBlock;
+struct IRModule;
 // gen_ir.c
 struct BasicBlock *genIR(struct ASTnode *n);
 void dumpIR(struct BasicBlock *bb, FILE *f);
+void IRaddBB(struct IRModule *mod, struct BasicBlock *bb);
+
+// ir_to_asm.c
+void ir_to_asm(struct IRModule *mod);
 
 // cg.c
 void freeall_registers(int keepreg);
