@@ -3,7 +3,7 @@ BINDIR=/tmp
 
 SCANNER_SRCS = expr.c scanner_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c data.c
 PARSER_SRCS = expr.c parser_main.c scan.c tree.c misc.c sym.c types.c decl.c stmt.c gen.c cg.c opt.c data.c
-COMPILER_SRCS = expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c gen_ir.c
+COMPILER_SRCS = expr.c codegen_main.c scan.c tree.c cg.c gen.c misc.c stmt.c sym.c decl.c types.c opt.c data.c gen_ir.c vec.c
 
 install_includes:
 	mkdir -p $(INCDIR)

@@ -786,6 +786,7 @@ int cgcall(struct symtable *sym, int numargs) {
 // XXX: doesn't work for returning structs as values
 void cgreturn(int reg, struct symtable *func) {
   cgcommentsource("cgreturn");
+  ASSERT(func);
   if (reg == NOREG) {
     cgjump(func->endlabel);
     return;
@@ -1184,6 +1185,11 @@ void cggotolabel(struct symtable *sym) {
 void cggoto(struct symtable *sym) {
   cgcommentsource("cggoto");
   fprintf(Outfile, "\tjmp %s%d\n", sym->name, sym->size);
+}
+
+void cgjumptolabel(int label) {
+  cgcommentsource("cgjump");
+  fprintf(Outfile, "\tjmp L%d\n", label);
 }
 
 void cgcommentsource(char *func) {

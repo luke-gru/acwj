@@ -65,8 +65,8 @@ struct BasicBlock *genIR(struct ASTnode *n);
 void dumpIR(struct BasicBlock *bb, FILE *f);
 void IRaddBB(struct IRModule *mod, struct BasicBlock *bb);
 
-// ir_to_asm.c
-void ir_to_asm(struct IRModule *mod);
+// ir_lower.c
+void IRLower(struct IRModule *mod);
 
 // cg.c
 void freeall_registers(int keepreg);
@@ -125,6 +125,7 @@ void cgpush0(void);
 void cgmove(int src, int dst);
 void cggoto(struct symtable *sym);
 void cggotolabel(struct symtable *sym);
+void cgjumptolabel(int label);
 void spill_all_regs(void);
 void spill_all_paramregs(void);
 void unspill_all_paramregs(void);

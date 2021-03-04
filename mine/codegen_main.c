@@ -4,6 +4,7 @@
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+#include "gen_ir.h"
 
 #define MAXOBJ 100
 char *objlist[MAXOBJ];        // List of object file names
@@ -137,10 +138,10 @@ char *do_compile(char *filename, char *outfile) {
   clear_symtable();
   init_symtable();
   if (O_verbose)
-    printf("compiling %s\n", filename);
+    printf("compiling %s to %s\n", filename, Outfilename);
   scan(&Token);                 // Get the first token from the input
   genpreamble(filename);        // Output the preamble
-  global_declarations();        // Parse the global declarations
+  global_declarations();        // Parse the global declarations, generate the IR
   genpostamble();               // Output the postamble
   fclose(Outfile);              // Close the output file
   // Dump the symbol table if requested
@@ -267,7 +268,7 @@ after_incr:
         case 'T':
           O_dumpAST = 1; O_parseOnly = 1; O_dolink = 0; break;
         case 'i':
-          O_dumpIR = 1; O_parseOnly = 1; O_dolink = 0; break;
+          O_dumpIR = 1; break;
         case 'M':
           O_dumpsym = 1; break;
         case 'd':
@@ -314,8 +315,9 @@ after_incr:
       objlist[objcnt] = NULL;           // to the list of object files
     }
 
-    if (!O_keepasm)                     // Remove the assembly file if
-      unlink_safe(asmfile);                  // we don't need to keep it
+    if (!O_keepasm) {                   // Remove the assembly file if
+      unlink_safe(asmfile);             // we don't need to keep it
+    }
     i++;
   }
 
@@ -330,6 +332,5 @@ after_incr:
     }
   }
 
-  exit(0);
   return (0);
 }

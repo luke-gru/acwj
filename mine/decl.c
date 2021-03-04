@@ -296,7 +296,6 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
   /*tree = optimise(tree);*/
 
 
-  // Generate the assembly code for it
   if (O_dumpAST) {
     dumpAST(tree, NOLABEL, 0);
     fprintf(stdout, "\n\n");
@@ -308,13 +307,17 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
 
   struct BasicBlock *bb;
   bb = genIR(tree);
+  genIRFinish();
   IRaddBB(cur_module, bb);
 
   if (O_dumpIR) {
     dumpIR(bb, stdout);
   }
+  /*IRLower(cur_module);*/
+  cgfuncpostamble(tree->sym);
 
-  genAST(tree, NOREG, NOLABEL, NOLABEL, 0);
+  // Generate the assembly code for it
+  //genAST(tree, NOREG, NOLABEL, NOLABEL, 0);
 
   freeloclsyms();
   return (oldfuncsym);
