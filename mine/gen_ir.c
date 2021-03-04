@@ -238,6 +238,7 @@ IRNode *genIRBinop(struct ASTnode *n) {
   ir->arg1 = IR_NodeValue(left);
   ir->arg2 = IR_NodeValue(right);
   ir->result = IR_NewTempValue();
+  emitIR(ir);
   return (ir);
 }
 
@@ -596,13 +597,40 @@ IRNode *genIRWhile(ASTnode *n) {
   return ir_if1;
 }
 
+IRNode *genIRFor(ASTnode *n) {
+    cur_bb->done = 1;
+    BasicBlock *test_bb = new_bb(NULL);
+    BasicBlock *code_bb = new_bb(NULL);
+    BasicBlock *out_bb = new_bb(NULL);
+
+    bb_succ(cur_bb, test_bb);
+    bb_succ(test_bb, code_bb);
+    bb_succ(test_bb, out_bb);
+    bb_succ(code_bb, test_bb);
+
+    cur_bb = test_bb;
+    IRNode *ir_if = new_node(IR_IF);
+    ir_if->arg1 = IR_NodeValue(genIRExpr(n->left));
+    ir_if->ast = n;
+    ir_if->bbout1 = code_bb;
+    ir_if->bbout2 = out_bb;
+    emitIR(ir_if);
+    cur_bb->done = 1;
+
+    cur_bb = code_bb;
+    genIR(n->right);
+    IRNode *jump = new_node(IR_JUMP);
+    jump->bbout1 = test_bb;
+    emitIR(jump);
+    cur_bb->done = 1;
+    cur_bb = out_bb;
+    return NULL;
+}
+
 static IRNode *new_tmp_assign_node(IRNode *val) {
     IRNode *node = new_node(IR_TMP_ASSIGN);
     node->result = IR_NewTempValue();
     node->arg1 = IR_NodeValue(val);
-    if (isCompoundIRExpr(val)) {
-        emitIR(val);
-    }
     return node;
 }
 
@@ -610,9 +638,6 @@ static IRNode *new_tmp_assign_node_with(IRNode *val, IRValue tmp_val) {
     IRNode *node = new_node(IR_TMP_ASSIGN);
     node->result = tmp_val;
     node->arg1 = IR_NodeValue(val);
-    if (isCompoundIRExpr(val)) {
-        emitIR(val);
-    }
     return node;
 }
 
@@ -641,9 +666,6 @@ IRNode *genIRLogor(ASTnode *n) {
 
     IRNode *ir_if = new_node(IR_IF);
     IRNode *cond = genIRExpr(n->left); // a
-    if (isCompoundIRExpr(cond)) {
-        emitIR(cond);
-    }
     ir_if->arg1 = IR_NodeValue(cond);
     ir_if->ast = n;
 
@@ -683,9 +705,6 @@ IRNode *genIRLogor(ASTnode *n) {
     // Lb:
     IRNode *ir_b_if = new_node(IR_IF);
     IRNode *b_cond = genIRExpr(n->right); // b
-    if (isCompoundIRExpr(b_cond)) {
-        emitIR(b_cond);
-    }
     ir_b_if->arg1 = IR_NodeValue(b_cond);
     ir_b_if->ast = n;
     ir_b_if->bbout1 = c_block;
@@ -707,7 +726,7 @@ IRNode *genIRLogor(ASTnode *n) {
 
     cur_bb = d_block;
 
-    return ir_res_false;
+    return (ir_res_false);
 }
 
 // logical and (a && b), it short circuits
@@ -731,9 +750,6 @@ IRNode *genIRLogand(ASTnode *n) {
 
     IRNode *ir_if = new_node(IR_IF);
     IRNode *cond = genIRExpr(n->left); // a
-    if (isCompoundIRExpr(cond)) {
-        emitIR(cond);
-    }
     ir_if->arg1 = IR_NodeValue(cond);
     ir_if->ast = n;
 
@@ -759,9 +775,6 @@ IRNode *genIRLogand(ASTnode *n) {
     // Lb:
     IRNode *ir_b_if = new_node(IR_IF);
     IRNode *b_cond = genIRExpr(n->right); // b
-    if (isCompoundIRExpr(b_cond)) {
-        emitIR(b_cond);
-    }
     ir_b_if->arg1 = IR_NodeValue(b_cond);
     ir_b_if->ast = n;
     ir_b_if->bbout1 = d_block;
@@ -783,7 +796,7 @@ IRNode *genIRLogand(ASTnode *n) {
 
     cur_bb = d_block;
 
-    return ir_res_true;
+    return (ir_res_true);
 }
 
 /*IRNode *genIRTernary(ASTnode *n) {*/
@@ -868,9 +881,6 @@ static IRNode *genIRAssign(struct ASTnode *n) {
     IRNode *n_right = genIRExpr(n->right);
     ir_n->result = IR_NodeValue(n_right);
     IRNode *n_left = genIRExpr(n->left);
-    if (isCompoundIRExpr(n_left)) {
-        emitIR(n_left);
-    }
     ir_n->arg1 = IR_NodeValue(n_left);
     emitIR(ir_n);
     return (ir_n);
@@ -898,12 +908,9 @@ BasicBlock *genIR(struct ASTnode *n) {
     case A_WHILE:
       genIRWhile(n);
       break;
-    /*case A_LOGOR:*/
-      /*genIRLogor(n);*/
-      /*break;*/
-    /*case A_LOGAND:*/
-      /*genIRLogand(n);*/
-      /*break;*/
+    case A_FOR:
+      genIRFor(n);
+      break;
     default:
       genIRExpr(n);
       break;
