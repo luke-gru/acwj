@@ -8,6 +8,8 @@ typedef enum {
     ir_temp_t,
     ir_sym_t,
     ir_imm_t,
+    ir_ptr_t,
+    ir_ary_t,
 } ir_val_t;
 
 typedef struct IRValue {
@@ -16,6 +18,7 @@ typedef struct IRValue {
         int temp;
         struct symtable *sym;
         int imm;
+        struct IRValue *val;
     } as;
 } IRValue;
 
@@ -32,12 +35,15 @@ typedef enum IROp {
     IR_LE,
     IR_GE,
     IR_IMM,
+    IR_PTR,
     IR_ASSIGN,
     IR_VAR,
     IR_RETURN,
     IR_JUMP, // 15
     IR_IF,
     IR_TMP_ASSIGN, // for code-generated assigns
+    IR_ARGUMENT,
+    IR_CALL,
 } IROp;
 
 struct BasicBlock;
@@ -49,9 +55,10 @@ typedef struct IRNode {
     IRValue result;
     struct ASTnode *ast;
     int type; // type of node (ast->type)
+    int argnum; // for IR_ARGUMENT
     struct symtable *ctype; // composite type of symbol, if needed (ast->ctype)
     struct symtable *sym; // Pointer to symbol
-    struct BasicBlock *bbout1; // for IR_IF
+    struct BasicBlock *bbout1; // for IR_IF, IR_JUMP
     struct BasicBlock *bbout2; // for IR_IF
     struct IRNode *next; // next in basic block list
     struct IRNode *prev;
@@ -66,6 +73,7 @@ typedef struct BasicBlock {
     IRNode *last;
     int done;
     int dumped;
+    int patched; // breaks have been patched
     //int lowered;
     int num_preds;
     int num_succs;
@@ -74,8 +82,14 @@ typedef struct BasicBlock {
     //struct CFGNode *cfg_node;
 } BasicBlock;
 
+typedef struct IRData {
+    IRValue val;
+    struct IRData *next;
+} IRData;
+
 typedef struct IRModule {
     char *filename;
+    IRData *data; // first static data item
     BasicBlock *blocks;
 } IRModule;
 
@@ -98,6 +112,7 @@ IRValue IR_NodeValue(IRNode *node);
 IRValue IR_NewTempValue(void);
 IRValue IR_NewSymbolValue(struct symtable *sym);
 IRValue IR_NewImmValue(int imm);
+IRValue IR_NewPtrValue(IRValue val);
 IRValue IR_NewEmptyValue(void);
 
 IRModule *new_module(char *filename);

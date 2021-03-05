@@ -29,3 +29,23 @@ Would Be Nice
 * Output debug information during compilation
 * Add static local variables, only initialized during first call to function
 (see what gcc does)
+
+IR:
+---
+
+* do break/continues in terms of gotos, need to keep
+track of cur_loop bb and patch all the breaks that way
+when we end the cur_loop. For continues, it's just a goto
+to cur_loop. [DONE]
+
+* Implement A_GOTO and A_LABEL (don't need IR_LABEL I
+don't think anyway). [later]
+
+* Implement switch statements (HARD, don't know what to do here).
+[later]
+
+* Implement A_STRLIT, not sure if cg.c should take take of dedup
+or IR should, but I'm leaning towards the latter. IR_MEM could
+be an IRValue, but then we'd need non basic block structures before the
+basic blocks for all data. [mostly done, need to add labels for data section
+and dedup data section]

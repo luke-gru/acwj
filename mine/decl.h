@@ -62,7 +62,7 @@ struct BasicBlock;
 struct IRModule;
 // gen_ir.c
 struct BasicBlock *genIR(struct ASTnode *n);
-void dumpIR(struct BasicBlock *bb, FILE *f);
+void dumpIR(struct IRModule *mod, FILE *f);
 void IRaddBB(struct IRModule *mod, struct BasicBlock *bb);
 
 // ir_lower.c

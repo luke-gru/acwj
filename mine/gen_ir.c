@@ -6,6 +6,8 @@ typedef struct symtable Sym;
 
 static int tempnum = 1;
 static int labelid = 1;
+static int in_arguments = 0;
+static BasicBlock *loop_bb = NULL;
 static BasicBlock *cur_bb = NULL;
 static BasicBlock *start_bb = NULL; // start basic block for genIR()
 /*static CFG *cur_cfg = NULL;*/
@@ -178,6 +180,25 @@ IRNode *genIRReturn(struct ASTnode *n) {
   return (ir);
 }
 
+IRNode *genIRContinue(struct ASTnode *n) {
+  IRNode *ir = new_node(IR_JUMP);
+  ASSERT(loop_bb);
+  ir->bbout1 = loop_bb;
+  bb_succ(cur_bb, loop_bb);
+  emitIR(ir);
+  cur_bb->done = 1;
+  return (ir);
+}
+
+IRNode *genIRBreak(struct ASTnode *n) {
+  IRNode *ir = new_node(IR_JUMP);
+  ASSERT(loop_bb);
+  ir->bbout1 = NULL; // patched later
+  emitIR(ir);
+  cur_bb->done = 1;
+  return (ir);
+}
+
 IRNode *genIRImm(struct ASTnode *n) {
   IRNode *ir = new_node(IR_IMM);
   ir->ast = n;
@@ -200,6 +221,49 @@ IRNode *genIRWiden(ASTnode *n) {
 
 IRNode *genIRTobool(ASTnode *n) {
   return (genIRExpr(n->left));
+}
+
+IRNode *genIRCall(ASTnode *n) {
+    int old_in_arguments = in_arguments;
+    in_arguments = 1;
+    genIR(n->left); // arguments glue tree
+    in_arguments = old_in_arguments;
+    IRNode *call_node = new_node(IR_CALL);
+    call_node->ast = n;
+    emitIR(call_node);
+    return (call_node);
+}
+
+static IRData *EmitIRData(IRValue val) {
+    IRData *data = NULL;
+    data = calloc(1, sizeof(*data));
+    memset(data, 0, sizeof(*data));
+    data->val = val;
+    IRData *last = cur_module->data;
+    if (last) {
+        while (last->next) {
+            last = last->next;
+        }
+        last->next = data;
+    } else {
+        cur_module->data = data;
+    }
+    return (data);
+}
+
+IRNode *genIRString(ASTnode *n) {
+    IRValue ary_val = {
+        .t = ir_ary_t,
+        .as = {
+            .sym = n->sym
+        }
+    };
+    EmitIRData(ary_val);
+    IRNode *ir = new_node(IR_PTR);
+    ir->ast = n;
+    ir->type = n->type; ir->ctype = n->ctype;
+    ir->result = ary_val;
+    return (ir);
 }
 
 IRNode *genIRBinop(struct ASTnode *n) {
@@ -260,8 +324,10 @@ IRValue IR_NodeValue(IRNode *n) {
         case IR_RETURN:
         case IR_TMP_ASSIGN:
             return n->result;
+        case IR_PTR:
+            return IR_NewPtrValue(n->result);
         default:
-            fprintf(stderr, "Invalid value for node\n");
+            fprintf(stderr, "Invalid value for node: %d\n", n->op);
             exit(1);
     }
 }
@@ -298,6 +364,19 @@ IRValue IR_NewImmValue(int imm) {
         }
     };
     return val;
+}
+
+IRValue IR_NewPtrValue(IRValue val) {
+    ir_val_t t = ir_ptr_t;
+    IRValue *val_ptr = malloc(sizeof(IRValue));
+    memcpy(val_ptr, &val, sizeof(IRValue));
+    IRValue val_ret = {
+        .t = t,
+        .as = {
+            .val = val_ptr
+        }
+    };
+    return val_ret;
 }
 
 IRValue IR_NewEmptyValue(void) {
@@ -597,6 +676,46 @@ IRNode *genIRWhile(ASTnode *n) {
   return ir_if1;
 }
 
+static void patchIRBreaks0(BasicBlock *beg, BasicBlock *end) {
+    /*if (beg->slabel) {*/
+        /*fprintf(stderr, "patching bb: %s\n", beg->slabel);*/
+    /*} else {*/
+        /*fprintf(stderr, "patching bb: %d\n", beg->ilabel);*/
+    /*}*/
+    IRNode *cur = beg->nodes;
+    IRNode *last = beg->last;
+    ASSERT(!beg->patched);
+    ASSERT(end);
+    while (cur) {
+        /*if (cur->op == IR_JUMP) {*/
+            /*fprintf(stderr, "found jump\n");*/
+        /*}*/
+        if (cur->op == IR_JUMP && !cur->bbout1) {
+            /*fprintf(stderr, "patching break\n");*/
+            cur->bbout1 = end;
+            bb_succ(beg, end);
+        }
+        if (cur == last) {
+            break;
+        }
+        cur = cur->next;
+    }
+    beg->patched = 1;
+}
+
+static void patchIRBreaks(BasicBlock *beg, BasicBlock *end) {
+    if (beg->patched) {
+        /*fprintf(stderr, "already patched\n");*/
+        return;
+    }
+    if (beg != end) {
+        patchIRBreaks0(beg, end);
+        for (int i = 1; i <= beg->num_succs; i++) {
+            patchIRBreaks(beg->succs[i-1], end);
+        }
+    }
+}
+
 IRNode *genIRFor(ASTnode *n) {
     cur_bb->done = 1;
     BasicBlock *test_bb = new_bb(NULL);
@@ -608,6 +727,9 @@ IRNode *genIRFor(ASTnode *n) {
     bb_succ(test_bb, out_bb);
     bb_succ(code_bb, test_bb);
 
+    BasicBlock *old_loop_bb = loop_bb;
+    loop_bb = cur_bb;
+
     cur_bb = test_bb;
     IRNode *ir_if = new_node(IR_IF);
     ir_if->arg1 = IR_NodeValue(genIRExpr(n->left));
@@ -618,11 +740,14 @@ IRNode *genIRFor(ASTnode *n) {
     cur_bb->done = 1;
 
     cur_bb = code_bb;
-    genIR(n->right);
+    genIR(n->right); // for { } block
+    genIR(n->mid);
+    loop_bb = old_loop_bb;
     IRNode *jump = new_node(IR_JUMP);
     jump->bbout1 = test_bb;
     emitIR(jump);
     cur_bb->done = 1;
+    patchIRBreaks(code_bb, out_bb);
     cur_bb = out_bb;
     return NULL;
 }
@@ -843,6 +968,7 @@ IRNode *genIRLogand(ASTnode *n) {
 /*}*/
 
 IRNode *genIRExpr(struct ASTnode *n) {
+    IRNode *res = NULL;
   switch (n->op) {
     case A_ADD:
     case A_SUBTRACT:
@@ -855,23 +981,46 @@ IRNode *genIRExpr(struct ASTnode *n) {
     case A_GT:
     case A_LE:
     case A_GE:
-      return (genIRBinop(n));
+      res = genIRBinop(n);
+      break;
     case A_INTLIT:
-      return (genIRImm(n));
+      res =  genIRImm(n);
+      break;
     case A_WIDEN:
-      return (genIRWiden(n));
+      res = genIRWiden(n);
+      break;
     case A_IDENT:
-      return (genIRIdent(n));
+      res = genIRIdent(n);
+      break;
     case A_LOGOR:
-      return (genIRLogor(n));
+      res = genIRLogor(n);
+      break;
     case A_LOGAND:
-      return (genIRLogand(n));
+      res = genIRLogand(n);
+      break;
     /*case A_TERNARY:*/
       /*return (genIRTernary(n));*/
     case A_TOBOOL:
-      return (genIRTobool(n));
+      res = genIRTobool(n);
+      break;
+    case A_FUNCALL:
+      res = genIRCall(n);
+      break;
+    case A_STRLIT:
+      res = genIRString(n);
+      break;
     default:
       fatalv("Unknown AST op: %s (%d)", opname(n->op), n->op);
+  }
+  if (in_arguments) {
+      IRNode *arg_node = new_node(IR_ARGUMENT);
+      arg_node->argnum = in_arguments;
+      in_arguments++;
+      arg_node->result = IR_NodeValue(res);
+      emitIR(arg_node);
+      return (arg_node);
+  } else {
+      return res;
   }
 }
 
@@ -895,7 +1044,17 @@ BasicBlock *genIR(struct ASTnode *n) {
     case A_RETURN:
       genIRReturn(n);
       break;
+    case A_CONTINUE:
+      genIRContinue(n);
+      break;
+    case A_BREAK:
+      genIRBreak(n);
+      break;
     case A_GLUE:
+      if (n->left) genIR(n->left);
+      if (n->right) genIR(n->right);
+      break;
+    case A_SEQUENCE:
       if (n->left) genIR(n->left);
       if (n->right) genIR(n->right);
       break;
@@ -937,6 +1096,13 @@ static char *IR_ValueStr(IRValue val) {
             return strdup(buf);
         case ir_imm_t:
             sprintf(buf, "%d", val.as.imm);
+            return strdup(buf);
+        case ir_ary_t:
+            ASSERT(val.as.sym);
+            sprintf(buf, "ary[%d] %s", val.as.sym->nelems, typename(val.as.sym->type, val.as.sym->ctype));
+            return strdup(buf);
+        case ir_ptr_t:
+            sprintf(buf, "ptr %s", IR_ValueStr(*val.as.val));
             return strdup(buf);
         default:
             fatalv("Unknown val type (%d)", val.t);
@@ -982,6 +1148,9 @@ void dumpIRNode(IRNode *n, FILE *f) {
     case IR_RETURN:
       fprintf(f, "ret %s\n", IR_ValueStr(n->result));
       break;
+    case IR_PTR:
+      fprintf(f, "ptr %s\n", IR_ValueStr(n->result));
+      break;
     case IR_IMM:
       fprintf(f, "%s = %s\n", IR_ValueStr(n->result), IR_ValueStr(n->arg1));
       break;
@@ -999,7 +1168,14 @@ void dumpIRNode(IRNode *n, FILE *f) {
       }
       break;
     case IR_JUMP:
+      ASSERT(n->bbout1);
       fprintf(f, "goto L%d\n", n->bbout1->ilabel);
+      break;
+    case IR_ARGUMENT:
+      fprintf(f, "arg %d, %s\n", n->argnum, IR_ValueStr(n->result));
+      break;
+    case IR_CALL:
+      fprintf(f, "call %s\n", n->ast->sym->name);
       break;
     case IR_VAR:
       fatalv("Unknown IR node for printing (%d)", n->op);
@@ -1016,7 +1192,7 @@ void dumpBBLabel(BasicBlock *bb, FILE *f) {
   }
 }
 
-void dumpIR0(BasicBlock *bb, FILE *f, int recurse) {
+void dumpIRBB0(BasicBlock *bb, FILE *f, int recurse) {
   BasicBlock *b = bb;
   IRNode *n;
   if (b && !b->dumped) {
@@ -1027,11 +1203,22 @@ void dumpIR0(BasicBlock *bb, FILE *f, int recurse) {
       n = n->next;
     }
     b->dumped = 1;
-    if (bb->succs[0] && recurse) dumpIR0(bb->succs[0], f, 1);
-    if (bb->succs[1] && recurse) dumpIR0(bb->succs[1], f, 1);
+    if (bb->succs[0] && recurse) dumpIRBB0(bb->succs[0], f, 1);
+    if (bb->succs[1] && recurse) dumpIRBB0(bb->succs[1], f, 1);
   }
 }
 
-void dumpIR(BasicBlock *bb, FILE *f) {
-  dumpIR0(bb, f, 1);
+static void dumpIRData(struct IRModule *mod, FILE *f) {
+    fprintf(f, ".data\n");
+    IRData *d = mod->data;
+    while (d) {
+        fprintf(f, "%s\n", IR_ValueStr(d->val));
+        d = d->next;
+    }
+}
+
+void dumpIR(struct IRModule *mod, FILE *f) {
+  dumpIRData(mod, f);
+  fprintf(f, ".code\n");
+  dumpIRBB0(mod->blocks, f, 1);
 }

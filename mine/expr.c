@@ -385,10 +385,18 @@ struct ASTnode *primary(void) {
         fatals("Identifier not a scalar or array variable", Text);
     }
     break;
-  case T_STRLIT:
-    id = genglobstr(Text);
-    n = mkastleaf(A_STRLIT, pointer_to(P_CHAR), NULL, NULL, id);
+  case T_STRLIT: {
+    /*id = genglobstr(Text);*/
+    struct symtable *str_sym = findglob(Text);
+    struct symtable *ctype = NULL;
+    if (str_sym == NULL) {
+        // TODO: prepend
+        str_sym = addglob(Text, pointer_to(P_CHAR), ctype, S_ARRAY, class,
+                strlen(Text)+1);
+    }
+    n = mkastleaf(A_STRLIT, str_sym->type, str_sym->ctype, str_sym, 0);
     break;
+  }
   default:
     fatals("Expecting a primary expression, got token", tokenname(Token.token));
   }

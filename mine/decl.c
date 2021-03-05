@@ -311,7 +311,7 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
   IRaddBB(cur_module, bb);
 
   if (O_dumpIR) {
-    dumpIR(bb, stdout);
+    dumpIR(cur_module, stdout);
   }
   /*IRLower(cur_module);*/
   cgfuncpostamble(tree->sym);
