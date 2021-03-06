@@ -67,6 +67,7 @@ void IRaddBB(struct IRModule *mod, struct BasicBlock *bb);
 
 // ir_lower.c
 void IRLower(struct IRModule *mod);
+void IRRegAlloc(struct IRModule *mod);
 
 // cg.c
 void freeall_registers(int keepreg);

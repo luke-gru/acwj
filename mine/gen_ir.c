@@ -102,6 +102,7 @@ IRNode *new_node(IROp op) {
   IRNode *n = (IRNode*)calloc(1, sizeof(IRNode));
   memset(n, 0, sizeof(IRNode));
   n->op = op;
+  n->spillreg = -1;
   return n;
 }
 
@@ -112,22 +113,9 @@ IRNode *dupIRNode(IRNode *node) {
   return (dup);
 }
 
-BasicBlock *genIRFunction(struct ASTnode *n) {
-  struct ASTnode *func = n;
-  cur_func = func;
-
-  /*cgfuncpreamble(n->sym);*/
-  /*n->sym->endlabel = new_label();*/
-  BasicBlock *bb = new_bb(func->sym->name);
-  cur_bb = bb;
-  genIR(func->left);
-  cur_func = NULL;
-  return (bb);
-}
-
 // Add the IRNode to the current basic block, or a new basic
 // block if the current one is `done`.
-void emitIR(IRNode *ir) {
+static void emitIR(IRNode *ir) {
   if (cur_node) {
     ir->prev = cur_node;
   }
@@ -149,18 +137,36 @@ void emitIR(IRNode *ir) {
   }
 }
 
-void emitBlock(BasicBlock *bb) {
+static void emitBlock(BasicBlock *bb) {
   bb->done = 1;
 }
 
-static int isCompoundIRExpr(IRNode *ir_n) {
-    switch (ir_n->op) {
-        case IR_IMM:
-        case IR_VAR:
-            return (0);
-        default:
-            return (1);
-    }
+BasicBlock *genIRFunction(struct ASTnode *n) {
+  struct ASTnode *func = n;
+  cur_func = func;
+
+  n->sym->endlabel = new_label(); // postamble label
+  BasicBlock *bb = new_bb(func->sym->name);
+  bb->func = n;
+  cur_bb = bb;
+  genIR(func->left);
+  IRNode *end_of_func = new_node(IR_END_OF_FUNC); // for postamble
+  end_of_func->ast = n;
+  emitIR(end_of_func);
+  cur_func = NULL;
+  return (bb);
+}
+
+static IRNode *new_tmp_assign_node(IRNode *val) {
+    IRNode *node = new_node(IR_TMP_ASSIGN);
+    node->result = IR_NewTempValue();
+    node->arg1 = IR_NodeValue(val);
+    return node;
+}
+
+static int IR_IsRegNode(IRNode *node) {
+    IRValue *val = IR_NodeValue(node);
+    return val->t == ir_temp_t || val->t == ir_sym_t;
 }
 
 IRNode *genIRReturn(struct ASTnode *n) {
@@ -169,7 +175,8 @@ IRNode *genIRReturn(struct ASTnode *n) {
   IRNode *expr = NULL;
   if (n->left) {
     expr = genIRExpr(n->left);
-    if (isCompoundIRExpr(expr)) {
+    if (!IR_IsRegNode(expr)) {
+        expr = new_tmp_assign_node(expr);
         emitIR(expr);
     }
     ir->type = expr->type;
@@ -208,15 +215,7 @@ IRNode *genIRImm(struct ASTnode *n) {
 }
 
 IRNode *genIRWiden(ASTnode *n) {
-  /*IRNode *ir = new_node(IR_WIDEN);*/
-  /*ir->ast = n;*/
-  /*ir->type = n->type;*/
-  /*ir->ctype = n->ctype;*/
   return (genIRExpr(n->left));
-  /*ASSERT(expr->r3);*/
-  /*ir->r1 = expr->r3;*/
-  /*ir->r3 = new_vreg(ir->type);*/
-  /*return (ir);*/
 }
 
 IRNode *genIRTobool(ASTnode *n) {
@@ -234,7 +233,7 @@ IRNode *genIRCall(ASTnode *n) {
     return (call_node);
 }
 
-static IRData *EmitIRData(IRValue val) {
+static IRData *EmitIRData(IRValue *val) {
     IRData *data = NULL;
     data = calloc(1, sizeof(*data));
     memset(data, 0, sizeof(*data));
@@ -251,6 +250,12 @@ static IRData *EmitIRData(IRValue val) {
     return (data);
 }
 
+static IRValue *NewHeapValue(IRValue val) {
+    IRValue *ret = calloc(1, sizeof(IRValue));
+    memcpy(ret, &val, sizeof(IRValue));
+    return (ret);
+}
+
 IRNode *genIRString(ASTnode *n) {
     IRValue ary_val = {
         .t = ir_ary_t,
@@ -258,11 +263,12 @@ IRNode *genIRString(ASTnode *n) {
             .sym = n->sym
         }
     };
-    EmitIRData(ary_val);
+    IRValue *ary_heap_val = NewHeapValue(ary_val);
+    EmitIRData(ary_heap_val);
     IRNode *ir = new_node(IR_PTR);
     ir->ast = n;
     ir->type = n->type; ir->ctype = n->ctype;
-    ir->result = ary_val;
+    ir->result = ary_heap_val;
     return (ir);
 }
 
@@ -306,7 +312,7 @@ IRNode *genIRBinop(struct ASTnode *n) {
   return (ir);
 }
 
-IRValue IR_NodeValue(IRNode *n) {
+IRValue *IR_NodeValue(IRNode *n) {
     switch (n->op) {
         case IR_ADD:
         case IR_SUBTRACT:
@@ -332,62 +338,66 @@ IRValue IR_NodeValue(IRNode *n) {
     }
 }
 
-IRValue IR_NewTempValue(void) {
+
+IRValue *IR_NewTempValue(void) {
     ir_val_t t = ir_temp_t;
     IRValue val = {
         .t = t,
         .as = {
             .temp = tempnum
-        }
+        },
+        .reg = -1 // not reg-alloced yet
     };
     tempnum++;
-    return val;
+    return (NewHeapValue(val));
 }
 
-IRValue IR_NewSymbolValue(struct symtable *sym) {
+IRValue *IR_NewSymbolValue(struct symtable *sym) {
     ir_val_t t = ir_sym_t;
     IRValue val = {
         .t = t,
         .as = {
             .sym = sym
-        }
+        },
+        .reg = -1 // not reg-alloced yet
     };
-    return val;
+    return (NewHeapValue(val));
 }
 
-IRValue IR_NewImmValue(int imm) {
+IRValue *IR_NewImmValue(int imm) {
     ir_val_t t = ir_imm_t;
     IRValue val = {
         .t = t,
         .as = {
             .imm = imm
-        }
+        },
+        .reg = -1 // unused
     };
-    return val;
+    return (NewHeapValue(val));
 }
 
-IRValue IR_NewPtrValue(IRValue val) {
+IRValue *IR_NewPtrValue(IRValue *val) {
     ir_val_t t = ir_ptr_t;
-    IRValue *val_ptr = malloc(sizeof(IRValue));
-    memcpy(val_ptr, &val, sizeof(IRValue));
     IRValue val_ret = {
         .t = t,
         .as = {
-            .val = val_ptr
-        }
+            .val = val
+        },
+        .reg = -1 // unused
     };
-    return val_ret;
+    return (NewHeapValue(val_ret));
 }
 
-IRValue IR_NewEmptyValue(void) {
+IRValue *IR_NewEmptyValue(void) {
     ir_val_t t = ir_empty_t;
     IRValue val = {
         .t = t,
         .as = {
             .imm = 0
-        }
+        },
+        .reg = -1 // unused
     };
-    return val;
+    return (NewHeapValue(val));
 }
 
 IRNode *genIRIdent(ASTnode *n) {
@@ -405,6 +415,14 @@ IRNode *genJump(BasicBlock *bb) {
   ir_n->bbout1 = bb;
   emitIR(ir_n);
   return (ir_n);
+}
+
+
+static IRNode *new_tmp_assign_node_with(IRNode *val, IRValue *tmp_val) {
+    IRNode *node = new_node(IR_TMP_ASSIGN);
+    node->result = tmp_val;
+    node->arg1 = IR_NodeValue(val);
+    return (node);
 }
 
 /*typedef struct PhiNodeData {*/
@@ -645,6 +663,50 @@ IRNode *genIRIf(ASTnode *n) {
   return (ir_n);
 }
 
+// a ? b : c
+IRNode *genIRTernary(ASTnode *n) {
+    BasicBlock *b_block = new_bb(NULL);
+    BasicBlock *c_block = new_bb(NULL);
+    BasicBlock *out_block = new_bb(NULL);
+
+    bb_succ(cur_bb, b_block);
+    bb_succ(cur_bb, c_block);
+    bb_succ(b_block, out_block);
+    bb_succ(c_block, out_block);
+
+    IRNode *cond = genIRExpr(n->left);
+    emitIR(cond);
+    IRNode *ir_if = new_node(IR_IF);
+    ir_if->arg1 = IR_NodeValue(cond);
+    ir_if->ast = n;
+    ir_if->bbout1 = b_block;
+    ir_if->bbout2 = c_block;
+    emitIR(ir_if);
+    cur_bb->done = 1;
+
+    cur_bb = b_block;
+    IRNode *b_node = genIRExpr(n->mid);
+    IRNode *res_node = new_tmp_assign_node(b_node);
+    emitIR(res_node);
+    IRNode *jump_out0 = new_node(IR_JUMP);
+    jump_out0->bbout1 = out_block;
+    emitIR(jump_out0);
+    cur_bb->done = 1;
+
+    cur_bb = c_block;
+    IRNode *c_node = genIRExpr(n->right);
+    IRNode *res_node2 = new_tmp_assign_node_with(c_node, IR_NodeValue(res_node));
+    emitIR(res_node2);
+    IRNode *jump_out1 = new_node(IR_JUMP);
+    jump_out1->bbout1 = out_block;
+    emitIR(jump_out1);
+    cur_bb->done = 1;
+
+    cur_bb = out_block;
+
+    return (res_node);
+}
+
 IRNode *genIRWhile(ASTnode *n) {
   BasicBlock *b_block = new_bb(NULL);
   BasicBlock *c_block = new_bb(NULL);
@@ -752,19 +814,6 @@ IRNode *genIRFor(ASTnode *n) {
     return NULL;
 }
 
-static IRNode *new_tmp_assign_node(IRNode *val) {
-    IRNode *node = new_node(IR_TMP_ASSIGN);
-    node->result = IR_NewTempValue();
-    node->arg1 = IR_NodeValue(val);
-    return node;
-}
-
-static IRNode *new_tmp_assign_node_with(IRNode *val, IRValue tmp_val) {
-    IRNode *node = new_node(IR_TMP_ASSIGN);
-    node->result = tmp_val;
-    node->arg1 = IR_NodeValue(val);
-    return node;
-}
 
 
 // logical or (a || b), it short circuits
@@ -787,7 +836,7 @@ IRNode *genIRLogor(ASTnode *n) {
     IRNode *ir_res_false = genIRExpr(false_node);
     IRNode *ir_res_tmp = new_tmp_assign_node(ir_res_false);
     emitIR(ir_res_tmp);
-    IRValue res_val = IR_NodeValue(ir_res_tmp);
+    IRValue *res_val = IR_NodeValue(ir_res_tmp);
 
     IRNode *ir_if = new_node(IR_IF);
     IRNode *cond = genIRExpr(n->left); // a
@@ -871,7 +920,7 @@ IRNode *genIRLogand(ASTnode *n) {
     IRNode *ir_res_true = genIRExpr(true_node);
     IRNode *ir_res_tmp = new_tmp_assign_node(ir_res_true);
     emitIR(ir_res_tmp);
-    IRValue res_val = IR_NodeValue(ir_res_tmp);
+    IRValue *res_val = IR_NodeValue(ir_res_tmp);
 
     IRNode *ir_if = new_node(IR_IF);
     IRNode *cond = genIRExpr(n->left); // a
@@ -998,8 +1047,8 @@ IRNode *genIRExpr(struct ASTnode *n) {
     case A_LOGAND:
       res = genIRLogand(n);
       break;
-    /*case A_TERNARY:*/
-      /*return (genIRTernary(n));*/
+    case A_TERNARY:
+      return (genIRTernary(n));
     case A_TOBOOL:
       res = genIRTobool(n);
       break;
@@ -1083,29 +1132,34 @@ void genIRFinish(void) {
     /*cur_cfg->exit = cur_bb->cfg_node;*/
 }
 
-static char *IR_ValueStr(IRValue val) {
+static char *IR_ValueStr(IRValue *val) {
     char buf[100] = {0};
-    switch (val.t) {
+    switch (val->t) {
         case ir_empty_t:
             return strdup("empty?");
-        case ir_temp_t:
-            sprintf(buf, "t%d", val.as.temp);
+        case ir_temp_t: {
+            if (val->reg > -1) {
+                sprintf(buf, "t%d {r%d}", val->as.temp, val->reg);
+            } else {
+                sprintf(buf, "t%d", val->as.temp);
+            }
             return strdup(buf);
+        }
         case ir_sym_t:
-            sprintf(buf, "%s", val.as.sym->name);
+            sprintf(buf, "%s", val->as.sym->name);
             return strdup(buf);
         case ir_imm_t:
-            sprintf(buf, "%d", val.as.imm);
+            sprintf(buf, "%d", val->as.imm);
             return strdup(buf);
         case ir_ary_t:
-            ASSERT(val.as.sym);
-            sprintf(buf, "ary[%d] %s", val.as.sym->nelems, typename(val.as.sym->type, val.as.sym->ctype));
+            ASSERT(val->as.sym);
+            sprintf(buf, "ary[%d] %s", val->as.sym->nelems, typename(val->as.sym->type, val->as.sym->ctype));
             return strdup(buf);
         case ir_ptr_t:
-            sprintf(buf, "ptr %s", IR_ValueStr(*val.as.val));
+            sprintf(buf, "ptr %s", IR_ValueStr(val->as.val));
             return strdup(buf);
         default:
-            fatalv("Unknown val type (%d)", val.t);
+            fatalv("Unknown val type (%d)", val->t);
     }
 }
 
@@ -1176,6 +1230,8 @@ void dumpIRNode(IRNode *n, FILE *f) {
       break;
     case IR_CALL:
       fprintf(f, "call %s\n", n->ast->sym->name);
+      break;
+    case IR_END_OF_FUNC: // only for codegen
       break;
     case IR_VAR:
       fatalv("Unknown IR node for printing (%d)", n->op);

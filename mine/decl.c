@@ -309,6 +309,7 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
   bb = genIR(tree);
   genIRFinish();
   IRaddBB(cur_module, bb);
+  IRRegAlloc(cur_module);
 
   if (O_dumpIR) {
     dumpIR(cur_module, stdout);

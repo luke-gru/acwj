@@ -49,3 +49,15 @@ or IR should, but I'm leaning towards the latter. IR_MEM could
 be an IRValue, but then we'd need non basic block structures before the
 basic blocks for all data. [mostly done, need to add labels for data section
 and dedup data section]
+
+* Implement A_ADDR
+
+* Implement A_DEREF
+
+* Implement A_NEGATE
+
+* Implement A_TERNARY [DONE]
+
+ASM:
+----
+* Get simple IR compiling to asm (return (0)) [TODO]

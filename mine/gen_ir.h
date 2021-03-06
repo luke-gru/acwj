@@ -20,6 +20,7 @@ typedef struct IRValue {
         int imm;
         struct IRValue *val;
     } as;
+    int reg; // non-virtual register for ir_sym_t and ir_temp_t
 } IRValue;
 
 typedef enum IROp {
@@ -44,15 +45,16 @@ typedef enum IROp {
     IR_TMP_ASSIGN, // for code-generated assigns
     IR_ARGUMENT,
     IR_CALL,
+    IR_END_OF_FUNC,
 } IROp;
 
 struct BasicBlock;
 
 typedef struct IRNode {
     IROp op;
-    IRValue arg1;
-    IRValue arg2;
-    IRValue result;
+    IRValue *arg1;
+    IRValue *arg2;
+    IRValue *result;
     struct ASTnode *ast;
     int type; // type of node (ast->type)
     int argnum; // for IR_ARGUMENT
@@ -60,21 +62,23 @@ typedef struct IRNode {
     struct symtable *sym; // Pointer to symbol
     struct BasicBlock *bbout1; // for IR_IF, IR_JUMP
     struct BasicBlock *bbout2; // for IR_IF
+    int spillreg; // do we spill a register before generating asm for this node? If > -1, yes
     struct IRNode *next; // next in basic block list
     struct IRNode *prev;
 } IRNode;
 
 //struct CFGNode;
 typedef struct BasicBlock {
-    struct ASTnode *func;
+    struct ASTnode *func; // for A_FUNCTION
     int ilabel; // beginning label
     char *slabel;
     IRNode *nodes; // first node
     IRNode *last;
     int done;
-    int dumped;
+    int dumped; // for string dumping
     int patched; // breaks have been patched
-    //int lowered;
+    int lowered; // has asm code been generated for this block
+    int regalloced; // has this block been regalloced
     int num_preds;
     int num_succs;
     struct BasicBlock *preds[3];
@@ -83,7 +87,7 @@ typedef struct BasicBlock {
 } BasicBlock;
 
 typedef struct IRData {
-    IRValue val;
+    IRValue *val;
     struct IRData *next;
 } IRData;
 
@@ -108,12 +112,12 @@ extern IRModule *cur_module;
     //CFGNode *exit;
 //} CFG;
 
-IRValue IR_NodeValue(IRNode *node);
-IRValue IR_NewTempValue(void);
-IRValue IR_NewSymbolValue(struct symtable *sym);
-IRValue IR_NewImmValue(int imm);
-IRValue IR_NewPtrValue(IRValue val);
-IRValue IR_NewEmptyValue(void);
+IRValue *IR_NodeValue(IRNode *node);
+IRValue *IR_NewTempValue(void);
+IRValue *IR_NewSymbolValue(struct symtable *sym);
+IRValue *IR_NewImmValue(int imm);
+IRValue *IR_NewPtrValue(IRValue *val);
+IRValue *IR_NewEmptyValue(void);
 
 IRModule *new_module(char *filename);
 //BasicBlock *new_bb(char *label_name);

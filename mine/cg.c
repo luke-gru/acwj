@@ -79,7 +79,7 @@ void cgresetlocals(void) {
 }
 
 // Set all registers as available.
-// But if reg is positive (including 0), don't free that one.
+// But if keepreg is positive (including 0), don't free that one.
 void freeall_registers(int keepreg) {
   int i;
   for (i = 0; i < NUMFREEREGS; i++) {
