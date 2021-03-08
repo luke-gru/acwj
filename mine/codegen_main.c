@@ -265,6 +265,8 @@ after_incr:
       switch (argv[i][j]) {
         case 'v':
           O_verbose = 1; break;
+        case 't':
+          O_dumpAST = 1; break;
         case 'T':
           O_dumpAST = 1; O_parseOnly = 1; O_dolink = 0; break;
         case 'i':

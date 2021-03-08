@@ -343,12 +343,10 @@ void cgfuncpostamble(struct symtable *sym) {
 
 // Load an integer literal value into a register.
 // Return the number of the register
-int cgloadint(int value, int type) {
+int cgloadint(int value, int type, int r) {
   cgcommentsource("cgloadint");
-  int size, r;
+  int size;
   size = cgprimsize(type);
-
-  r = alloc_register();
 
   switch (size) {
     case CHARSZ:
@@ -431,10 +429,7 @@ void cgprintint(int r) {
   free_register(r);
 }
 
-int cgloadglob(struct symtable *sym, int op) {
-  // Get a new register
-  int r = alloc_register();
-
+int cgloadglob(struct symtable *sym, int r) {
   int size = cgprimsize(sym->type);
   int is_ptr_type = ptrtype(sym->type);
   int elem_size = 0;
@@ -473,9 +468,7 @@ int cgloadglob(struct symtable *sym, int op) {
 // Return the number of the register. If the
 // operation is pre- or post-increment/decrement,
 // also perform this action.
-int cgloadlocal(struct symtable *sym, int op) {
-  // Get a new register
-  int r;
+int cgloadlocal(struct symtable *sym, int r) {
   ASSERT(sym->class == C_LOCAL || sym->class == C_PARAM);
   cgcommentsource("cgloadlocal");
 
@@ -490,7 +483,6 @@ int cgloadlocal(struct symtable *sym, int op) {
   if (is_ptr_type) {
     elem_size = typesize(value_at(sym->type), sym->ctype);
   }
-  r = alloc_register();
 
   // Print out the code to initialise it
   switch (size) {
@@ -538,6 +530,7 @@ int cgstorglob(int r, struct symtable *sym) {
 // Store a register's value into a local variable
 int cgstorlocal(int r, struct symtable *sym) {
   ASSERT_REG(r);
+  ASSERT(sym);
   cgcommentsource("cgstorlocal");
   int size = typesize(sym->type, sym->ctype);
 
@@ -633,7 +626,7 @@ static char *cmplist[] =
   { "sete", "setne", "setl", "setg", "setle", "setge" };
 
 // Compare two registers.
-int cgcompare_and_set(int ASTop, int r1, int r2, int type) {
+int cgcompare_and_set(int ASTop, int r1, int r2, int rout, int type) {
   ASSERT_REG(r1);
   ASSERT_REG(r2);
   int size = cgprimsize(type);
@@ -656,10 +649,9 @@ int cgcompare_and_set(int ASTop, int r1, int r2, int type) {
     default:
       fatalv("Bad type in cgcompare_and_set: %s (%d)", typename(type, NULL), type);
   }
-  fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
-  fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
-  free_register(r1);
-  return (r2);
+  fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[rout]);
+  fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[rout], reglist[rout]);
+  return (rout);
 }
 
 // Generate a label
@@ -707,6 +699,10 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type) {
   return (NOREG);
 }
 
+void cgjumpnz(int label) {
+  fprintf(Outfile, "\tjnz\tL%d\n", label);
+}
+
 // Widen the value in the register from the old
 // to the new type, and return a register with
 // this new value
@@ -738,7 +734,7 @@ void cgcopyarg(struct symtable *func, int r, int argnum) {
   // varargs function
   if (func->size < 0 && argnum > func->nelems) {
     fprintf(Outfile, "\tpushq\t%s # varargs argument %d\n", reglist[r], argnum); // last argument must be pushed first
-    free_register(r);
+    /*free_register(r);*/
     return;
   }
   // If this is above the sixth argument, simply push the
@@ -753,7 +749,7 @@ void cgcopyarg(struct symtable *func, int r, int argnum) {
             reglist[FIRSTPARAMREG - argnum + 1], argnum, func->name);
   }
 
-  free_register(r);
+  /*free_register(r);*/
 }
 
 // Call a function and return the register with the result.

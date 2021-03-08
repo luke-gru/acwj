@@ -60,4 +60,29 @@ and dedup data section]
 
 ASM:
 ----
-* Get simple IR compiling to asm (return (0)) [TODO]
+* Get simple IR compiling to asm (return (0)) [DONE]
+* Get assignment, local variable loading, immediate loading and if branches
+working [DONE]
+
+Improvements/Concerns
+---------------------
+
+The IR that I'm generating is fine, but I'm making a lot of transformations
+that shouldn't occur until a later lowering phase. (ex: subtraction must work
+on temporaries so I'll turn both e->left and e->right into temps (regs). Now I
+can't constant fold! The high-level IR should be just that, high-level and
+not making these decisions.
+
+How should the high-level IR be represented? I think TAC is fine, if in SSA
+form with basic blocks and PHI functions.
+
+Then we'll do a separate lowering phase to make for easier asm generation.
+
+Optimizations:
+SSA Form:
+* constant folding (easy)
+* Common Subexpression Elimination (CSE)
+* Global Value Numbering (advanced CSE)
+
+Register Allocations
+--------------------

@@ -314,8 +314,8 @@ struct symtable *function_declaration(char *name, int type, struct symtable *cty
   if (O_dumpIR) {
     dumpIR(cur_module, stdout);
   }
-  /*IRLower(cur_module);*/
-  cgfuncpostamble(tree->sym);
+  IRLower(cur_module);
+  /*cgfuncpostamble(tree->sym);*/
 
   // Generate the assembly code for it
   //genAST(tree, NOREG, NOLABEL, NOLABEL, 0);

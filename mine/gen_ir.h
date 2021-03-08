@@ -39,8 +39,8 @@ typedef enum IROp {
     IR_PTR,
     IR_ASSIGN,
     IR_VAR,
-    IR_RETURN,
-    IR_JUMP, // 15
+    IR_RETURN, // 15
+    IR_JUMP,
     IR_IF,
     IR_TMP_ASSIGN, // for code-generated assigns
     IR_ARGUMENT,

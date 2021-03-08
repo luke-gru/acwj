@@ -13,6 +13,7 @@ static BasicBlock *start_bb = NULL; // start basic block for genIR()
 /*static CFG *cur_cfg = NULL;*/
 IRModule *cur_module = NULL;
 static ASTnode *cur_func = NULL;
+static ASTnode *current_funcall = NULL;
 static IRNode *cur_node = NULL;
 
 IRNode *genIRExpr(struct ASTnode *n);
@@ -166,7 +167,27 @@ static IRNode *new_tmp_assign_node(IRNode *val) {
 
 static int IR_IsRegNode(IRNode *node) {
     IRValue *val = IR_NodeValue(node);
+    return val->t == ir_temp_t;
+}
+
+static int IR_IsRegOrSymNode(IRNode *node) {
+    IRValue *val = IR_NodeValue(node);
     return val->t == ir_temp_t || val->t == ir_sym_t;
+}
+
+static int IR_IsCondition(IRNode *node) {
+    switch (node->op) {
+        case IR_EQ:
+        case IR_NE:
+        case IR_LT:
+        case IR_GT:
+        case IR_LE:
+        case IR_GE:
+        case IR_TMP_ASSIGN:
+            return 1;
+        default:
+            return 0;
+    }
 }
 
 IRNode *genIRReturn(struct ASTnode *n) {
@@ -225,10 +246,15 @@ IRNode *genIRTobool(ASTnode *n) {
 IRNode *genIRCall(ASTnode *n) {
     int old_in_arguments = in_arguments;
     in_arguments = 1;
+    ASTnode *old_funcall = current_funcall;
+    current_funcall = n;
     genIR(n->left); // arguments glue tree
+    int num_arguments = in_arguments;
     in_arguments = old_in_arguments;
+    current_funcall = old_funcall;
     IRNode *call_node = new_node(IR_CALL);
     call_node->ast = n;
+    call_node->argnum = num_arguments;
     emitIR(call_node);
     return (call_node);
 }
@@ -272,6 +298,20 @@ IRNode *genIRString(ASTnode *n) {
     return (ir);
 }
 
+static int IR_IsCompare(int cmpop) {
+    switch (cmpop) {
+        case IR_EQ:
+        case IR_NE:
+        case IR_LT:
+        case IR_GT:
+        case IR_LE:
+        case IR_GE:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 IRNode *genIRBinop(struct ASTnode *n) {
   IROp op;
   switch (n->op) {
@@ -305,8 +345,18 @@ IRNode *genIRBinop(struct ASTnode *n) {
   ir->type = n->type; ir->ctype = n->ctype;
   IRNode *left = genIRExpr(n->left);
   IRNode *right = genIRExpr(n->right);
-  ir->arg1 = IR_NodeValue(left);
-  ir->arg2 = IR_NodeValue(right);
+  if (IR_IsCompare(op)) {
+      if (!IR_IsRegNode(left)) {
+          left = new_tmp_assign_node(left);
+          emitIR(left);
+      }
+      if (!IR_IsRegNode(right)) {
+          right = new_tmp_assign_node(right);
+          emitIR(right);
+      }
+  }
+  ir->arg1 = IR_NodeValue(left); // tmp register
+  ir->arg2 = IR_NodeValue(right); // tmp register
   ir->result = IR_NewTempValue();
   emitIR(ir);
   return (ir);
@@ -329,6 +379,8 @@ IRValue *IR_NodeValue(IRNode *n) {
         case IR_IMM:
         case IR_RETURN:
         case IR_TMP_ASSIGN:
+        case IR_ASSIGN:
+        case IR_ARGUMENT:
             return n->result;
         case IR_PTR:
             return IR_NewPtrValue(n->result);
@@ -707,6 +759,7 @@ IRNode *genIRTernary(ASTnode *n) {
     return (res_node);
 }
 
+
 IRNode *genIRWhile(ASTnode *n) {
   BasicBlock *b_block = new_bb(NULL);
   BasicBlock *c_block = new_bb(NULL);
@@ -716,7 +769,12 @@ IRNode *genIRWhile(ASTnode *n) {
   bb_succ(b_block, c_block);
 
   IRNode *ir_if = new_node(IR_IF);
-  ir_if->arg1 = IR_NodeValue(genIRExpr(n->left));
+  IRNode *cond = genIRExpr(n->left);
+  if (!IR_IsCondition(cond)) {
+      cond = new_tmp_assign_node(cond);
+      emitIR(cond);
+  }
+  ir_if->arg1 = IR_NodeValue(cond);
   ir_if->ast = n;
   ir_if->bbout1 = b_block;
   ir_if->bbout2 = c_block;
@@ -727,7 +785,12 @@ IRNode *genIRWhile(ASTnode *n) {
 
   genIR(n->right);
   IRNode *ir_if1 = new_node(IR_IF);
-  ir_if1->arg1 = IR_NodeValue(genIRExpr(n->left));
+  IRNode *cond1 = genIRExpr(n->left);
+  if (!IR_IsCondition(cond1)) {
+      cond1 = new_tmp_assign_node(cond1);
+      emitIR(cond1);
+  }
+  ir_if1->arg1 = IR_NodeValue(cond1);
   ir_if1->ast = n;
   ir_if1->bbout1 = b_block;
   ir_if1->bbout2 = c_block;
@@ -1039,7 +1102,7 @@ IRNode *genIRExpr(struct ASTnode *n) {
       res = genIRWiden(n);
       break;
     case A_IDENT:
-      res = genIRIdent(n);
+      res = genIRIdent(n); // global or local var
       break;
     case A_LOGOR:
       res = genIRLogor(n);
@@ -1063,8 +1126,13 @@ IRNode *genIRExpr(struct ASTnode *n) {
   }
   if (in_arguments) {
       IRNode *arg_node = new_node(IR_ARGUMENT);
+      arg_node->ast = current_funcall;
       arg_node->argnum = in_arguments;
       in_arguments++;
+      if (!IR_IsRegNode(res)) {
+          res = new_tmp_assign_node(res);
+          emitIR(res);
+      }
       arg_node->result = IR_NodeValue(res);
       emitIR(arg_node);
       return (arg_node);
@@ -1076,10 +1144,17 @@ IRNode *genIRExpr(struct ASTnode *n) {
 static IRNode *genIRAssign(struct ASTnode *n) {
     IRNode *ir_n = new_node(IR_ASSIGN);
     ir_n->type = n->type; ir_n->ctype = n->ctype;
+    ir_n->ast = n;
     IRNode *n_right = genIRExpr(n->right);
     ir_n->result = IR_NodeValue(n_right);
+
     IRNode *n_left = genIRExpr(n->left);
+    if (!IR_IsRegNode(n_left)) {
+        n_left = new_tmp_assign_node(n_left);
+        emitIR(n_left);
+    }
     ir_n->arg1 = IR_NodeValue(n_left);
+
     emitIR(ir_n);
     return (ir_n);
 }

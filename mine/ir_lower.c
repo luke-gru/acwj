@@ -3,10 +3,12 @@
 #include "decl.h"
 #include "gen_ir.h"
 #include "vec.h"
+#include "ir_lower.h"
 
 static FILE *OutfileIR;
 #define OutfileIR Outfile
 static struct ASTnode *cur_function = NULL;
+static int just_compared = 0;
 
 static int cgvalue_reg(IRValue *val) {
     int reg = -1;
@@ -15,6 +17,7 @@ static int cgvalue_reg(IRValue *val) {
         case ir_sym_t:
             reg = val->reg;
             ASSERT(reg > -1);
+            break;
         case ir_imm_t:
             ASSERT(0);
         case ir_ptr_t:
@@ -27,8 +30,31 @@ static int cgvalue_reg(IRValue *val) {
     return reg;
 }
 
+static void lowerValue(IRValue *val, int reg) {
+    switch (val->t) {
+        case ir_imm_t:
+            cgloadint(val->as.imm, P_INT, reg);
+            break;
+        case ir_sym_t:
+           if (isglobalsym(val->as.sym)) {
+               cgloadglob(val->as.sym, reg);
+           } else {
+               cgloadlocal(val->as.sym, reg);
+           }
+           break;
+        case ir_temp_t: // move
+           cgmove(val->reg, reg);
+           break;
+        // TODO
+        default:
+            fprintf(stderr, "Tried to lower val t %d\n", val->t);
+            ASSERT(0);
+    }
+    just_compared = 0;
+}
 
 static void lowerNode(IRNode *curnode) {
+    fprintf(stderr, "lowering %d\n", curnode->op);
     switch (curnode->op) {
         /*case IR_LOAD_IMM: {*/
             /*r = cgloadint(curnode->imm, curnode->type);*/
@@ -67,16 +93,71 @@ static void lowerNode(IRNode *curnode) {
         /*case IR_JUMP:*/
             /*cgjumptolabel(curnode->label);*/
             /*break;*/
+        /*case IR_IMM: {*/
+            /*int reg = lowerValue(curnode->result);*/
+            /*cgloadint(curnode->ast->type, curnode->result->as.imm, reg);*/
+            /*break;*/
+        /*}*/
+        case IR_ASSIGN: {
+            // TODO: move immediate directly if curnode->arg1 is an immediate
+            // Right now, arg1 is always a register
+            int reg = cgvalue_reg(curnode->arg1);
+            cgstorlocal(reg, curnode->result->as.sym);
+            just_compared = 0;
+            break;
+        }
+        case IR_TMP_ASSIGN: {
+            int reg = cgvalue_reg(curnode->result);
+            lowerValue(curnode->arg1, reg);
+            break;
+        }
         case IR_RETURN: {
             int reg = cgvalue_reg(curnode->result);
             cgreturn(reg, CurFunctionSym);
+            just_compared = 0;
             break;
         }
-        case IR_END_OF_FUNC:
+        case IR_EQ: {
+            // arg1 and arg2 are temp registers
+            int regout = cgvalue_reg(curnode->result);
+            int reg1 = cgvalue_reg(curnode->arg1);
+            int reg2 = cgvalue_reg(curnode->arg2);
+            cgcompare_and_set(curnode->ast->op, reg1, reg2, regout, curnode->ast->left->type);
+            just_compared = 1;
+            break;
+        }
+        case IR_IF: {
+            if (just_compared) {
+                cgjumpnz(curnode->bbout2->ilabel);
+            } else {
+                cgjumpunless(cgvalue_reg(curnode->arg1), curnode->bbout2->ilabel);
+            }
+            cgjump(curnode->bbout1->ilabel);
+            just_compared = 0;
+            break;
+        }
+        case IR_JUMP: {
+            cgjump(curnode->bbout1->ilabel);
+            just_compared = 0;
+            break;
+        }
+        case IR_ARGUMENT: {
+            cgcopyarg(curnode->ast->sym, cgvalue_reg(curnode->result), curnode->argnum);
+            break;
+        }
+        case IR_CALL: {
+            cgcall(curnode->ast->sym, curnode->argnum);
+            break;
+        }
+        case IR_SUBTRACT: {
+            break;
+        }
+        case IR_END_OF_FUNC: {
             cgfuncpostamble(curnode->ast->sym);
             break;
+        }
         default:
-            fprintf(stderr, "unhandled IR op: %s (%d)", ir_opname(curnode->op), curnode->op);
+            fprintf(stderr, "unhandled IR op: %s (%d)\n", ir_opname(curnode->op), curnode->op);
             ASSERT(0);
             break;
     }
@@ -153,7 +234,7 @@ static int regalloc_alloc_register(IRNode *node) {
 static void regAllocNode(IRNode *node) {
     if (!node->result) { return; }
     IRValue *val = IR_NodeValue(node);
-    if (val->reg > -1) { return; }
+    if (val->reg > -1) { return; } // already allocated
     switch (val->t) {
         case ir_sym_t:
         case ir_temp_t:
@@ -182,7 +263,9 @@ static void lowerBlock(BasicBlock *bb) {
     }
     if (bb->func) {
         cur_function = bb->func;
-        cgfuncpreamble(bb->func->sym);
+        if (bb->slabel) {
+            cgfuncpreamble(bb->func->sym);
+        }
     }
     IRNode *curnode = bb->nodes;
     int r = -1;

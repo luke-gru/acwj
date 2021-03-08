@@ -201,6 +201,7 @@ int gen_funcall(struct ASTnode *n) {
     }
     // Copy this into the n'th function parameter: size is 1, 2, 3, ...
     cgcopyarg(n->sym, reg, gluetree->size);
+    free_register(reg);
     gluetree = gluetree->left;
   }
 
@@ -435,16 +436,22 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
   case A_LT:
   case A_GT:
   case A_LE:
-  case A_GE:
+  case A_GE: {
     // If the parent AST node is an A_IF, generate a compare
     // followed by a jump. Otherwise, compare registers and
     // set one to 1 or 0 based on the comparison.
-    if (parentASTop == A_IF || parentASTop == A_WHILE || parentASTop == A_FOR || parentASTop == A_TERNARY)
+    if (parentASTop == A_IF || parentASTop == A_WHILE || parentASTop == A_FOR || parentASTop == A_TERNARY) {
       return (cgcompare_and_jump(n->op, leftreg, rightreg, reg, n->left->type));
-    else
-      return (cgcompare_and_set(n->op, leftreg, rightreg, n->left->type));
-  case A_INTLIT:
-    return (cgloadint(n->intvalue, n->type));
+    } else {
+        int regout = cgcompare_and_set(n->op, leftreg, rightreg, rightreg, n->left->type);
+        free_register(leftreg);
+        return (regout);
+    }
+  }
+  case A_INTLIT: {
+    int reg = alloc_register();
+    return (cgloadint(n->intvalue, n->type, reg));
+  }
   case A_IDENT:
     // Load our value if we are an rvalue
     // or we are being dereferenced
@@ -525,7 +532,7 @@ int genAST(struct ASTnode *n, int reg, int looptoplabel, int loopendlabel, int p
       case 4: return (cgshlconst(leftreg, 2));
       case 8: return (cgshlconst(leftreg, 3));
       default:
-        rightreg = cgloadint(n->size, n->type);
+        rightreg = cgloadint(n->size, n->type, alloc_register());
         return (cgmul(leftreg, rightreg));
     }
   case A_ADDR:
